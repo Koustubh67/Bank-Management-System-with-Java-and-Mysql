@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/portal :: page(~{::title}, ~{::main})}">
+<head><title>Account opened · JavaBank</title></head>
+<body>
+<main class="container narrow">
+    <div class="card success">
+        <h1>Application submitted</h1>
+        <p>Thank you, <strong th:text="${customerName}"></strong>. Your account has been created and is
+            <strong>awaiting approval</strong> by bank staff.</p>
+        <dl class="credentials">
+            <dt>Account number</dt><dd th:text="${opened.accountNumber}"></dd>
+            <dt>Card number</dt><dd th:text="${opened.cardNumber}"></dd>
+            <dt>PIN</dt><dd th:text="${opened.pin}"></dd>
+        </dl>
+        <p class="alert warn">Write down your card number and PIN now. For your security, the PIN is stored encrypted
+            and will not be shown again.</p>
+        <div class="form-actions">
+            <a class="btn primary" th:href="@{/atm/login}">Go to ATM</a>
+            <a class="btn ghost" th:href="@{/}">Home</a>
+        </div>
+    </div>
+</main>
+</body>
+</html>

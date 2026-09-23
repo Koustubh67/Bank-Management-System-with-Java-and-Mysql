@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/admin :: page(~{::title}, ~{::main})}">
+<head><title>Accounts · JavaBank Staff</title></head>
+<body>
+<main class="container">
+    <h1>Accounts</h1>
+    <nav class="tabs">
+        <a th:href="@{/admin/accounts}" th:classappend="${status == null} ? 'active'">All</a>
+        <a th:each="s : ${statuses}" th:href="@{/admin/accounts(status=${s})}" th:text="${s}"
+           th:classappend="${status == s} ? 'active'"></a>
+    </nav>
+    <p th:if="${accounts.isEmpty()}" class="muted">No accounts found.</p>
+    <div class="table-wrap" th:unless="${accounts.isEmpty()}">
+        <table class="table">
+            <thead><tr><th>Account</th><th>Customer</th><th>Type</th><th>Status</th><th class="num">Balance</th><th>Opened</th></tr></thead>
+            <tbody>
+            <tr th:each="a : ${accounts}">
+                <td class="mono"><a th:href="@{/admin/accounts/{id}(id=${a.id})}" th:text="${a.accountNumber}"></a></td>
+                <td th:text="${a.customer.fullName}"></td>
+                <td th:text="${a.accountType.label}"></td>
+                <td><span class="badge" th:classappend="${#strings.toLowerCase(a.status)}" th:text="${a.status}"></span></td>
+                <td class="num" th:text="${@money.format(a.balance)}"></td>
+                <td th:text="${#temporals.format(a.createdAt, 'dd MMM yyyy')}"></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+</body>
+</html>

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/admin :: page(~{::title}, ~{::main})}">
+<head><title>Transactions · JavaBank Staff</title></head>
+<body>
+<main class="container">
+    <h1>Latest transactions</h1>
+    <p class="muted">The 100 most recent ledger entries across all accounts.</p>
+    <p th:if="${transactions.isEmpty()}" class="muted">No transactions yet.</p>
+    <div class="table-wrap" th:unless="${transactions.isEmpty()}">
+        <table class="table">
+            <thead><tr><th>Date</th><th>Account</th><th>Type</th><th>Counterparty</th><th class="num">Amount</th><th class="num">Balance after</th><th>Reference</th></tr></thead>
+            <tbody>
+            <tr th:each="t : ${transactions}">
+                <td th:text="${#temporals.format(t.createdAt, 'dd MMM yyyy HH:mm')}"></td>
+                <td class="mono"><a th:href="@{/admin/accounts/{id}(id=${t.account.id})}" th:text="${t.account.accountNumber}"></a></td>
+                <td th:text="${t.type.label}"></td>
+                <td class="mono" th:text="${t.counterpartyAccount ?: '—'}"></td>
+                <td class="num" th:classappend="${t.type.credit} ? 'cr' : 'dr'"
+                    th:text="${(t.type.credit ? '+' : '−') + @money.format(t.amount)}"></td>
+                <td class="num" th:text="${@money.format(t.balanceAfter)}"></td>
+                <td class="mono small" th:text="${#strings.substring(t.referenceId, 0, 8)}"></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+</body>
+</html>

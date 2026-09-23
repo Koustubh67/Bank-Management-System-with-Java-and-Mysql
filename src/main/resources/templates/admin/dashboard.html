@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/admin :: page(~{::title}, ~{::main})}">
+<head><title>Dashboard · JavaBank Staff</title></head>
+<body>
+<main class="container">
+    <h1>Dashboard</h1>
+    <div class="stats">
+        <div class="stat"><span>Customers</span><strong th:text="${stats.customers}">0</strong></div>
+        <a class="stat" th:href="@{/admin/accounts(status=PENDING)}"><span>Pending approval</span><strong th:text="${stats.pending}">0</strong></a>
+        <a class="stat" th:href="@{/admin/accounts(status=ACTIVE)}"><span>Active accounts</span><strong th:text="${stats.active}">0</strong></a>
+        <a class="stat" th:href="@{/admin/accounts(status=FROZEN)}"><span>Frozen accounts</span><strong th:text="${stats.frozen}">0</strong></a>
+        <a class="stat" th:href="@{/admin/transactions}"><span>Transactions</span><strong th:text="${stats.transactions}">0</strong></a>
+        <div class="stat"><span>Total deposits held</span><strong th:text="${@money.format(stats.totalDeposits)}">₹0</strong></div>
+    </div>
+
+    <h2>Waiting for approval</h2>
+    <p th:if="${pending.isEmpty()}" class="muted">No accounts are waiting for approval.</p>
+    <div class="table-wrap" th:unless="${pending.isEmpty()}">
+        <table class="table">
+            <thead><tr><th>Opened</th><th>Customer</th><th>Account</th><th>Type</th><th></th></tr></thead>
+            <tbody>
+            <tr th:each="a : ${pending}">
+                <td th:text="${#temporals.format(a.createdAt, 'dd MMM yyyy HH:mm')}"></td>
+                <td><a th:href="@{/admin/accounts/{id}(id=${a.id})}" th:text="${a.customer.fullName}"></a></td>
+                <td class="mono" th:text="${a.accountNumber}"></td>
+                <td th:text="${a.accountType.label}"></td>
+                <td class="actions">
+                    <form th:action="@{/admin/accounts/{id}/approve(id=${a.id})}" method="post" class="inline">
+                        <button type="submit" class="btn small primary">Approve</button>
+                    </form>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+</body>
+</html>

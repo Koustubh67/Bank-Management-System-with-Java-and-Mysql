@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/portal :: page(~{::title}, ~{::main})}">
+<head><title>Open Account · Personal details</title></head>
+<body>
+<main class="container narrow">
+    <h1>Open an account</h1>
+    <ol th:replace="~{fragments/form :: steps(1)}"></ol>
+    <form class="card form" th:action="@{/signup/personal}" th:object="${signupForm}" method="post" novalidate>
+        <h2>Page 1 · Personal details</h2>
+        <div class="grid">
+            <label th:replace="~{fragments/form :: input('fullName', 'Full name', 'text')}"></label>
+            <label th:replace="~{fragments/form :: input('fatherName', 'Father’s name', 'text')}"></label>
+            <label th:replace="~{fragments/form :: input('dateOfBirth', 'Date of birth', 'date')}"></label>
+            <label th:replace="~{fragments/form :: select('gender', 'Gender', ${genders})}"></label>
+            <label th:replace="~{fragments/form :: input('email', 'Email address', 'email')}"></label>
+            <label th:replace="~{fragments/form :: select('maritalStatus', 'Marital status', ${maritalStatuses})}"></label>
+        </div>
+        <label th:replace="~{fragments/form :: input('address', 'Address', 'text')}"></label>
+        <div class="grid">
+            <label th:replace="~{fragments/form :: input('city', 'City', 'text')}"></label>
+            <label th:replace="~{fragments/form :: input('state', 'State', 'text')}"></label>
+            <label th:replace="~{fragments/form :: input('pincode', 'PIN code', 'text')}"></label>
+            <label th:replace="~{fragments/form :: input('country', 'Country', 'text')}"></label>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn primary">Next ›</button>
+        </div>
+    </form>
+</main>
+</body>
+</html>

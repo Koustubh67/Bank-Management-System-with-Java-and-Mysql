@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/atm :: page(~{::title}, ~{::main})}">
+<head><title>Cash Deposit · JavaBank ATM</title></head>
+<body>
+<main class="screen-content">
+    <h1 class="screen-title">Cash Deposit</h1>
+    <p class="screen-sub">Insert notes in multiples of ₹100 · Max ₹2,00,000 per deposit</p>
+    <div class="alert error" th:if="${error}" th:text="${error}"></div>
+    <form th:action="@{/atm/deposit}" method="post" class="screen-form">
+        <label>Amount (₹)
+            <input type="number" name="amount" min="100" step="100" th:value="${param.amount}" required autofocus>
+        </label>
+        <div class="screen-actions">
+            <a class="screen-btn" th:href="@{/atm}">◂ Back</a>
+            <button type="submit" class="screen-btn primary">Deposit ▸</button>
+        </div>
+    </form>
+</main>
+</body>
+</html>

@@ -1,0 +1,9 @@
+package com.koustubh.bank.domain;
+
+public enum AccountStatus {
+    /** Opened by the customer, waiting for a bank officer to approve it. */
+    PENDING,
+    ACTIVE,
+    /** Blocked by a bank officer; no transactions or ATM logins allowed. */
+    FROZEN
+}

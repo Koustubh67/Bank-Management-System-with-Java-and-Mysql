@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/portal :: page(~{::title}, ~{::main})}">
+<head><title>JavaBank</title></head>
+<body>
+<main>
+    <section class="hero">
+        <div class="container">
+            <h1>Banking, simplified.</h1>
+            <p>Open a savings or current account in three steps, then use your card at the JavaBank ATM to deposit,
+                withdraw and transfer money.</p>
+            <div class="hero-actions">
+                <a class="btn primary" th:href="@{/signup}">Open an account</a>
+                <a class="btn ghost" th:href="@{/atm/login}">Go to ATM</a>
+            </div>
+        </div>
+    </section>
+    <section class="container features">
+        <article class="card">
+            <h2>Open an account</h2>
+            <p>Fill in a 3-page application. You get a 16-digit card number and a PIN straight away; bank staff approve
+                the account before first use.</p>
+        </article>
+        <article class="card">
+            <h2>ATM services</h2>
+            <p>Deposit, cash withdrawal, fast cash, balance enquiry, mini statement, fund transfer and PIN change.</p>
+        </article>
+        <article class="card">
+            <h2>Built-in safety</h2>
+            <p>PINs stored as BCrypt hashes, card blocked after 3 wrong PINs, ₹25,000 daily withdrawal limit, and
+                all-or-nothing transfers.</p>
+        </article>
+    </section>
+</main>
+</body>
+</html>

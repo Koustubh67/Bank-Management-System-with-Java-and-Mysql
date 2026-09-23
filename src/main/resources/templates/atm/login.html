@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/atm :: page(~{::title}, ~{::main})}">
+<head><title>ATM Login · JavaBank</title></head>
+<body>
+<main class="screen-content">
+    <h1 class="screen-title">Welcome</h1>
+    <p class="screen-sub">Enter your card number and PIN</p>
+    <div class="alert error" th:if="${error}" th:text="${error}"></div>
+    <div class="alert ok" th:if="${param.logout}">Thank you for banking with us. Please take your card.</div>
+    <form th:action="@{/atm/login}" method="post" class="screen-form">
+        <label>Card number
+            <input type="text" name="cardNumber" inputmode="numeric" maxlength="16" autocomplete="off" required autofocus>
+        </label>
+        <label>PIN
+            <input type="password" name="pin" inputmode="numeric" maxlength="4" pattern="\d{4}" autocomplete="off" required>
+        </label>
+        <button type="submit" class="screen-btn primary">Enter ▸</button>
+    </form>
+    <p class="screen-hint">New customer? <a th:href="@{/signup}">Open an account</a></p>
+</main>
+</body>
+</html>

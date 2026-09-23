@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:fragment="page(title, content)">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:replace="${title}">Admin · JavaBank</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body class="portal">
+<header class="topbar admin">
+    <a class="brand" th:href="@{/admin}"><span class="brand-mark">₹</span> JavaBank <small>Staff</small></a>
+    <nav class="topnav">
+        <a th:href="@{/admin}">Dashboard</a>
+        <a th:href="@{/admin/accounts}">Accounts</a>
+        <a th:href="@{/admin/transactions}">Transactions</a>
+        <form th:action="@{/admin/logout}" method="post" class="inline">
+            <button type="submit" class="link-btn">Log out</button>
+        </form>
+    </nav>
+</header>
+<div class="container">
+    <div class="alert ok" th:if="${message}" th:text="${message}"></div>
+    <div class="alert error" th:if="${error}" th:text="${error}"></div>
+</div>
+<main th:replace="${content}"></main>
+</body>
+</html>

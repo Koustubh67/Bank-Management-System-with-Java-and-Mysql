@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/portal :: page(~{::title}, ~{::main})}">
+<head><title>Open Account · Additional details</title></head>
+<body>
+<main class="container narrow">
+    <h1>Open an account</h1>
+    <ol th:replace="~{fragments/form :: steps(2)}"></ol>
+    <form class="card form" th:action="@{/signup/additional}" th:object="${signupForm}" method="post" novalidate>
+        <h2>Page 2 · Additional details</h2>
+        <div class="grid">
+            <label th:replace="~{fragments/form :: select('religion', 'Religion', ${religions})}"></label>
+            <label th:replace="~{fragments/form :: select('category', 'Category', ${categories})}"></label>
+            <label th:replace="~{fragments/form :: select('income', 'Annual income (₹)', ${incomes})}"></label>
+            <label th:replace="~{fragments/form :: select('education', 'Educational qualification', ${educations})}"></label>
+            <label th:replace="~{fragments/form :: select('occupation', 'Occupation', ${occupations})}"></label>
+            <label th:replace="~{fragments/form :: input('pan', 'PAN number', 'text')}"></label>
+            <label th:replace="~{fragments/form :: input('aadhaar', 'Aadhaar number', 'text')}"></label>
+        </div>
+        <div class="grid">
+            <fieldset class="field">
+                <legend>Senior citizen?</legend>
+                <div class="choices">
+                    <label><input type="radio" th:field="*{seniorCitizen}" value="true"> Yes</label>
+                    <label><input type="radio" th:field="*{seniorCitizen}" value="false"> No</label>
+                </div>
+                <small class="err" th:if="${#fields.hasErrors('seniorCitizen')}" th:errors="*{seniorCitizen}"></small>
+            </fieldset>
+            <fieldset class="field">
+                <legend>Existing account with us?</legend>
+                <div class="choices">
+                    <label><input type="radio" th:field="*{existingAccount}" value="true"> Yes</label>
+                    <label><input type="radio" th:field="*{existingAccount}" value="false"> No</label>
+                </div>
+                <small class="err" th:if="${#fields.hasErrors('existingAccount')}" th:errors="*{existingAccount}"></small>
+            </fieldset>
+        </div>
+        <div class="form-actions">
+            <a class="btn ghost" th:href="@{/signup/personal}">‹ Back</a>
+            <button type="submit" class="btn primary">Next ›</button>
+        </div>
+    </form>
+</main>
+</body>
+</html>

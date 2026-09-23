@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:fragment="page(title, content)">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:replace="${title}">JavaBank</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body class="portal">
+<header class="topbar">
+    <a class="brand" th:href="@{/}"><span class="brand-mark">₹</span> JavaBank</a>
+    <nav class="topnav">
+        <a th:href="@{/signup}">Open Account</a>
+        <a th:href="@{/atm/login}">ATM</a>
+        <a th:href="@{/admin}">Staff</a>
+    </nav>
+</header>
+<main th:replace="${content}"></main>
+<footer class="footer">JavaBank · Spring Boot banking demo · Not a real bank</footer>
+</body>
+</html>

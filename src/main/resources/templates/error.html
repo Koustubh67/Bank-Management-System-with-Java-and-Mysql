@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/portal :: page(~{::title}, ~{::main})}">
+<head><title>Something went wrong · JavaBank</title></head>
+<body>
+<main class="container narrow">
+    <div class="card">
+        <h1 th:text="${status == 403 ? 'Access denied' : (status == 404 ? 'Page not found' : 'Something went wrong')}">Something went wrong</h1>
+        <p th:text="${message != null and !#strings.isEmpty(message) and status != 500 ? message : 'Please go back and try again.'}"></p>
+        <a class="btn primary" th:href="@{/}">Home</a>
+    </div>
+</main>
+</body>
+</html>

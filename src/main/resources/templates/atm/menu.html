@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/atm :: page(~{::title}, ~{::main})}">
+<head><title>ATM · JavaBank</title></head>
+<body>
+<main class="screen-content">
+    <h1 class="screen-title">Hello, <span th:text="${summary.customerName}">Customer</span></h1>
+    <p class="screen-sub"><span th:text="${summary.accountType}"></span> · <span th:text="${summary.maskedAccountNumber}"></span></p>
+    <div class="alert ok" th:if="${message}" th:text="${message}"></div>
+    <p class="screen-sub">Please select your transaction</p>
+    <nav class="menu-grid">
+        <a class="menu-opt left" th:href="@{/atm/deposit}">Deposit</a>
+        <a class="menu-opt right" th:href="@{/atm/balance}">Balance Enquiry</a>
+        <a class="menu-opt left" th:href="@{/atm/withdraw}">Cash Withdrawal</a>
+        <a class="menu-opt right" th:href="@{/atm/statement}">Mini Statement</a>
+        <a class="menu-opt left" th:href="@{/atm/fast-cash}">Fast Cash</a>
+        <a class="menu-opt right" th:href="@{/atm/pin}">PIN Change</a>
+        <a class="menu-opt left" th:href="@{/atm/transfer}">Fund Transfer</a>
+        <form class="menu-opt-form" th:action="@{/atm/logout}" method="post">
+            <button type="submit" class="menu-opt right exit">Exit</button>
+        </form>
+    </nav>
+</main>
+</body>
+</html>

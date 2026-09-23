@@ -1,0 +1,84 @@
+package com.koustubh.bank;
+
+import com.koustubh.bank.domain.AccountType;
+import com.koustubh.bank.dto.SignupForm;
+import com.koustubh.bank.repository.AccountRepository;
+import com.koustubh.bank.service.AccountOpeningService;
+import com.koustubh.bank.service.AdminService;
+import com.koustubh.bank.service.AtmService;
+import com.koustubh.bank.service.OpenedAccount;
+import org.springframework.stereotype.Component;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+
+/** Test helper that opens (and optionally approves and funds) accounts through the real services. */
+@Component
+public class TestAccounts {
+
+    private static final AtomicInteger COUNTER = new AtomicInteger(1000);
+
+    private final AccountOpeningService opening;
+    private final AdminService admin;
+    private final AtmService atm;
+    private final AccountRepository accounts;
+
+    public TestAccounts(AccountOpeningService opening, AdminService admin, AtmService atm, AccountRepository accounts) {
+        this.opening = opening;
+        this.admin = admin;
+        this.atm = atm;
+        this.accounts = accounts;
+    }
+
+    public static SignupForm form() {
+        int n = COUNTER.incrementAndGet();
+        SignupForm f = new SignupForm();
+        f.setFullName("Test Customer " + n);
+        f.setFatherName("Test Father");
+        f.setDateOfBirth(LocalDate.of(1999, 5, 17));
+        f.setGender("Male");
+        f.setEmail("test" + n + "@example.com");
+        f.setMaritalStatus("Unmarried");
+        f.setAddress("12 MG Road");
+        f.setCity("Bhopal");
+        f.setState("Madhya Pradesh");
+        f.setPincode("462001");
+        f.setCountry("India");
+        f.setReligion("Hindu");
+        f.setCategory("General");
+        f.setIncome("None");
+        f.setEducation("Graduate");
+        f.setOccupation("Student");
+        f.setPan("ABCDE" + n + "F");
+        f.setAadhaar("12345678" + n);
+        f.setSeniorCitizen(false);
+        f.setExistingAccount(false);
+        f.setAccountType(AccountType.SAVINGS);
+        f.setServices(List.of("ATM Card"));
+        f.setDeclaration(true);
+        return f;
+    }
+
+    public OpenedAccount pending() {
+        return opening.open(form());
+    }
+
+    public OpenedAccount active(int openingBalance) {
+        OpenedAccount opened = pending();
+        admin.approve(idOf(opened));
+        if (openingBalance > 0) {
+            atm.deposit(opened.cardNumber(), BigDecimal.valueOf(openingBalance));
+        }
+        return opened;
+    }
+
+    public Long idOf(OpenedAccount opened) {
+        return accounts.findIdByAccountNumber(opened.accountNumber()).orElseThrow();
+    }
+
+    public BigDecimal balanceOf(OpenedAccount opened) {
+        return accounts.findById(idOf(opened)).orElseThrow().getBalance();
+    }
+}

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/admin :: page(~{::title}, ~{::main})}">
+<head><title>Account details · JavaBank Staff</title></head>
+<body>
+<main class="container" th:with="a=${details.account}, c=${details.account.customer}, card=${details.card}">
+    <h1>
+        <span th:text="${c.fullName}"></span>
+        <span class="badge" th:classappend="${#strings.toLowerCase(a.status)}" th:text="${a.status}"></span>
+    </h1>
+    <div class="actions-bar">
+        <form th:if="${a.status.name() == 'PENDING'}" th:action="@{/admin/accounts/{id}/approve(id=${a.id})}" method="post" class="inline">
+            <button type="submit" class="btn primary">Approve account</button>
+        </form>
+        <form th:if="${a.status.name() == 'ACTIVE'}" th:action="@{/admin/accounts/{id}/freeze(id=${a.id})}" method="post" class="inline">
+            <button type="submit" class="btn danger">Freeze account</button>
+        </form>
+        <form th:if="${a.status.name() == 'FROZEN'}" th:action="@{/admin/accounts/{id}/unfreeze(id=${a.id})}" method="post" class="inline">
+            <button type="submit" class="btn primary">Unfreeze account</button>
+        </form>
+        <form th:if="${card.blocked}" th:action="@{/admin/accounts/{id}/unblock-card(id=${a.id})}" method="post" class="inline">
+            <button type="submit" class="btn primary">Unblock card</button>
+        </form>
+    </div>
+
+    <div class="columns">
+        <section class="card">
+            <h2>Account</h2>
+            <dl class="details">
+                <dt>Account number</dt><dd class="mono" th:text="${a.accountNumber}"></dd>
+                <dt>Type</dt><dd th:text="${a.accountType.label}"></dd>
+                <dt>Balance</dt><dd th:text="${@money.format(a.balance)}"></dd>
+                <dt>Services</dt><dd th:text="${#strings.isEmpty(a.services) ? '—' : a.services}"></dd>
+                <dt>Opened</dt><dd th:text="${#temporals.format(a.createdAt, 'dd MMM yyyy HH:mm')}"></dd>
+                <dt>Card</dt><dd class="mono" th:text="${card.maskedNumber}"></dd>
+                <dt>Card status</dt>
+                <dd th:text="${card.blocked ? 'Blocked' : (card.failedAttempts > 0 ? 'Active (' + card.failedAttempts + ' wrong PIN attempts)' : 'Active')}"></dd>
+            </dl>
+        </section>
+        <section class="card">
+            <h2>Customer (KYC)</h2>
+            <dl class="details">
+                <dt>Father's name</dt><dd th:text="${c.fatherName}"></dd>
+                <dt>Date of birth</dt><dd th:text="${#temporals.format(c.dateOfBirth, 'dd MMM yyyy')}"></dd>
+                <dt>Gender</dt><dd th:text="${c.gender}"></dd>
+                <dt>Email</dt><dd th:text="${c.email}"></dd>
+                <dt>Address</dt><dd th:text="${c.address + ', ' + c.city + ', ' + c.state + ' ' + c.pincode + ', ' + c.country}"></dd>
+                <dt>PAN</dt><dd class="mono" th:text="${c.pan}"></dd>
+                <dt>Aadhaar</dt><dd class="mono" th:text="${c.maskedAadhaar}"></dd>
+                <dt>Occupation</dt><dd th:text="${c.occupation}"></dd>
+                <dt>Income</dt><dd th:text="${c.income}"></dd>
+                <dt>Senior citizen</dt><dd th:text="${c.seniorCitizen ? 'Yes' : 'No'}"></dd>
+            </dl>
+        </section>
+    </div>
+
+    <h2>Recent transactions</h2>
+    <p th:if="${details.transactions.isEmpty()}" class="muted">No transactions yet.</p>
+    <div class="table-wrap" th:unless="${details.transactions.isEmpty()}">
+        <table class="table">
+            <thead><tr><th>Date</th><th>Type</th><th>Counterparty</th><th class="num">Amount</th><th class="num">Balance after</th><th>Reference</th></tr></thead>
+            <tbody>
+            <tr th:each="t : ${details.transactions}">
+                <td th:text="${#temporals.format(t.createdAt, 'dd MMM yyyy HH:mm')}"></td>
+                <td th:text="${t.type.label}"></td>
+                <td class="mono" th:text="${t.counterpartyAccount ?: '—'}"></td>
+                <td class="num" th:classappend="${t.type.credit} ? 'cr' : 'dr'"
+                    th:text="${(t.type.credit ? '+' : '−') + @money.format(t.amount)}"></td>
+                <td class="num" th:text="${@money.format(t.balanceAfter)}"></td>
+                <td class="mono small" th:text="${#strings.substring(t.referenceId, 0, 8)}"></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+</body>
+</html>

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/atm :: page(~{::title}, ~{::main})}">
+<head><title>PIN Change · JavaBank ATM</title></head>
+<body>
+<main class="screen-content">
+    <h1 class="screen-title">PIN Change</h1>
+    <div class="alert error" th:if="${error}" th:text="${error}"></div>
+    <form th:action="@{/atm/pin}" th:object="${pinChangeForm}" method="post" class="screen-form">
+        <label>Current PIN
+            <input type="password" th:field="*{currentPin}" inputmode="numeric" maxlength="4" autocomplete="off" required autofocus>
+        </label>
+        <label>New PIN
+            <input type="password" th:field="*{newPin}" inputmode="numeric" maxlength="4" autocomplete="off" required>
+            <small class="err" th:if="${#fields.hasErrors('newPin')}" th:errors="*{newPin}"></small>
+        </label>
+        <label>Re-enter new PIN
+            <input type="password" th:field="*{confirmPin}" inputmode="numeric" maxlength="4" autocomplete="off" required>
+            <small class="err" th:if="${#fields.hasErrors('confirmed')}" th:errors="*{confirmed}"></small>
+        </label>
+        <div class="screen-actions">
+            <a class="screen-btn" th:href="@{/atm}">◂ Back</a>
+            <button type="submit" class="screen-btn primary">Change PIN ▸</button>
+        </div>
+    </form>
+</main>
+</body>
+</html>

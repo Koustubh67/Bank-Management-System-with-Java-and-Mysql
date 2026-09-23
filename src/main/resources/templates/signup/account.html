@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/portal :: page(~{::title}, ~{::main})}">
+<head><title>Open Account · Account details</title></head>
+<body>
+<main class="container narrow">
+    <h1>Open an account</h1>
+    <ol th:replace="~{fragments/form :: steps(3)}"></ol>
+    <div class="alert error" th:if="${error}" th:text="${error}"></div>
+    <form class="card form" th:action="@{/signup/account}" th:object="${signupForm}" method="post" novalidate>
+        <h2>Page 3 · Account details</h2>
+        <fieldset class="field">
+            <legend>Account type</legend>
+            <div class="choices">
+                <label th:each="t : ${accountTypes}">
+                    <input type="radio" th:field="*{accountType}" th:value="${t}"> <span th:text="${t.label}"></span>
+                </label>
+            </div>
+            <small class="err" th:if="${#fields.hasErrors('accountType')}" th:errors="*{accountType}"></small>
+        </fieldset>
+        <fieldset class="field">
+            <legend>Services required</legend>
+            <div class="choices">
+                <label th:each="s : ${services}">
+                    <input type="checkbox" th:field="*{services}" th:value="${s}"> <span th:text="${s}"></span>
+                </label>
+            </div>
+        </fieldset>
+        <p class="note">Your 16-digit card number and 4-digit PIN are generated when you submit and shown only once.</p>
+        <label class="declaration">
+            <input type="checkbox" th:field="*{declaration}">
+            I hereby declare that the details entered above are correct to the best of my knowledge.
+        </label>
+        <small class="err" th:if="${#fields.hasErrors('declaration')}" th:errors="*{declaration}"></small>
+        <div class="form-actions">
+            <a class="btn ghost" th:href="@{/signup/additional}">‹ Back</a>
+            <button type="submit" class="btn primary">Submit application</button>
+        </div>
+    </form>
+</main>
+</body>
+</html>

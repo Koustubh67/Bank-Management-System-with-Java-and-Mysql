@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/atm :: page(~{::title}, ~{::main})}">
+<head><title>Receipt · JavaBank ATM</title></head>
+<body>
+<main class="screen-content">
+    <h1 class="screen-title">Transaction successful</h1>
+    <div class="receipt">
+        <p class="receipt-head">JAVABANK ATM</p>
+        <p class="receipt-row"><span>Date</span><span th:text="${#temporals.format(receipt.time, 'dd MMM yyyy HH:mm:ss')}"></span></p>
+        <p class="receipt-row"><span>Type</span><span th:text="${receipt.title}"></span></p>
+        <p class="receipt-row" th:if="${receipt.counterpartyAccount}"><span>To A/c</span><span th:text="${receipt.counterpartyAccount}"></span></p>
+        <p class="receipt-row"><span>Amount</span><strong th:text="${@money.format(receipt.amount)}"></strong></p>
+        <p class="receipt-row"><span>Balance</span><span th:text="${@money.format(receipt.balanceAfter)}"></span></p>
+        <p class="receipt-ref">Ref: <span th:text="${receipt.reference}"></span></p>
+    </div>
+    <div class="screen-actions">
+        <a class="screen-btn primary" th:href="@{/atm}">Another transaction</a>
+        <form th:action="@{/atm/logout}" method="post" class="inline"><button type="submit" class="screen-btn">Exit</button></form>
+    </div>
+</main>
+</body>
+</html>

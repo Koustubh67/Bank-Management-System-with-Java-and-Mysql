@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/atm :: page(~{::title}, ~{::main})}">
+<head><title>Mini Statement · JavaBank ATM</title></head>
+<body>
+<main class="screen-content">
+    <h1 class="screen-title">Mini Statement</h1>
+    <p class="screen-sub">Last 10 transactions · <span th:text="${summary.maskedAccountNumber}"></span></p>
+    <p class="screen-sub" th:if="${transactions.isEmpty()}">No transactions yet.</p>
+    <div class="table-wrap" th:unless="${transactions.isEmpty()}">
+        <table class="screen-table">
+            <thead><tr><th>Date</th><th>Details</th><th class="num">Amount</th><th class="num">Balance</th></tr></thead>
+            <tbody>
+            <tr th:each="t : ${transactions}">
+                <td th:text="${#temporals.format(t.createdAt, 'dd MMM HH:mm')}"></td>
+                <td>
+                    <span th:text="${t.type.label}"></span>
+                    <small th:if="${t.counterpartyAccount}" th:text="${'A/c ' + t.counterpartyAccount}"></small>
+                </td>
+                <td class="num" th:classappend="${t.type.credit} ? 'cr' : 'dr'"
+                    th:text="${(t.type.credit ? '+' : '−') + @money.format(t.amount)}"></td>
+                <td class="num" th:text="${@money.format(t.balanceAfter)}"></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+    <p class="screen-sub">Current balance: <strong th:text="${@money.format(summary.balance)}"></strong></p>
+    <div class="screen-actions"><a class="screen-btn primary" th:href="@{/atm}">◂ Main menu</a></div>
+</main>
+</body>
+</html>

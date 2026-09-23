@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/atm :: page(~{::title}, ~{::main})}">
+<head><title>Balance · JavaBank ATM</title></head>
+<body>
+<main class="screen-content">
+    <h1 class="screen-title">Balance Enquiry</h1>
+    <p class="screen-sub"><span th:text="${summary.accountType}"></span> · <span th:text="${summary.maskedAccountNumber}"></span></p>
+    <p class="big-amount" th:text="${@money.format(summary.balance)}">₹0.00</p>
+    <p class="screen-sub">Available balance</p>
+    <div class="screen-actions"><a class="screen-btn primary" th:href="@{/atm}">◂ Main menu</a></div>
+</main>
+</body>
+</html>

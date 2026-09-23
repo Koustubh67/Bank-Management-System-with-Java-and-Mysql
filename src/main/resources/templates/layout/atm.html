@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:fragment="page(title, screen)">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:replace="${title}">JavaBank ATM</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body class="atm-body">
+<div class="atm">
+    <div class="atm-top">
+        <span class="brand-mark">₹</span> JavaBank <span class="atm-tag">ATM</span>
+    </div>
+    <div class="atm-display">
+        <div class="side-keys" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+        <div class="screen">
+            <main th:replace="${screen}"></main>
+        </div>
+        <div class="side-keys" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+    </div>
+    <div class="atm-panel">
+        <div class="slots">
+            <div class="slot"><span class="slot-label">CARD</span><span class="slot-mouth card-mouth"></span></div>
+            <div class="slot"><span class="slot-label">RECEIPT</span><span class="slot-mouth"></span></div>
+        </div>
+        <div class="keypad" role="group" aria-label="ATM keypad">
+            <button type="button" data-key="1">1</button>
+            <button type="button" data-key="2">2</button>
+            <button type="button" data-key="3">3</button>
+            <button type="button" data-key="cancel" class="k-cancel">CANCEL</button>
+            <button type="button" data-key="4">4</button>
+            <button type="button" data-key="5">5</button>
+            <button type="button" data-key="6">6</button>
+            <button type="button" data-key="clear" class="k-clear">CLEAR</button>
+            <button type="button" data-key="7">7</button>
+            <button type="button" data-key="8">8</button>
+            <button type="button" data-key="9">9</button>
+            <button type="button" data-key="enter" class="k-enter">ENTER</button>
+            <span></span>
+            <button type="button" data-key="0">0</button>
+            <span></span>
+            <span></span>
+        </div>
+    </div>
+    <div class="cash-slot"><span class="slot-label">CASH</span><span class="slot-mouth wide"></span></div>
+</div>
+<p class="atm-footer"><a th:href="@{/}">← JavaBank home</a></p>
+<script th:src="@{/js/atm.js}"></script>
+</body>
+</html>

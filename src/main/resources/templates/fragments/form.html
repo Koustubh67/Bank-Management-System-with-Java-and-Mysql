@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- Text-style input bound to the enclosing th:object. -->
+<label th:fragment="input(name, label, type)" class="field">
+    <span th:text="${label}">Label</span>
+    <input th:type="${type}" th:field="*{__${name}__}" th:classappend="${#fields.hasErrors(name)} ? 'invalid'">
+    <small class="err" th:if="${#fields.hasErrors(name)}" th:errors="*{__${name}__}"></small>
+</label>
+
+<!-- Drop-down bound to the enclosing th:object. -->
+<label th:fragment="select(name, label, options)" class="field">
+    <span th:text="${label}">Label</span>
+    <select th:field="*{__${name}__}" th:classappend="${#fields.hasErrors(name)} ? 'invalid'">
+        <option value="">Select…</option>
+        <option th:each="o : ${options}" th:value="${o}" th:text="${o}"></option>
+    </select>
+    <small class="err" th:if="${#fields.hasErrors(name)}" th:errors="*{__${name}__}"></small>
+</label>
+
+
+<!-- Progress indicator for the 3 signup pages. -->
+<ol th:fragment="steps(current)" class="steps">
+    <li th:classappend="${current >= 1} ? 'done'"><span>1</span> Personal</li>
+    <li th:classappend="${current >= 2} ? 'done'"><span>2</span> Additional</li>
+    <li th:classappend="${current >= 3} ? 'done'"><span>3</span> Account</li>
+</ol>
+</body>
+</html>

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/atm :: page(~{::title}, ~{::main})}">
+<head><title>Fund Transfer · JavaBank ATM</title></head>
+<body>
+<main class="screen-content">
+    <h1 class="screen-title">Fund Transfer</h1>
+    <p class="screen-sub">Send money to another JavaBank account</p>
+    <div class="alert error" th:if="${error}" th:text="${error}"></div>
+    <form th:action="@{/atm/transfer}" th:object="${transferForm}" method="post" class="screen-form">
+        <label>Beneficiary account number
+            <input type="text" th:field="*{toAccountNumber}" inputmode="numeric" maxlength="12" autocomplete="off" required autofocus>
+            <small class="err" th:if="${#fields.hasErrors('toAccountNumber')}" th:errors="*{toAccountNumber}"></small>
+        </label>
+        <label>Amount (₹)
+            <input type="number" th:field="*{amount}" min="1" step="0.01" required>
+            <small class="err" th:if="${#fields.hasErrors('amount')}" th:errors="*{amount}"></small>
+        </label>
+        <div class="screen-actions">
+            <a class="screen-btn" th:href="@{/atm}">◂ Back</a>
+            <button type="submit" class="screen-btn primary">Transfer ▸</button>
+        </div>
+    </form>
+</main>
+</body>
+</html>
