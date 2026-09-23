@@ -4,7 +4,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.sql.*;
+import java.sql.PreparedStatement;
 
 
 public class SignupTwo extends JFrame implements ActionListener {
@@ -134,20 +134,21 @@ public class SignupTwo extends JFrame implements ActionListener {
         eno.setBackground(Color.PINK);
         add(eno);
         ButtonGroup egendergroup = new ButtonGroup();
-        gendergroup.add(eyes);
-        gendergroup.add(eno);
+        egendergroup.add(eyes);
+        egendergroup.add(eno);
 
 
         next = new JButton("NEXT");
         next.setBackground(Color.black);
         next.setForeground(Color.gray);
         next.setFont(new Font("Raleway", Font.BOLD, 14));
-        next.setBounds(950, 600, 80, 30);
+        next.setBounds(620, 650, 80, 30);
         next.addActionListener(this);
         add(next);
 
 
-        getContentPane().setBackground(Color.black);
+        getContentPane().setBackground(Color.WHITE);
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
         setSize(850, 800);
         setLocation(350, 10);
         setVisible(true);
@@ -156,20 +157,19 @@ public class SignupTwo extends JFrame implements ActionListener {
     }
 
     public void actionPerformed(ActionEvent ae) {
-        String formno = "", random;
         String sreligion = (String) religion.getSelectedItem();
         String scategory = (String) category.getSelectedItem();
         String sincome = (String) income.getSelectedItem();
         String squalification = (String) qualification.getSelectedItem();
         String soccupation = (String) occupation.getSelectedItem();
+        String span = pan.getText().trim();
+        String saadhar = aadhar.getText().trim();
+
         String seniorcitizen = null;
-
-
         if (syes.isSelected()) {
             seniorcitizen = "YES";
         } else if (sno.isSelected()) {
             seniorcitizen = "NO";
-
         }
 
         String exisitingaccount = null;
@@ -177,63 +177,33 @@ public class SignupTwo extends JFrame implements ActionListener {
             exisitingaccount = "YES";
         } else if (eno.isSelected()) {
             exisitingaccount = "NO";
-
-
-            String span = pan.getText();
-            String saadhar = aadhar.getText();
-
-
-            try {
-                if (religion.equals("")) {
-                    JOptionPane.showMessageDialog(null, "RELIGION IS REQUIRED FOR NEXT PROCESS");
-                } else {
-                    Conn C = new Conn();
-                    String query = "insert into signuptwo value('" + formno + "','" + sreligion + "','" + scategory + "','" + sincome + "','" + squalification + "','" + soccupation + "','" + span + "','" + saadhar + "','" + exisitingaccount + "','" + seniorcitizen + "',')";
-                    C.S.executeUpdate(query);
-                    //SIGNUP3 OBJECT
-                    setVisible(false);
-                    new SignupThree(formno).setVisible(true);
-                }
-                if (category.equals("")) {
-                    JOptionPane.showMessageDialog(null, "CATEGORY NAME IS REQUIRED FOR NEXT PROCESS");
-                }
-                if (qualification.equals("")) {
-                    JOptionPane.showMessageDialog(null, "QUALIFICAION IS REQUIRED FOR NEXT PROCESS");
-                }
-                if (income.equals("")) {
-                    JOptionPane.showMessageDialog(null, "INCOME IS REQUIRED FOR NEXT PROCESS");
-
-                }
-
-
-                if (occupation.equals("")) {
-                    JOptionPane.showMessageDialog(null, "OCCUPATION NAME IS REQUIRED FOR NEXT PROCESS");
-                }
-                if (pan.equals("")) {
-                    JOptionPane.showMessageDialog(null, "PAN NAME IS REQUIRED FOR NEXT PROCESS");
-
-                }
-                if (aadhar.equals("")) {
-                    JOptionPane.showMessageDialog(null, "AADHAR IS REQUIRED FOR NEXT PROCESS");
-
-
-                }
-                if (seniorcitizen.equals("")) {
-                    JOptionPane.showMessageDialog(null, "SENIORCITIZENS NAME IS REQUIRED FOR NEXT PROCESS");
-
-                }
-                if (exisitingaccount.equals("")) {
-                    JOptionPane.showMessageDialog(null, "EXISITINGACCOUNT NAME IS REQUIRED FOR NEXT PROCESS");
-
-                }
-
-
-            } catch (Exception e) {
-                System.out.println(e);
-            }
-
         }
 
+        String missing = null;
+        if (span.equals("")) missing = "PAN NUMBER";
+        else if (saadhar.equals("")) missing = "AADHAR NUMBER";
+        else if (seniorcitizen == null) missing = "SENIOR CITIZEN";
+        else if (exisitingaccount == null) missing = "EXISITING ACCOUNT";
+        if (missing != null) {
+            JOptionPane.showMessageDialog(null, missing + " IS REQUIRED FOR NEXT PROCESS");
+            return;
+        }
+
+        try {
+            Conn C = new Conn();
+            PreparedStatement ps = C.C.prepareStatement("insert into signuptwo values(?,?,?,?,?,?,?,?,?,?)");
+            String[] values = {formno, sreligion, scategory, sincome, squalification, soccupation, span, saadhar, seniorcitizen, exisitingaccount};
+            for (int i = 0; i < values.length; i++) {
+                ps.setString(i + 1, values[i]);
+            }
+            ps.executeUpdate();
+
+            setVisible(false);
+            new SignupThree(formno).setVisible(true);
+        } catch (Exception e) {
+            System.out.println(e);
+            JOptionPane.showMessageDialog(null, "DATABASE ERROR: " + e.getMessage());
+        }
     }
 
 public static void main(String args []){

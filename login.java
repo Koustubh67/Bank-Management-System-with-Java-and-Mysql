@@ -1,6 +1,7 @@
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.sql.*;
 
 public class login extends JFrame implements ActionListener {
     JButton login,signup,clear;
@@ -67,10 +68,11 @@ public class login extends JFrame implements ActionListener {
         add(signup);
 
 
-        getContentPane().setBackground(Color.BLACK);
+        getContentPane().setBackground(Color.WHITE);
         add(text);
 
-        setSize(800, 400);
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setSize(1000, 450);
         setVisible(true);
         setLocation(350, 200);
 
@@ -81,7 +83,28 @@ public class login extends JFrame implements ActionListener {
             pinTextField.setText("");
             
         } else if (ae.getSource()==login) {
-            
+            String cardnumber = cardTextField.getText().trim();
+            String pinnumber = new String(pinTextField.getPassword());
+            if (cardnumber.equals("") || pinnumber.equals("")) {
+                JOptionPane.showMessageDialog(null, "ENTER CARD NUMBER AND PIN");
+                return;
+            }
+            try {
+                Conn c = new Conn();
+                PreparedStatement ps = c.C.prepareStatement("select * from login where cardnumber = ? and pin = ?");
+                ps.setString(1, cardnumber);
+                ps.setString(2, pinnumber);
+                ResultSet rs = ps.executeQuery();
+                if (rs.next()) {
+                    setVisible(false);
+                    new Transactions(cardnumber).setVisible(true);
+                } else {
+                    JOptionPane.showMessageDialog(null, "INCORRECT CARD NUMBER OR PIN");
+                }
+            } catch (Exception e) {
+                System.out.println(e);
+                JOptionPane.showMessageDialog(null, "DATABASE ERROR: " + e.getMessage());
+            }
         } else if (ae.getSource()==signup) {
             setVisible(false);
             new SIGNUP1().setVisible(true);

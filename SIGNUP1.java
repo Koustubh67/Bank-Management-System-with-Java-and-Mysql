@@ -1,9 +1,6 @@
-import com.sun.tools.jconsole.JConsoleContext;
-import com.sun.tools.jconsole.JConsolePlugin;
-
 import javax.swing.*;
 import java.awt.*;
-import java.io.Console;
+import java.sql.PreparedStatement;
 import java.util.* ;
 import com.toedter.calendar.JDateChooser;
 import java.awt.event.*;
@@ -149,7 +146,7 @@ public class SIGNUP1 extends JFrame implements ActionListener{
         next.setBackground(Color.black);
         next.setForeground(Color.gray);
         next.setFont(new Font("Raleway",Font.BOLD,14));
-        next.setBounds(950,600,80,30);
+        next.setBounds(620,690,80,30);
         next.addActionListener(this);
         add(next);
 
@@ -163,7 +160,8 @@ public class SIGNUP1 extends JFrame implements ActionListener{
 
 
 
-        getContentPane().setBackground(Color.black);
+        getContentPane().setBackground(Color.WHITE);
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
         setSize(850,800);
         setLocation(350,10);
         setVisible(true);
@@ -172,7 +170,7 @@ public class SIGNUP1 extends JFrame implements ActionListener{
     }
 
     public void actionPerformed(ActionEvent ae){
-        String formno= "", random;
+        String formno = "" + random;
         String name= nameTextFiled.getText();
         String fname = fnameTextFiled.getText();
         String dob = ((JTextField)dateChooser.getDateEditor().getUiComponent()).getText();
@@ -209,53 +207,37 @@ public class SIGNUP1 extends JFrame implements ActionListener{
         String pin = pinTextFiled.getText();
 
 
+        String missing = null;
+        if (name.equals("")) missing = "NAME";
+        else if (fname.equals("")) missing = "FATHER NAME";
+        else if (dob.equals("")) missing = "DOB";
+        else if (gender == null) missing = "GENDER";
+        else if (email.equals("")) missing = "EMAIL";
+        else if (marital == null) missing = "MARITAL STATUS";
+        else if (address.equals("")) missing = "ADDRESS";
+        else if (city.equals("")) missing = "CITY NAME";
+        else if (state.equals("")) missing = "STATE NAME";
+        else if (pin.equals("")) missing = "PIN CODE";
+        else if (country.equals("")) missing = "COUNTRY NAME";
+        if (missing != null) {
+            JOptionPane.showMessageDialog(null, missing + " IS REQUIRED FOR NEXT PROCESS");
+            return;
+        }
+
         try {
-            if (name.equals("")){
-                JOptionPane.showMessageDialog(null,"NMAE IS REQUIRED FOR NEXT PROCESS");
-            }else {
-                Conn C = new Conn();
-                String query = "insert into signup value('" + formno + "','" + name + "','" + fname + "','" + dob + "','" + gender + "','" + email + "','" + marital + "','" + address + "','" + city + "','" + state+ "','" + pin + "','" + country + "')";
-                 C.S.executeUpdate(query);
-
-                 setVisible(false);
-                 new SignupTwo(formno).setVisible(true);
+            Conn C = new Conn();
+            PreparedStatement ps = C.C.prepareStatement("insert into signup values(?,?,?,?,?,?,?,?,?,?,?,?)");
+            String[] values = {formno, name, fname, dob, gender, email, marital, address, city, pin, state, country};
+            for (int i = 0; i < values.length; i++) {
+                ps.setString(i + 1, values[i]);
             }
-            if (fname.equals("")){
-                JOptionPane.showMessageDialog(null,"FATHER NAME IS REQUIRED FOR NEXT PROCESS");
-            }
-            if (dob.equals("")){
-                JOptionPane.showMessageDialog(null,"DOB IS REQUIRED FOR NEXT PROCESS");
-            }
-            if (email.equals("")){
-                JOptionPane.showMessageDialog(null,"EMAIL IS REQUIRED FOR NEXT PROCESS");
+            ps.executeUpdate();
 
-            }
-
-
-            if (city.equals("")){
-                JOptionPane.showMessageDialog(null,"CITY NAME IS REQUIRED FOR NEXT PROCESS");
-            }
-            if (state.equals("")){
-                JOptionPane.showMessageDialog(null,"STATE NAME IS REQUIRED FOR NEXT PROCESS");
-
-            }
-            if (address.equals("")){
-                JOptionPane.showMessageDialog(null,"ADDRESS IS REQUIRED FOR NEXT PROCESS");
-
-
-
-            }
-            if (country.equals("")){
-                JOptionPane.showMessageDialog(null,"COUNTRY NAME IS REQUIRED FOR NEXT PROCESS");
-
-            }
-            if (pin.equals("")){
-                JOptionPane.showMessageDialog(null,"PIN IS REQUIRED FOR NEXT PROCESS");
-            }
-
-
+            setVisible(false);
+            new SignupTwo(formno).setVisible(true);
         }catch (Exception e){
             System.out.println(e);
+            JOptionPane.showMessageDialog(null, "DATABASE ERROR: " + e.getMessage());
         }
 
     }

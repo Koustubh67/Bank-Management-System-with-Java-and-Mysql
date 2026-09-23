@@ -2,6 +2,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.sql.PreparedStatement;
 import java.util.Random;
 
 public class SignupThree extends JFrame implements ActionListener{
@@ -127,14 +128,14 @@ public class SignupThree extends JFrame implements ActionListener{
         c7 = new JCheckBox("HEREBY DECLARES THAT ABOVE ENTRE DETAILE ARE CORRECT TO THE BEST OF MY KNOWLEDGE ");
         c7.setBackground(Color.WHITE);
         c7.setFont(new Font("Raleway",Font.BOLD,12));
-        c7.setBounds(560,550,700,30);
+        c7.setBounds(100,650,800,30);
         add(c7);
 
         submit= new JButton("SUBMIT");
         submit.setBackground(Color.WHITE);
         submit.setForeground(Color.black);
         submit.setFont(new Font("Raleway",Font.BOLD,14));
-        submit.setBounds(560,620,100,30);
+        submit.setBounds(100,700,100,30);
         submit.addActionListener(this);
         add(submit);
 
@@ -144,7 +145,7 @@ public class SignupThree extends JFrame implements ActionListener{
         cancle.setBackground(Color.WHITE);
         cancle.setForeground(Color.black);
         cancle.setFont(new Font("Raleway",Font.BOLD,14));
-        cancle.setBounds(700,620,100,30);
+        cancle.setBounds(240,700,100,30);
         cancle.addActionListener(this);
         add(cancle);
 
@@ -156,7 +157,8 @@ public class SignupThree extends JFrame implements ActionListener{
 
 
 
-        setSize(1000, 1000);
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setSize(900, 800);
         setLocation(350, 0);
         setVisible(true);
     }
@@ -166,64 +168,64 @@ public class SignupThree extends JFrame implements ActionListener{
             String accountType = null;
             if (r1.isSelected()){
                 accountType="SAVING ACCOUNT";
-
             } else if (r2.isSelected()) {
                 accountType="FIXED DEPOSITE ACCOUNT";
-                
             } else if (r3.isSelected()) {
                 accountType="CURRENT ACCOUNT";
-
             } else if (r4.isSelected()) {
                 accountType="RECURRING DEPOSITE ACCOUNT";
-
             }
+            if (accountType == null){
+                JOptionPane.showMessageDialog(null,"ACCOUNT TYPE IS REQUIRED");
+                return;
+            }
+            if (!c7.isSelected()){
+                JOptionPane.showMessageDialog(null,"PLEASE ACCEPT THE DECLARATION");
+                return;
+            }
+
             Random random = new Random();
             String cardnummber = ""+ Math.abs((random.nextLong() % 9000000L) + 5040936000000000L);
-
             String pinnumber = ""+ Math.abs((random.nextLong() % 9000L)+1000L);
 
+            // Every selected service is saved, not just the first one.
             String facility ="";
-            if (c1.isSelected()){
-                facility = facility + " ATM CARD";
-            } else if (c2.isSelected()) {
-                facility = facility + " INTERNET BANKING";
-
-            } else if (c3.isSelected()) {
-                facility =  facility + " MOBILE BANKING";
-
-
-            } else if (c4.isSelected()) {
-                facility = facility + " EMAIL & SMS ALERT";
-
-            } else if (c5.isSelected()) {
-                facility = facility + " CHEQUE BOOK";
-
-            } else if (c6.isSelected()) {
-                facility = facility + " E_STATEMENT";
-
-            }
-            try {
-                if (accountType.equals("")){
-                    JOptionPane.showMessageDialog(null,"ACCOUNT TYPE IS REQUIRE ");
-                } else {
-                    Conn conn = new Conn();
-                    String query1 = "insert into SignupThree values('"+formno+"', '"+accountType+"','"+cardnummber+"', '"+pinnumber+"', '"+facility+"')";
-                    String query2 = "insert into login values('"+formno+"','"+cardnummber+"', '"+pinnumber+"')";
-
-                    conn.S.executeUpdate(query1);
-                    conn.S.executeUpdate(query2);
-
-                    JOptionPane.showMessageDialog(null,"CARD NUBER :" + cardnummber + "/n PIN:" + pinnumber);
-
-                    
+            JCheckBox[] services = {c1, c2, c3, c4, c5, c6};
+            for (JCheckBox c : services) {
+                if (c.isSelected()) {
+                    facility = facility + " " + c.getText();
                 }
+            }
+            facility = facility.trim();
 
+            try {
+                Conn conn = new Conn();
+                PreparedStatement ps1 = conn.C.prepareStatement("insert into signupthree values(?,?,?,?,?)");
+                ps1.setString(1, formno);
+                ps1.setString(2, accountType);
+                ps1.setString(3, cardnummber);
+                ps1.setString(4, pinnumber);
+                ps1.setString(5, facility);
+                ps1.executeUpdate();
+
+                PreparedStatement ps2 = conn.C.prepareStatement("insert into login values(?,?,?)");
+                ps2.setString(1, formno);
+                ps2.setString(2, cardnummber);
+                ps2.setString(3, pinnumber);
+                ps2.executeUpdate();
+
+                JOptionPane.showMessageDialog(null,"ACCOUNT CREATED\nCARD NUMBER: " + cardnummber + "\nPIN: " + pinnumber + "\n\nPLEASE NOTE THESE DOWN TO SIGN IN");
+
+                setVisible(false);
+                new login().setVisible(true);
             }catch (Exception e){
                 System.out.println(e);
+                JOptionPane.showMessageDialog(null, "DATABASE ERROR: " + e.getMessage());
             }
 
         } else if (ae.getSource()== cancle) {
-            
+            setVisible(false);
+            new login().setVisible(true);
         }
     }
 
