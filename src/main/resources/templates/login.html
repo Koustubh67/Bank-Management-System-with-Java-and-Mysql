@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/portal :: page(~{::title}, ~{::main})}">
+<head><title>Login · JavaBank</title></head>
+<body>
+<main class="login-page">
+    <div class="mesh" aria-hidden="true"><i class="b1"></i><i class="b2"></i><i class="b3"></i></div>
+    <div class="login-box">
+        <h1>Welcome back</h1>
+        <p class="muted">How would you like to log in?</p>
+
+        <!-- Two tabs made from radio buttons, so they work without JavaScript -->
+        <input type="radio" name="who" id="asCustomer" class="who" th:checked="${!staff}">
+        <input type="radio" name="who" id="asStaff" class="who" th:checked="${staff}">
+        <div class="who-tabs" role="tablist">
+            <label for="asCustomer" role="tab"><svg class="ic"><use href="#i-users"/></svg> Customer</label>
+            <label for="asStaff" role="tab"><svg class="ic"><use href="#i-bank"/></svg> Bank staff</label>
+        </div>
+
+        <section class="who-panel customer-panel" aria-label="Customer login">
+            <a class="login-choice" th:href="@{/atm/login}">
+                <span class="lc-ic" style="--c:#6366f1"><svg class="ic"><use href="#i-atm"/></svg></span>
+                <span><strong>ATM login</strong><small>Use your 16-digit card number and 4-digit PIN</small></span>
+                <span class="lc-go" aria-hidden="true">→</span>
+            </a>
+            <a class="login-choice" th:href="@{/upi/login}">
+                <span class="lc-ic" style="--c:#10b981"><svg class="ic"><use href="#i-phone"/></svg></span>
+                <span><strong>JavaPay UPI</strong><small>Use your UPI ID and 6-digit UPI PIN</small></span>
+                <span class="lc-go" aria-hidden="true">→</span>
+            </a>
+            <p class="login-foot">No account yet? <a th:href="@{/signup}">Open one in 2 minutes</a> ·
+                <a th:href="@{/signup/status}">Track application</a></p>
+            <p class="demo-hint" th:if="${demoEnabled}">Demo: card <b>5040930000000017</b> / PIN <b>1234</b> ·
+                UPI <b>rahul.0001@javabank</b> / <b>123456</b></p>
+        </section>
+
+        <section class="who-panel staff-panel" aria-label="Staff login">
+            <form th:action="@{/admin/login}" method="post" class="form">
+                <label class="field"><span>Username</span><input type="text" name="username" autocomplete="username" required></label>
+                <label class="field"><span>Password</span><input type="password" name="password" autocomplete="current-password" required></label>
+                <button type="submit" class="btn dark lg full">Log in to staff panel</button>
+            </form>
+            <p class="login-foot">For bank employees only. Approve applications, review KYC and manage accounts.</p>
+            <p class="demo-hint" th:if="${demoEnabled}">Demo staff login: <b>admin</b> / <b>admin123</b></p>
+        </section>
+    </div>
+</main>
+</body>
+</html>

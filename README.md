@@ -138,7 +138,9 @@ without signing up. Each one is in a different state. They come from
 
 > These are fake test numbers for this demo only. Never use real card numbers, PINs or Aadhaar numbers.
 
-**Bank staff (admin panel):** open <http://localhost:8080/admin/login> and log in as `admin` / `admin123`
+**One login page:** <http://localhost:8080/login> has two tabs, **Customer** (ATM or JavaPay UPI) and **Bank staff**.
+
+**Bank staff (admin panel):** choose the **Bank staff** tab and log in as `admin` / `admin123`
 
 **ATM** (<http://localhost:8080/atm/login>) and **JavaPay UPI** (<http://localhost:8080/upi/login>):
 
@@ -184,7 +186,7 @@ Tests check that every login in this table works (`DemoDataSeederTest`), so the 
 ./mvnw test
 ```
 
-95 tests run against an in-memory H2 database with the real Flyway schema:
+96 tests run against an in-memory H2 database with the real Flyway schema:
 - **Domain unit tests:** balance rules, account states
 - **Service tests:** daily limit, insufficient funds, transfer atomicity, concurrent withdrawals, transfer deadlock
   avoidance, PIN lockout and unblock, PIN change

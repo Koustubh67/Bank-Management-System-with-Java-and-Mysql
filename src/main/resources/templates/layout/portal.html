@@ -50,11 +50,13 @@
             <a th:href="@{/#upi}">UPI</a>
             <a th:href="@{/signup/status}">Track application</a>
             <div class="nav-login">
-                <button type="button" class="btn ghost-dark small" aria-haspopup="true">Login ▾</button>
+                <a class="btn ghost-dark small" th:href="@{/login}" aria-haspopup="true">Login ▾</a>
                 <div class="nav-menu">
-                    <a th:href="@{/atm/login}"><strong>ATM</strong><small>Card + PIN</small></a>
+                    <span class="nav-menu-head">Login as customer</span>
+                    <a th:href="@{/atm/login}"><strong>ATM</strong><small>Card number + PIN</small></a>
                     <a th:href="@{/upi/login}"><strong>JavaPay UPI</strong><small>UPI ID + UPI PIN</small></a>
-                    <a th:href="@{/admin/login}"><strong>Bank staff</strong><small>Admin panel</small></a>
+                    <span class="nav-menu-head">Login as staff</span>
+                    <a th:href="@{/login(as=staff)}"><strong>Bank staff</strong><small>Admin panel</small></a>
                 </div>
             </div>
             <a class="btn primary small" th:href="@{/signup}">Open account</a>

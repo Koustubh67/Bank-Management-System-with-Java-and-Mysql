@@ -38,6 +38,9 @@ class WebFlowTest {
         mvc.perform(get("/")).andExpect(status().isOk()).andExpect(content().string(org.hamcrest.Matchers.containsString("Open an account")));
         mvc.perform(get("/atm/login")).andExpect(status().isOk());
         mvc.perform(get("/admin/login")).andExpect(status().isOk());
+        mvc.perform(get("/login")).andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("ATM login")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Log in to staff panel")));
     }
 
     @Test
@@ -199,6 +202,14 @@ class WebFlowTest {
                         "PAN card image is unclear or unreadable. Please upload the front side")));
         mvc.perform(post("/atm/login").with(csrf()).param("cardNumber", opened.cardNumber()).param("pin", opened.pin()))
                 .andExpect(redirectedUrl("/atm/login?error"));
+    }
+
+    @Test
+    void staffCanLogInFromTheCombinedLoginPage() throws Exception {
+        MockHttpSession session = new MockHttpSession();
+        mvc.perform(get("/login").param("as", "staff").session(session)).andExpect(status().isOk());
+        mvc.perform(post("/admin/login").session(session).with(csrf()).param("username", "admin").param("password", "admin123"))
+                .andExpect(redirectedUrl("/admin"));
     }
 
     @Test

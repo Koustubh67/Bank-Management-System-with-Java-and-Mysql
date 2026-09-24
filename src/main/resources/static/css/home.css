@@ -345,3 +345,34 @@ code { font-family: var(--mono); font-size: .88em; background: #ecfdf5; color: v
 }
 @media (prefers-reduced-motion: reduce) { .js .reveal { opacity: 1; transform: none; } }
 .kyc-cta { margin-left: auto; white-space: nowrap; } @media (max-width: 900px) { .kyc-cta { display: inline-block; margin-top: 14px; } }
+
+/* ---------- Login chooser ---------- */
+.nav-menu-head { display: block; padding: 8px 12px 2px; font-size: .7rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.login-page { position: relative; overflow: hidden; min-height: calc(100vh - 70px); display: grid; place-items: center; padding: 48px 20px; }
+.login-box {
+    position: relative; width: 100%; max-width: 480px; padding: 34px 32px; border-radius: 28px;
+    background: rgba(255, 255, 255, .88); backdrop-filter: blur(12px); border: 1px solid var(--line);
+    box-shadow: 0 30px 70px rgba(15, 23, 42, .12);
+}
+.login-box h1 { margin: 0 0 4px; font-size: 1.9rem; letter-spacing: -.03em; }
+.login-box .muted { margin: 0 0 22px; }
+.who { position: absolute; opacity: 0; pointer-events: none; }
+.who-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 5px; border-radius: 16px; background: var(--bg); border: 1px solid var(--line); margin-bottom: 22px; }
+.who-tabs label { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 11px; border-radius: 12px; font-weight: 700; color: var(--muted); cursor: pointer; transition: background .15s, color .15s; }
+.who-tabs .ic { width: 18px; height: 18px; }
+#asCustomer:checked ~ .who-tabs label[for=asCustomer],
+#asStaff:checked ~ .who-tabs label[for=asStaff] { background: var(--ink); color: #fff; box-shadow: 0 6px 16px rgba(15, 23, 42, .2); }
+#asCustomer:focus-visible ~ .who-tabs label[for=asCustomer],
+#asStaff:focus-visible ~ .who-tabs label[for=asStaff] { outline: 2px solid var(--em); }
+.who-panel { display: none; animation: appear .3s ease; }
+#asCustomer:checked ~ .customer-panel, #asStaff:checked ~ .staff-panel { display: block; }
+@keyframes appear { from { opacity: 0; transform: translateY(6px); } }
+.login-choice { display: flex; align-items: center; gap: 14px; padding: 16px; margin-bottom: 12px; border-radius: 18px; border: 1px solid var(--line); background: #fff; color: var(--ink); text-decoration: none; transition: border-color .15s, transform .15s, box-shadow .15s; }
+.login-choice:hover { border-color: var(--em); transform: translateY(-2px); box-shadow: 0 12px 26px rgba(15, 23, 42, .08); }
+.login-choice small { display: block; color: var(--muted); font-size: .85rem; }
+.lc-ic { flex: none; width: 46px; height: 46px; display: grid; place-items: center; border-radius: 14px; color: var(--c); background: color-mix(in srgb, var(--c) 12%, white); }
+.lc-go { margin-left: auto; font-size: 1.2rem; color: var(--muted); transition: transform .15s; }
+.login-choice:hover .lc-go { transform: translateX(4px); color: var(--em); }
+.btn.full { width: 100%; text-align: center; margin-top: 6px; }
+.login-foot { font-size: .88rem; color: var(--muted); margin: 14px 0 0; }
+.demo-hint { margin: 12px 0 0; padding: 10px 12px; border-radius: 12px; background: #fef3c7; color: #92400e; font-size: .82rem; }
