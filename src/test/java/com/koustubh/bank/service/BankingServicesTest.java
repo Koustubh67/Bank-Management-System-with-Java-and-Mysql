@@ -53,6 +53,26 @@ class BankingServicesTest {
                 .isInstanceOf(InvalidRequestException.class).hasMessageContaining("PAN");
     }
 
+    @Test
+    void pendingApplicationCanBeDeclinedWithAReasonButNotTwice() {
+        OpenedAccount a = accounts.pending();
+        Long id = accounts.idOf(a);
+        assertThatThrownBy(() -> admin.decline(id, "  ")).isInstanceOf(InvalidRequestException.class);
+        admin.decline(id, "Duplicate application");
+        assertThat(opening.status(a.accountNumber(), TestAccounts.lastPan()).declineReason()).isEqualTo("Duplicate application");
+        assertThatThrownBy(() -> admin.decline(id, "again")).isInstanceOf(InvalidRequestException.class);
+        assertThatThrownBy(() -> admin.approve(id)).isInstanceOf(InvalidRequestException.class);
+        assertThatThrownBy(() -> cardSecurity.verifyLogin(a.cardNumber(), a.pin()))
+                .isInstanceOf(DisabledException.class).hasMessageContaining("declined");
+    }
+
+    @Test
+    void activeAccountCannotBeDeclined() {
+        OpenedAccount a = accounts.active(0);
+        assertThatThrownBy(() -> admin.decline(accounts.idOf(a), "Duplicate application"))
+                .isInstanceOf(InvalidRequestException.class);
+    }
+
     // ----- Deposit / withdrawal -----
 
     @Test

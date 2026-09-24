@@ -18,7 +18,7 @@
 
 body {
     margin: 0;
-    font: 15px/1.55 "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font: 15px/1.6 "Plus Jakarta Sans", "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     color: var(--ink);
     background: var(--bg);
 }
@@ -73,13 +73,6 @@ h2 { font-size: 1.15rem; margin: 1.5rem 0 .75rem; }
 .alert.ok { background: #e3f5ee; color: #11573f; }
 .alert.error { background: #fdecea; color: #8e2a1f; }
 .alert.warn { background: var(--warn-bg); color: #6b4d00; }
-
-/* ---------- Home ---------- */
-.hero { background: linear-gradient(135deg, var(--navy), var(--navy-2)); color: #fff; padding: 64px 0 72px; }
-.hero h1 { font-size: 2.4rem; margin: 0 0 12px; }
-.hero p { max-width: 560px; color: #cfdced; font-size: 1.05rem; }
-.hero-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 24px; }
-.features { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-top: -32px; }
 
 /* ---------- Forms ---------- */
 .form .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 0 20px; }
@@ -163,3 +156,48 @@ a.stat:hover { border-color: var(--accent); }
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
 }
+
+/* ---------- KYC uploads, application tracking, decline ---------- */
+.sub-head { margin-top: 8px; padding-top: 18px; border-top: 1px solid var(--line); }
+.upload { margin-bottom: 16px; }
+.upload-title { display: block; font-weight: 600; font-size: .9rem; margin-bottom: 6px; }
+.dropzone {
+    position: relative; display: grid; justify-items: center; gap: 4px; padding: 20px 14px; text-align: center;
+    border: 2px dashed #c6d2df; border-radius: 12px; background: #f8fafc; cursor: pointer;
+    transition: border-color .15s ease, background .15s ease;
+}
+.dropzone:hover, .dropzone.drag { border-color: var(--accent); background: #effaf6; }
+.dropzone.invalid { border-color: var(--danger); background: #fff7f6; }
+.dropzone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.dz-icon { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 50%; background: #e3f5ee; color: var(--accent-dark); font-weight: 800; }
+.dz-text { font-size: .9rem; color: var(--muted); }
+.dz-text strong { color: var(--accent-dark); }
+.dz-file { font-size: .82rem; color: var(--accent-dark); font-weight: 600; word-break: break-all; }
+.dz-preview { display: block; max-height: 120px; margin: 10px auto 0; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, .1); }
+.page-pad { padding-top: 12px; padding-bottom: 48px; }
+.status-card { margin-top: 20px; }
+.track { list-style: none; padding: 0; margin: 16px 0 8px; }
+.track li { position: relative; padding: 0 0 22px 36px; }
+.track li::before {
+    content: ""; position: absolute; left: 0; top: 2px; width: 20px; height: 20px; border-radius: 50%;
+    border: 2px solid #c6d2df; background: #fff; box-sizing: border-box;
+}
+.track li::after { content: ""; position: absolute; left: 9px; top: 24px; bottom: 2px; width: 2px; background: #dde3ea; }
+.track li:last-child::after { display: none; }
+.track li.done::before { background: var(--accent); border-color: var(--accent); }
+.track li.done::after { background: var(--accent); }
+.track li.current::before { border-color: #d4a017; box-shadow: 0 0 0 5px rgba(212, 160, 23, .2); animation: pulseDot 1.6s infinite; }
+.track li.declined::before { background: var(--danger); border-color: var(--danger); }
+.track b { display: block; }
+.track small { color: var(--muted); }
+@keyframes pulseDot { 50% { box-shadow: 0 0 0 9px rgba(212, 160, 23, 0); } }
+.doc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
+.doc { display: grid; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; text-decoration: none; color: inherit; transition: box-shadow .15s ease; }
+.doc:hover { box-shadow: 0 8px 20px rgba(16, 24, 40, .1); }
+.doc img { width: 100%; height: 130px; object-fit: cover; background: #f1f5f9; }
+.doc-pdf { height: 130px; display: grid; place-items: center; background: #fdecea; color: #b8342a; font-weight: 800; font-size: 1.4rem; }
+.doc-meta { padding: 8px 10px; }
+.doc-meta small { display: block; color: var(--muted); word-break: break-all; }
+.decline-card { border-color: #f3c7c1; }
+.badge.declined { background: #fdecea; color: #8e2a1f; }
+.actions .btn + .btn, .actions .btn + form, .actions form + .btn { margin-left: 6px; }

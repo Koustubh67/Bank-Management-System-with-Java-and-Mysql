@@ -9,6 +9,8 @@
         <a class="stat" th:href="@{/admin/accounts(status=PENDING)}"><span>Pending approval</span><strong th:text="${stats.pending}">0</strong></a>
         <a class="stat" th:href="@{/admin/accounts(status=ACTIVE)}"><span>Active accounts</span><strong th:text="${stats.active}">0</strong></a>
         <a class="stat" th:href="@{/admin/accounts(status=FROZEN)}"><span>Frozen accounts</span><strong th:text="${stats.frozen}">0</strong></a>
+        <a class="stat" th:href="@{/admin/accounts(status=DECLINED)}"><span>Declined</span><strong th:text="${stats.declined}">0</strong></a>
+        <div class="stat"><span>UPI users</span><strong th:text="${stats.upiUsers}">0</strong></div>
         <a class="stat" th:href="@{/admin/transactions}"><span>Transactions</span><strong th:text="${stats.transactions}">0</strong></a>
         <div class="stat"><span>Total deposits held</span><strong th:text="${@money.format(stats.totalDeposits)}">₹0</strong></div>
     </div>
@@ -25,9 +27,11 @@
                 <td class="mono" th:text="${a.accountNumber}"></td>
                 <td th:text="${a.accountType.label}"></td>
                 <td class="actions">
+                    <a class="btn small ghost" th:href="@{/admin/accounts/{id}(id=${a.id})}">Review</a>
                     <form th:action="@{/admin/accounts/{id}/approve(id=${a.id})}" method="post" class="inline">
                         <button type="submit" class="btn small primary">Approve</button>
                     </form>
+                    <a class="btn small danger" th:href="@{/admin/accounts/{id}(id=${a.id})} + '#decline'">Decline</a>
                 </td>
             </tr>
             </tbody>

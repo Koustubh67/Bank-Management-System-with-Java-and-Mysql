@@ -78,6 +78,10 @@ public class SignupForm implements Serializable {
     @AssertTrue(message = "you must accept the declaration", groups = AccountDetails.class)
     private boolean declaration;
 
+    // KYC documents, uploaded on page 2 and checked by KycFiles
+    private UploadedFile panDocument;
+    private UploadedFile aadhaarDocument;
+
     public Customer toCustomer() {
         Customer c = new Customer();
         c.setFullName(fullName.trim());
@@ -150,5 +154,9 @@ public class SignupForm implements Serializable {
     public List<String> getServices() { return services; }
     public void setServices(List<String> services) { this.services = services == null ? new ArrayList<>() : services; }
     public boolean isDeclaration() { return declaration; }
+    public UploadedFile getPanDocument() { return panDocument; }
+    public void setPanDocument(UploadedFile panDocument) { this.panDocument = panDocument; }
+    public UploadedFile getAadhaarDocument() { return aadhaarDocument; }
+    public void setAadhaarDocument(UploadedFile aadhaarDocument) { this.aadhaarDocument = aadhaarDocument; }
     public void setDeclaration(boolean declaration) { this.declaration = declaration; }
 }

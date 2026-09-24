@@ -5,5 +5,7 @@ public enum AccountStatus {
     PENDING,
     ACTIVE,
     /** Blocked by a bank officer; no transactions or ATM logins allowed. */
-    FROZEN
+    FROZEN,
+    /** Application rejected by a bank officer during review. */
+    DECLINED
 }

@@ -5,6 +5,7 @@ import com.koustubh.bank.dto.SignupForm;
 import com.koustubh.bank.dto.SignupOptions;
 import com.koustubh.bank.exception.BankException;
 import com.koustubh.bank.service.AccountOpeningService;
+import com.koustubh.bank.service.KycFiles;
 import com.koustubh.bank.service.OpenedAccount;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -13,6 +14,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.bind.support.SessionStatus;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 /** The 3-page account opening form. The form object lives in the session until the account is created. */
@@ -48,7 +50,7 @@ public class SignupController {
     /** Progress is tracked on the server; the browser must not be able to skip pages. */
     @InitBinder("signupForm")
     public void initBinder(WebDataBinder binder) {
-        binder.setDisallowedFields("completedStep");
+        binder.setDisallowedFields("completedStep", "panDocument", "aadhaarDocument");
     }
 
     @GetMapping
@@ -78,9 +80,26 @@ public class SignupController {
 
     @PostMapping("/additional")
     public String saveAdditional(@Validated(SignupForm.Additional.class) @ModelAttribute("signupForm") SignupForm form,
-                                 BindingResult result) {
+                                 BindingResult result,
+                                 @RequestParam(required = false) MultipartFile panFile,
+                                 @RequestParam(required = false) MultipartFile aadhaarFile) {
         if (form.getCompletedStep() < 1) {
             return "redirect:/signup/personal";
+        }
+        // A new file replaces the one kept in the session; going back without choosing a file keeps the old one.
+        try {
+            if (hasFile(panFile) || form.getPanDocument() == null) {
+                form.setPanDocument(KycFiles.accept(panFile, "PAN card"));
+            }
+        } catch (BankException e) {
+            result.rejectValue("panDocument", "upload", e.getMessage());
+        }
+        try {
+            if (hasFile(aadhaarFile) || form.getAadhaarDocument() == null) {
+                form.setAadhaarDocument(KycFiles.accept(aadhaarFile, "Aadhaar card"));
+            }
+        } catch (BankException e) {
+            result.rejectValue("aadhaarDocument", "upload", e.getMessage());
         }
         if (result.hasErrors()) {
             return "signup/additional";
@@ -114,6 +133,27 @@ public class SignupController {
             model.addAttribute("error", e.getMessage());
             return "signup/account";
         }
+    }
+
+    @GetMapping("/status")
+    public String statusForm() {
+        return "signup/status";
+    }
+
+    @PostMapping("/status")
+    public String status(@RequestParam String accountNumber, @RequestParam String pan, Model model) {
+        model.addAttribute("accountNumber", accountNumber);
+        model.addAttribute("pan", pan);
+        try {
+            model.addAttribute("tracked", accountOpening.status(accountNumber, pan));
+        } catch (BankException e) {
+            model.addAttribute("error", e.getMessage());
+        }
+        return "signup/status";
+    }
+
+    private static boolean hasFile(MultipartFile file) {
+        return file != null && !file.isEmpty();
     }
 
     @GetMapping("/done")

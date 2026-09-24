@@ -12,6 +12,11 @@ spring:
       ddl-auto: validate
   flyway:
     enabled: true
+  servlet:
+    multipart:
+      # KycFiles allows 2 MB per document; these limits only stop very large requests early.
+      max-file-size: 5MB
+      max-request-size: 11MB
 
 server:
   port: ${PORT:8080}

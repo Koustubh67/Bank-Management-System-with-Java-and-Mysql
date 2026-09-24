@@ -3,6 +3,7 @@ package com.koustubh.bank.service;
 import com.koustubh.bank.domain.Account;
 import com.koustubh.bank.domain.AccountStatus;
 import com.koustubh.bank.domain.Card;
+import com.koustubh.bank.domain.KycDocument;
 import com.koustubh.bank.domain.Transaction;
 import com.koustubh.bank.domain.UpiHandle;
 import com.koustubh.bank.exception.InvalidRequestException;
@@ -10,6 +11,8 @@ import com.koustubh.bank.exception.NotFoundException;
 import com.koustubh.bank.repository.AccountRepository;
 import com.koustubh.bank.repository.CardRepository;
 import com.koustubh.bank.repository.CustomerRepository;
+import com.koustubh.bank.repository.KycDocumentRepository;
+import com.koustubh.bank.repository.DocumentInfo;
 import com.koustubh.bank.repository.TransactionRepository;
 import com.koustubh.bank.repository.UpiHandleRepository;
 import org.springframework.data.domain.PageRequest;
@@ -23,21 +26,35 @@ import java.util.List;
 @Service
 public class AdminService {
 
-    public record Dashboard(long customers, long pending, long active, long frozen, long transactions,
-                            BigDecimal totalDeposits) {
+    public record Dashboard(long customers, long pending, long active, long frozen, long declined, long transactions,
+                            long upiUsers, BigDecimal totalDeposits) {
     }
 
-    public record AccountDetails(Account account, Card card, UpiHandle upi, List<Transaction> transactions) {
+    public record AccountDetails(Account account, Card card, UpiHandle upi, List<DocumentInfo> documents,
+                                 List<Transaction> transactions) {
     }
+
+    /** Reasons offered in the decline form. */
+    public static final List<String> DECLINE_REASONS = List.of(
+            "PAN card image is unclear or unreadable",
+            "Aadhaar card image is unclear or unreadable",
+            "Name does not match the documents",
+            "PAN number does not match the PAN card",
+            "Aadhaar number does not match the Aadhaar card",
+            "Duplicate application",
+            "Incomplete application");
 
     private final CustomerRepository customers;
     private final AccountRepository accounts;
     private final CardRepository cards;
     private final TransactionRepository transactions;
     private final UpiHandleRepository upiHandles;
+    private final KycDocumentRepository documents;
 
     public AdminService(CustomerRepository customers, AccountRepository accounts, CardRepository cards,
-                        TransactionRepository transactions, UpiHandleRepository upiHandles) {
+                        TransactionRepository transactions, UpiHandleRepository upiHandles,
+                        KycDocumentRepository documents) {
+        this.documents = documents;
         this.customers = customers;
         this.accounts = accounts;
         this.cards = cards;
@@ -49,7 +66,8 @@ public class AdminService {
     public Dashboard dashboard() {
         return new Dashboard(customers.count(), accounts.countByStatus(AccountStatus.PENDING),
                 accounts.countByStatus(AccountStatus.ACTIVE), accounts.countByStatus(AccountStatus.FROZEN),
-                transactions.count(), accounts.totalBalance());
+                accounts.countByStatus(AccountStatus.DECLINED), transactions.count(), upiHandles.count(),
+                accounts.totalBalance());
     }
 
     @Transactional(readOnly = true)
@@ -65,6 +83,7 @@ public class AdminService {
                 .orElseThrow(() -> new NotFoundException("Account not found"));
         Card card = cards.findByAccountId(accountId).orElseThrow(() -> new NotFoundException("Card not found"));
         return new AccountDetails(account, card, upiHandles.findByAccountId(accountId).orElse(null),
+                documents.findInfoByCustomerId(account.getCustomer().getId()),
                 transactions.findByAccountIdOrderByIdDesc(accountId, PageRequest.of(0, 50)));
     }
 
@@ -80,6 +99,27 @@ public class AdminService {
             throw new InvalidRequestException("Only pending accounts can be approved");
         }
         account.activate();
+    }
+
+    @Transactional
+    public void decline(Long accountId, String reason) {
+        String clean = reason == null ? "" : reason.trim();
+        if (clean.isEmpty()) {
+            throw new InvalidRequestException("Please give a reason for declining");
+        }
+        if (clean.length() > 200) {
+            throw new InvalidRequestException("Reason must be at most 200 characters");
+        }
+        Account account = lock(accountId);
+        if (account.getStatus() != AccountStatus.PENDING) {
+            throw new InvalidRequestException("Only pending applications can be declined");
+        }
+        account.decline(clean);
+    }
+
+    @Transactional(readOnly = true)
+    public KycDocument document(Long documentId) {
+        return documents.findById(documentId).orElseThrow(() -> new NotFoundException("Document not found"));
     }
 
     @Transactional

@@ -1,8 +1,14 @@
 package com.koustubh.bank.web;
 
 import com.koustubh.bank.domain.AccountStatus;
+import com.koustubh.bank.domain.KycDocument;
 import com.koustubh.bank.exception.BankException;
 import com.koustubh.bank.service.AdminService;
+import org.springframework.http.CacheControl;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -43,12 +49,34 @@ public class AdminController {
     @GetMapping("/accounts/{id}")
     public String account(@PathVariable Long id, Model model) {
         model.addAttribute("details", admin.accountDetails(id));
+        model.addAttribute("declineReasons", AdminService.DECLINE_REASONS);
         return "admin/account";
     }
 
     @PostMapping("/accounts/{id}/approve")
     public String approve(@PathVariable Long id, RedirectAttributes redirect) {
         return act(id, admin::approve, "Account approved", redirect);
+    }
+
+    @PostMapping("/accounts/{id}/decline")
+    public String decline(@PathVariable Long id, @RequestParam(required = false) String reason,
+                          @RequestParam(required = false) String note, RedirectAttributes redirect) {
+        String full = (reason == null ? "" : reason.trim())
+                + (note == null || note.isBlank() ? "" : (reason == null || reason.isBlank() ? "" : ". ") + note.trim());
+        return act(id, accountId -> admin.decline(accountId, full), "Application declined", redirect);
+    }
+
+    /** Shows an uploaded KYC document. Only PDF, PNG and JPEG files are ever stored (checked by KycFiles). */
+    @GetMapping("/documents/{id}")
+    public ResponseEntity<byte[]> document(@PathVariable Long id) {
+        KycDocument doc = admin.document(id);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(doc.getContentType()))
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.inline().filename(doc.getFileName()).build().toString())
+                .header("X-Content-Type-Options", "nosniff")
+                .cacheControl(CacheControl.noStore())
+                .body(doc.getContent());
     }
 
     @PostMapping("/accounts/{id}/freeze")

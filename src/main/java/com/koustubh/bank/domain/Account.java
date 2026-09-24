@@ -29,6 +29,8 @@ public class Account {
 
     private String services;
 
+    private String declineReason;
+
     /** Optimistic locking: a concurrent update of the same row fails instead of silently overwriting. */
     @Version
     private Long version;
@@ -75,6 +77,11 @@ public class Account {
         status = AccountStatus.FROZEN;
     }
 
+    public void decline(String reason) {
+        status = AccountStatus.DECLINED;
+        declineReason = reason;
+    }
+
     public Long getId() { return id; }
     public String getAccountNumber() { return accountNumber; }
     public Customer getCustomer() { return customer; }
@@ -82,6 +89,7 @@ public class Account {
     public AccountStatus getStatus() { return status; }
     public BigDecimal getBalance() { return balance; }
     public String getServices() { return services; }
+    public String getDeclineReason() { return declineReason; }
     public LocalDateTime getCreatedAt() { return createdAt; }
 
     /** Shown on receipts, e.g. XXXXXXXX4821. */

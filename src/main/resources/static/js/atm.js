@@ -168,7 +168,7 @@
         tray.classList.add('open');
         notes.slice(0, 14).forEach((value, i) => {
             const note = document.createElement('span');
-            note.className = 'note n' + value + (extraClass ? ' ' + extraClass : '');
+            note.className = 'cash-note n' + value + (extraClass ? ' ' + extraClass : '');
             note.textContent = '₹' + value;
             note.style.setProperty('--y', (8 + i * 3) + 'px');
             note.style.setProperty('--r', ((i % 3) - 1) * 1.5 + 'deg');

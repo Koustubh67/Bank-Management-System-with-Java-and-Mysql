@@ -50,6 +50,9 @@ public class CardSecurityService {
         if (status == AccountStatus.PENDING) {
             throw new DisabledException("Your account is awaiting approval by the bank");
         }
+        if (status == AccountStatus.DECLINED) {
+            throw new DisabledException("Your account application was declined. Check its status on the Track application page");
+        }
         if (status == AccountStatus.FROZEN) {
             throw new DisabledException("Your account is frozen. Please contact your branch");
         }

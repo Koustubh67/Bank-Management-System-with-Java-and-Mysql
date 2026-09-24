@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/portal :: page(~{::title}, ~{::main})}">
+<head><title>Track application · JavaBank</title></head>
+<body>
+<main class="container narrow page-pad">
+    <h1>Track your application</h1>
+    <p class="muted">Enter the account number you received and your PAN to see where your application is.</p>
+    <form class="card form" th:action="@{/signup/status}" method="post">
+        <div class="grid">
+            <label class="field"><span>Account number</span>
+                <input type="text" name="accountNumber" th:value="${accountNumber}" inputmode="numeric" maxlength="12" required></label>
+            <label class="field"><span>PAN</span>
+                <input type="text" name="pan" th:value="${pan}" maxlength="10" required placeholder="ABCDE1234F"></label>
+        </div>
+        <div class="form-actions"><button type="submit" class="btn primary">Check status</button></div>
+    </form>
+    <div class="alert error" th:if="${error}" th:text="${error}"></div>
+
+    <th:block th:if="${tracked}">
+    <div class="card status-card" th:with="s=${tracked.status.name()}">
+        <p class="muted" th:text="${tracked.customerName + ' · ' + tracked.accountType + ' · ' + tracked.accountNumber}"></p>
+        <ol class="track">
+            <li class="done"><b>Application submitted</b><small th:text="${#temporals.format(tracked.appliedAt, 'dd MMM yyyy, hh:mm a')}"></small></li>
+            <li class="done"><b>Documents received</b><small>PAN and Aadhaar</small></li>
+            <li th:classappend="${s == 'PENDING'} ? 'current' : 'done'"><b>Verification by bank staff</b>
+                <small th:text="${s == 'PENDING'} ? 'In progress' : 'Completed'"></small></li>
+            <li th:if="${s != 'DECLINED'}" th:classappend="${s == 'PENDING'} ? '' : 'done'"><b>Account active</b>
+                <small th:text="${s == 'ACTIVE'} ? 'Your card and UPI are ready to use' : (${s == 'FROZEN'} ? 'Account frozen: contact your branch' : 'Waiting')"></small></li>
+            <li th:if="${s == 'DECLINED'}" class="declined"><b>Application declined</b>
+                <small th:text="${tracked.declineReason}"></small></li>
+        </ol>
+        <p th:if="${s == 'DECLINED'}" class="note">You're welcome to apply again with the correct details.
+            <a th:href="@{/signup}">Start a new application</a></p>
+        <p th:if="${s == 'ACTIVE'}"><a class="btn primary" th:href="@{/atm/login}">Go to ATM</a>
+            <a class="btn ghost" th:href="@{/upi/register}">Activate UPI</a></p>
+    </div>
+    </th:block>
+</main>
+</body>
+</html>

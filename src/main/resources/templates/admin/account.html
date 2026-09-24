@@ -11,6 +11,7 @@
         <form th:if="${a.status.name() == 'PENDING'}" th:action="@{/admin/accounts/{id}/approve(id=${a.id})}" method="post" class="inline">
             <button type="submit" class="btn primary">Approve account</button>
         </form>
+        <a th:if="${a.status.name() == 'PENDING'}" class="btn danger" href="#decline">Decline application…</a>
         <form th:if="${a.status.name() == 'ACTIVE'}" th:action="@{/admin/accounts/{id}/freeze(id=${a.id})}" method="post" class="inline">
             <button type="submit" class="btn danger">Freeze account</button>
         </form>
@@ -24,6 +25,41 @@
             <button type="submit" class="btn primary">Unblock card</button>
         </form>
     </div>
+
+    <div class="alert error" th:if="${a.status.name() == 'DECLINED'}">
+        <strong>Declined:</strong> <span th:text="${a.declineReason}"></span>
+    </div>
+
+    <section class="card">
+        <h2>KYC documents</h2>
+        <p class="muted" th:if="${details.documents.isEmpty()}">No documents were uploaded with this application.</p>
+        <div class="doc-grid" th:unless="${details.documents.isEmpty()}">
+            <a class="doc" th:each="d : ${details.documents}" th:href="@{/admin/documents/{id}(id=${d.id})}" target="_blank" rel="noopener">
+                <img th:if="${d.image}" th:src="@{/admin/documents/{id}(id=${d.id})}" th:alt="${d.docType.label}">
+                <span th:unless="${d.image}" class="doc-pdf">PDF</span>
+                <span class="doc-meta"><strong th:text="${d.docType.label}"></strong>
+                    <small th:text="${d.fileName + ' · ' + d.sizeLabel}"></small></span>
+            </a>
+        </div>
+        <p class="note" th:if="${a.status.name() == 'PENDING'}">Check that the name, PAN (<b class="mono" th:text="${c.pan}"></b>)
+            and Aadhaar (<b class="mono" th:text="${c.maskedAadhaar}"></b>) match the documents before approving.</p>
+    </section>
+
+    <section class="card decline-card" id="decline" th:if="${a.status.name() == 'PENDING'}">
+        <h2>Decline application</h2>
+        <form th:action="@{/admin/accounts/{id}/decline(id=${a.id})}" method="post" class="form">
+            <label class="field"><span>Reason</span>
+                <select name="reason" required>
+                    <option value="">Select a reason…</option>
+                    <option th:each="r : ${declineReasons}" th:value="${r}" th:text="${r}"></option>
+                </select>
+            </label>
+            <label class="field"><span>Note to customer (optional)</span>
+                <input type="text" name="note" maxlength="120" placeholder="e.g. Please upload a clearer photo of the front side">
+            </label>
+            <button type="submit" class="btn danger">Decline application</button>
+        </form>
+    </section>
 
     <div class="columns">
         <section class="card">

@@ -12,8 +12,12 @@ transfers, row locking under concurrent access, an append-only transaction ledge
 
 ## Features
 
-**Account opening**
+**Account opening and KYC**
 - 3-page application: personal details, KYC details (PAN, Aadhaar, income, occupation…), account type and services
+- **Upload PAN and Aadhaar card images** (PDF, JPG or PNG, up to 2 MB, drag-and-drop with preview). The file type is
+  checked from the file's first bytes, so a renamed HTML or script file is refused
+- **Track application** page: enter the account number + PAN to see a live timeline (submitted → documents received →
+  verification → active or declined, with the reason)
 - Input validation (PAN format, 12-digit Aadhaar, 6-digit PIN code, email) and duplicate-PAN/Aadhaar checks
 - Generates a 12-digit account number and a 16-digit card number with a valid **Luhn check digit**, plus a 4-digit PIN
   shown **once**
@@ -40,12 +44,23 @@ transfers, row locking under concurrent access, an append-only transaction ledge
 - Frozen or pending accounts cannot log in or transact
 - CSRF protection on every form; separate login sessions for ATM, UPI and staff
 
+**Home page**
+- Modern landing page with live "Trusted by N+ customers" numbers from the database (no money totals are shown publicly)
+- Investments section (mutual fund SIP, FD, digital gold, stocks) with a working **SIP / FD returns calculator**
+- Insurance section (term life, health, motor, travel). Investment and insurance products are marked "coming soon"
+
 **Staff (admin) panel**
 - Dashboard: customers, pending/active/frozen accounts, transactions, total deposits
-- Approve, freeze and unfreeze accounts; unblock cards; unlock UPI
+- Review the uploaded PAN and Aadhaar documents next to the customer's details
+- **Approve or decline** applications (decline needs a reason, shown to the customer); freeze and unfreeze accounts;
+  unblock cards; unlock UPI
 - Customer KYC view (Aadhaar masked) and full transaction history
 
 ## Screenshots
+
+| KYC document upload | Track application |
+|---|---|
+| ![KYC upload](docs/screenshots/kyc-upload.png) | ![Track application](docs/screenshots/track-application.png) |
 
 | ATM: collect your cash | ATM menu |
 |---|---|
@@ -96,6 +111,7 @@ src/main/java/com/koustubh/bank
 | Deadlock when A→B and B→A transfer at the same time | Both accounts are always locked in ascending id order; covered by a concurrent test |
 | Losing the wrong-PIN count when login fails | `@Transactional(noRollbackFor = …)` keeps the failed-attempt update for both ATM and UPI PINs |
 | One transfer engine for ATM and UPI | `TransferService.moveMoney` does the locking, debit/credit and both ledger legs; UPI adds its own PIN check and limits on top |
+| Unsafe file uploads | KYC files are accepted only if their first bytes are a real PDF, PNG or JPEG signature, file names are cleaned, and staff downloads are sent with `X-Content-Type-Options: nosniff` |
 | Paying out cash | `CashDispenser` picks the fewest notes (greedy works for 500/200/100); unit-tested for every amount |
 | Audit trail | The `transactions` table is append-only; each row stores the balance after the operation, and both sides of a transfer share one reference id |
 | Stolen database leaking PINs | PINs are BCrypt-hashed; Aadhaar is masked on screens |
@@ -130,7 +146,7 @@ without signing up. Each one is in a different state. They come from
 |---|---|---|---|---|---|---|---|
 | Rahul Sharma | `100000000001` | `5040930000000017` | `1234` | `rahul.0001@javabank` | `123456` | ₹42,350 | ✅ Active: ATM, UPI, everything |
 | Priya Verma | `100000000002` | `5040930000000025` | `2345` | `priya.0002@javabank` | `234567` | ₹1,20,950 | ✅ Active current account: pay Rahul by UPI |
-| Amit Patel | `100000000003` | `5040930000000033` | `3456` | — | — | ₹0 | ⏳ **Pending**: ATM refuses; approve him in the admin panel |
+| Amit Patel | `100000000003` | `5040930000000033` | `3456` | — | — | ₹0 | ⏳ **Pending**: ATM refuses; approve or decline him in the admin panel |
 | Sneha Iyer | `100000000004` | `5040930000000041` | `4567` | — | — | ₹20,000 | ❄️ **Frozen**: ATM refuses; unfreeze in the admin panel |
 | Vikram Singh | `100000000005` | `5040930000000058` | `5678` | — | — | ₹15,000 | 🚫 **Card blocked** (3 wrong PINs): unblock in the admin panel |
 | Anjali Gupta | `100000000006` | `5040930000000066` | `6789` | `anjali.0006@javabank` | `345678` | ₹7,700 | 🔒 **UPI locked**: unlock in the admin panel, or reset the UPI PIN with her card |
@@ -145,7 +161,10 @@ notes like "Dinner" and "Movie tickets"), so mini statements and UPI history are
    PIN. Open **Receive** to see Rahul's QR code.
 3. **Security:** try Vikram's card: it's blocked. Try Amit's: it's waiting for approval.
 4. **Staff:** log in as `admin` / `admin123`, approve Amit, unblock Vikram's card, unlock Anjali's UPI, unfreeze Sneha.
-5. **Sign up:** open your own account with **Open account** and repeat the steps above with it.
+5. **Sign up with KYC:** open your own account with **Open account** and upload any sample image as the PAN and
+   Aadhaar card (never real documents). As staff, open the application, view the documents and **decline** it with a
+   reason. Then open **Track application** (account number + PAN) to see the reason.
+6. **Home page:** try the SIP / FD calculator in the Investments section.
 
 Tests check that every login in this table works (`DemoDataSeederTest`), so the table stays correct.
 
@@ -165,12 +184,14 @@ Tests check that every login in this table works (`DemoDataSeederTest`), so the 
 ./mvnw test
 ```
 
-90 tests run against an in-memory H2 database with the real Flyway schema:
+95 tests run against an in-memory H2 database with the real Flyway schema:
 - **Domain unit tests:** balance rules, account states
 - **Service tests:** daily limit, insufficient funds, transfer atomicity, concurrent withdrawals, transfer deadlock
   avoidance, PIN lockout and unblock, PIN change
 - **UPI tests:** activation, UPI ID format, payment and narration, daily and per-transaction limits, wrong-PIN lock and
   reset, staff unlock
+- **KYC tests:** file type detection from content, oversized and disguised files, file name cleaning, upload →
+  staff view → decline → tracking page
 - **Demo data tests:** every demo login, balance and account state in the table above
 - **Web tests (MockMvc):** full 3-page signup, ATM login with a wrong PIN, withdrawal, staff approval, access control,
   UPI activate → login → pay → QR → balance → history

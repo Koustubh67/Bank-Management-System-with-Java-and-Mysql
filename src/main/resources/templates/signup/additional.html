@@ -5,7 +5,8 @@
 <main class="container narrow">
     <h1>Open an account</h1>
     <ol th:replace="~{fragments/form :: steps(2)}"></ol>
-    <form class="card form" th:action="@{/signup/additional}" th:object="${signupForm}" method="post" novalidate>
+    <form class="card form" th:action="@{/signup/additional}" th:object="${signupForm}" method="post"
+          enctype="multipart/form-data" novalidate>
         <h2>Page 2 · Additional details</h2>
         <div class="grid">
             <label th:replace="~{fragments/form :: select('religion', 'Religion', ${religions})}"></label>
@@ -34,6 +35,36 @@
                 <small class="err" th:if="${#fields.hasErrors('existingAccount')}" th:errors="*{existingAccount}"></small>
             </fieldset>
         </div>
+        <h2 class="sub-head">KYC documents</h2>
+        <p class="note">Upload a clear photo or scan of each card. PDF, JPG or PNG, up to 2 MB each. Bank staff check
+            these against the numbers above before approving your account.</p>
+        <div class="grid">
+            <div class="upload" data-upload>
+                <span class="upload-title">PAN card</span>
+                <label class="dropzone" th:classappend="${#fields.hasErrors('panDocument')} ? 'invalid'">
+                    <input type="file" name="panFile" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png">
+                    <span class="dz-icon" aria-hidden="true">⬆</span>
+                    <span class="dz-text"><strong>Choose file</strong> or drag it here</span>
+                    <span class="dz-file" th:if="*{panDocument != null}"
+                          th:text="'✓ ' + *{panDocument.fileName} + ' (' + *{panDocument.sizeLabel} + ') · choose again to replace'"></span>
+                </label>
+                <img class="dz-preview" alt="" hidden>
+                <small class="err" th:if="${#fields.hasErrors('panDocument')}" th:errors="*{panDocument}"></small>
+            </div>
+            <div class="upload" data-upload>
+                <span class="upload-title">Aadhaar card</span>
+                <label class="dropzone" th:classappend="${#fields.hasErrors('aadhaarDocument')} ? 'invalid'">
+                    <input type="file" name="aadhaarFile" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png">
+                    <span class="dz-icon" aria-hidden="true">⬆</span>
+                    <span class="dz-text"><strong>Choose file</strong> or drag it here</span>
+                    <span class="dz-file" th:if="*{aadhaarDocument != null}"
+                          th:text="'✓ ' + *{aadhaarDocument.fileName} + ' (' + *{aadhaarDocument.sizeLabel} + ') · choose again to replace'"></span>
+                </label>
+                <img class="dz-preview" alt="" hidden>
+                <small class="err" th:if="${#fields.hasErrors('aadhaarDocument')}" th:errors="*{aadhaarDocument}"></small>
+            </div>
+        </div>
+        <p class="note">🔒 Demo project: please upload a sample or blank image, never your real documents.</p>
         <div class="form-actions">
             <a class="btn ghost" th:href="@{/signup/personal}">‹ Back</a>
             <button type="submit" class="btn primary">Next ›</button>

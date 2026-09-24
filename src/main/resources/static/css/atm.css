@@ -198,12 +198,12 @@
 .cash-light.on { background: #ffc947; box-shadow: 0 0 12px #ffc947; animation: blink .8s infinite; }
 .cash-tray { position: relative; height: 0; transition: height .4s ease; }
 .cash-tray.open { height: 96px; }
-.cash-tray .note {
+.cash-tray .cash-note {
     position: absolute; left: 50%; top: -4px; width: 230px; margin-left: -115px;
     animation: dispense .5s ease-out both; transform-origin: top center;
 }
-.cash-tray .note.in { animation: swallow .55s ease-in both; }
-.cash-tray.taken .note { animation: take .6s ease-in forwards; }
+.cash-tray .cash-note.in { animation: swallow .55s ease-in both; }
+.cash-tray.taken .cash-note { animation: take .6s ease-in forwards; }
 @keyframes dispense {
     from { clip-path: inset(0 0 100% 0); transform: translateY(-8px) rotate(0); }
     to { clip-path: inset(0 0 0 0); transform: translateY(var(--y, 10px)) rotate(var(--r, 0deg)); }
@@ -229,5 +229,5 @@
     .menu-opt.right { text-align: left; }
     .menu-opt.right::after { content: ""; }
     .menu-opt.right::before { content: "◂ "; color: #8fd3ff; }
-    .cash-tray .note { width: 200px; margin-left: -100px; }
+    .cash-tray .cash-note { width: 200px; margin-left: -100px; }
 }

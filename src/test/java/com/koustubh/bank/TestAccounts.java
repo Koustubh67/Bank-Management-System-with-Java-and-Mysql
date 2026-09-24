@@ -19,6 +19,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class TestAccounts {
 
     private static final AtomicInteger COUNTER = new AtomicInteger(1000);
+    private static final ThreadLocal<String> LAST_PAN = new ThreadLocal<>();
+
+    /** PAN of the last form created on this thread. */
+    public static String lastPan() {
+        return LAST_PAN.get();
+    }
 
     private final AccountOpeningService opening;
     private final AdminService admin;
@@ -52,6 +58,7 @@ public class TestAccounts {
         f.setEducation("Graduate");
         f.setOccupation("Student");
         f.setPan("ABCDE" + n + "F");
+        LAST_PAN.set(f.getPan());
         f.setAadhaar("12345678" + n);
         f.setSeniorCitizen(false);
         f.setExistingAccount(false);
