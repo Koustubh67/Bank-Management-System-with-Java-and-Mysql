@@ -43,7 +43,9 @@
                 <button type="submit" class="btn dark lg full">Log in to staff panel</button>
             </form>
             <p class="login-foot">For bank employees only. Approve applications, review KYC and manage accounts.</p>
-            <p class="demo-hint" th:if="${demoEnabled}">Demo staff login: <b>admin</b> / <b>admin123</b></p>
+            <p class="login-foot small">New staff: log in with the username and temporary password from your branch manager.
+                You'll be asked to set your own password.</p>
+            <p class="demo-hint" th:if="${demoEnabled}">Demo: branch manager <b>admin</b> / <b>admin123</b> · officer <b>neha.officer</b> / <b>Officer@123</b></p>
         </section>
     </div>
 </main>

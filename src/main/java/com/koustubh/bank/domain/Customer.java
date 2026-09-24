@@ -46,6 +46,9 @@ public class Customer {
 
     private boolean loginLocked;
 
+    /** 10-digit Indian mobile number for SMS alerts. */
+    private String mobile;
+
     /** Records a wrong password and locks the login once the limit is reached. */
     public void registerFailedLogin(int maxAttempts) {
         failedLogins++;
@@ -116,6 +119,22 @@ public class Customer {
     public String getPasswordHash() { return passwordHash; }
     public int getFailedLogins() { return failedLogins; }
     public boolean isLoginLocked() { return loginLocked; }
+    public String getMobile() { return mobile; }
+    public void setMobile(String mobile) { this.mobile = mobile; }
+
+    /** e.g. +91 ******4821, used in "we'll SMS you" messages. */
+    public String getMaskedMobile() {
+        return mobile == null ? null : "+91 ******" + mobile.substring(6);
+    }
+
+    /** e.g. r*****a@example.com */
+    public String getMaskedEmail() {
+        int at = email.indexOf('@');
+        if (at < 2) {
+            return email;
+        }
+        return email.charAt(0) + "*****" + email.charAt(at - 1) + email.substring(at);
+    }
 
     /** Shown on the profile page, e.g. ABCXX1234X. */
     public String getMaskedPan() {

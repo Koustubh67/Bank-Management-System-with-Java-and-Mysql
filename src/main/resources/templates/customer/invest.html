@@ -5,68 +5,83 @@
 <main class="container cust-main" th:with="p=${portfolio}, active=${o.account.status.name() == 'ACTIVE'}">
     <div class="cust-hello">
         <div><h1>Invest</h1>
-            <p class="muted">Money is moved from your account (<span th:text="${@money.format(o.account.balance)}"></span> available) instantly.</p></div>
+            <p class="muted">Real mutual funds with live NAVs from AMFI, and bank fixed deposits.</p></div>
+        <span class="cid">Available <b th:text="${@money.format(o.account.balance)}"></b></span>
     </div>
-    <div class="status-banner pending" th:unless="${active}">Investing is available once your account is active.</div>
+    <div class="status-banner pending" th:unless="${active}">Investing unlocks once your account is approved.</div>
 
-    <div class="wealth-grid">
-        <!-- Fixed deposit -->
-        <form class="panel product-form" th:action="@{/customer/invest/fd}" method="post" data-fd>
-            <span class="pf-tag fd">Fixed Deposit</span>
-            <h2>Guaranteed returns, up to 7.25% p.a.</h2>
-            <label class="field"><span>Amount (₹5,000 – ₹10,00,000)</span>
-                <input type="number" name="amount" min="5000" max="1000000" step="1000" value="50000" required data-fd-amount></label>
-            <fieldset class="field"><legend>Tenure</legend>
-                <div class="seg">
-                    <label th:each="t, it : ${tenures}"><input type="radio" name="tenure" th:value="${t}" th:checked="${it.index == 1}"
-                           th:attr="data-rate=${t.rate},data-months=${t.months}">
-                        <span><b th:text="${t.label}"></b><small th:text="${t.rate + '%'}"></small></span></label>
-                </div>
-            </fieldset>
-            <div class="pf-result"><span>You'll get at maturity</span><strong data-fd-out>—</strong><small data-fd-gain></small></div>
-            <button type="submit" class="btn dark lg full" th:disabled="${!active}">Open fixed deposit</button>
-            <p class="note">Interest compounded quarterly. Illustrative demo rates.</p>
-        </form>
-
-        <!-- SIP -->
-        <form class="panel product-form" th:action="@{/customer/invest/sip}" method="post" data-sip>
-            <span class="pf-tag sip">Mutual Fund SIP</span>
-            <h2>Build wealth every month</h2>
-            <fieldset class="field"><legend>Choose a fund</legend>
-                <div class="fund-list">
-                    <label th:each="f, it : ${funds}" class="fund"><input type="radio" name="fund" th:value="${f}" th:checked="${it.first}"
-                           th:attr="data-return=${f.expectedReturn}">
-                        <span><b th:text="${f.label}"></b><small th:text="${f.category + ' · ' + f.risk + ' risk'}"></small></span>
-                        <em th:text="${f.expectedReturn + '%'}"></em></label>
-                </div>
-            </fieldset>
-            <label class="field"><span>Monthly amount (₹500 – ₹1,00,000)</span>
-                <input type="number" name="amount" min="500" max="100000" step="100" value="5000" required data-sip-amount></label>
-            <div class="pf-result"><span>Estimated value in 10 years</span><strong data-sip-out>—</strong><small>Illustrative, based on the fund's expected return. Not guaranteed.</small></div>
-            <button type="submit" class="btn dark lg full" th:disabled="${!active}">Start SIP · first instalment today</button>
-        </form>
-    </div>
-
-    <section class="panel">
-        <div class="panel-head"><h2>My investments</h2></div>
-        <p class="muted empty-state" th:if="${p.investments.isEmpty()}">You haven't invested yet. Your first FD or SIP will show up here.</p>
-        <div class="table-wrap plain" th:unless="${p.investments.isEmpty()}">
-            <table class="table">
-                <thead><tr><th>Investment</th><th>Reference</th><th>Started</th><th class="num">Invested</th><th class="num">Rate</th><th>Maturity / next debit</th></tr></thead>
+    <!-- Portfolio with live profit & loss -->
+    <section class="panel portfolio" th:unless="${p.empty}">
+        <div class="pf-sum">
+            <div><span>Current value</span><strong th:text="${@money.format(p.currentValue)}"></strong></div>
+            <div><span>Invested</span><b th:text="${@money.format(p.invested)}"></b></div>
+            <div><span>Total returns</span>
+                <b th:classappend="${p.gain.signum() < 0} ? 'loss' : 'profit'"
+                   th:text="${(p.gain.signum() < 0 ? '− ' : '+ ') + @money.format(p.gain.abs()) + ' (' + p.gainPercent + '%)'}"></b></div>
+        </div>
+        <div class="table-wrap plain">
+            <table class="table holdings-table">
+                <thead><tr><th>Holding</th><th class="num">Invested</th><th class="num">Current value</th><th class="num">Returns</th><th></th></tr></thead>
                 <tbody>
-                <tr th:each="i : ${p.investments}">
-                    <td><b th:text="${i.title}"></b><small class="muted remark" th:text="${i.type.label}"></small></td>
-                    <td class="mono small" th:text="${i.reference}"></td>
-                    <td th:text="${#temporals.format(i.startDate, 'dd MMM yyyy')}"></td>
+                <tr th:each="h : ${p.holdings}" th:with="i=${h.investment}">
+                    <td><a th:href="@{/customer/invest/holdings/{id}(id=${i.id})}" class="row-link"><b th:text="${i.title}"></b></a>
+                        <small class="muted remark" th:text="${i.type.label + (i.units != null ? ' · ' + i.units + ' units' : '')}"></small></td>
                     <td class="num" th:text="${@money.format(i.invested)}"></td>
-                    <td class="num" th:text="${i.ratePercent + '%'}"></td>
-                    <td th:if="${i.type.name() == 'SIP'}" th:text="${@money.whole(i.amount) + ' on ' + #temporals.format(i.nextDebitDate, 'dd MMM yyyy')}"></td>
-                    <td th:unless="${i.type.name() == 'SIP'}" th:text="${@money.format(i.maturityAmount) + ' on ' + #temporals.format(i.maturityDate, 'dd MMM yyyy')}"></td>
+                    <td class="num" th:text="${h.priced} ? ${@money.format(h.currentValue)} : 'Price unavailable'"></td>
+                    <td class="num" th:classappend="${h.gain.signum() < 0} ? 'loss' : 'profit'"
+                        th:text="${(h.gain.signum() < 0 ? '− ' : '+ ') + @money.format(h.gain.abs()) + ' (' + h.gainPercent + '%)'}"></td>
+                    <td class="num"><a th:href="@{/customer/invest/holdings/{id}(id=${i.id})}">Details →</a></td>
                 </tr>
                 </tbody>
             </table>
         </div>
     </section>
+
+    <!-- Fund explorer -->
+    <div class="panel-head section-gap"><h2>Explore mutual funds</h2><span class="muted small">Direct plans · Growth · NAVs from AMFI via mfapi.in</span></div>
+    <p class="status-banner frozen" th:if="${funds.isEmpty()}">Live market prices are unavailable right now. Please try again in a few minutes.</p>
+    <div class="fund-grid">
+        <a class="fund-card" th:each="f : ${funds}" th:href="@{/customer/invest/funds/{code}(code=${f.listing.schemeCode})}">
+            <div class="fc-top"><span class="fc-tag" th:text="${f.listing.tag}"></span><span class="fc-risk" th:text="${f.listing.risk + ' risk'}"></span></div>
+            <h3 th:text="${f.listing.shortName}"></h3>
+            <p class="muted small" th:text="${f.fundHouse}"></p>
+            <svg class="spark" viewBox="0 0 240 60" preserveAspectRatio="none" aria-hidden="true"
+                 th:with="pts=${@charts.points(f.chart, 240, 60)}, area=${@charts.area(f.chart, 240, 60)}">
+                <polygon th:attr="points=${area}" class="spark-area"/><polyline th:attr="points=${pts}" class="spark-line"/>
+            </svg>
+            <div class="fc-returns">
+                <div><span>1Y</span><b th:text="${f.return1y != null ? f.return1y + '%' : '—'}" th:classappend="${f.return1y != null and f.return1y.signum() < 0} ? 'loss' : 'profit'"></b></div>
+                <div><span>3Y CAGR</span><b th:text="${f.return3y != null ? f.return3y + '%' : '—'}" th:classappend="${f.return3y != null and f.return3y.signum() < 0} ? 'loss' : 'profit'"></b></div>
+                <div><span>5Y CAGR</span><b th:text="${f.return5y != null ? f.return5y + '%' : '—'}" th:classappend="${f.return5y != null and f.return5y.signum() < 0} ? 'loss' : 'profit'"></b></div>
+            </div>
+            <p class="fc-nav">NAV <b th:text="${'₹' + f.nav}"></b> <span th:text="${'on ' + #temporals.format(f.navDate, 'dd MMM')}"></span></p>
+        </a>
+    </div>
+    <p class="note">Past returns don't guarantee future returns. Mutual fund investments are subject to market risks; read all
+        scheme documents carefully. Demo project: no real units are bought.</p>
+
+    <!-- Fixed deposit -->
+    <form class="panel product-form fd-panel" id="fd" th:action="@{/customer/invest/order}" method="post" data-fd>
+        <input type="hidden" name="type" value="FIXED_DEPOSIT">
+        <div>
+            <span class="pf-tag fd">Fixed Deposit</span>
+            <h2>Fixed deposit</h2>
+            <p class="muted">Interest compounded quarterly. Deposits are insured by DICGC up to ₹5 lakh per depositor.</p>
+        </div>
+        <div class="fd-body">
+            <label class="field"><span>Amount (₹5,000 – ₹10,00,000)</span>
+                <input type="number" name="amount" min="5000" max="1000000" step="1000" value="50000" required data-fd-amount></label>
+            <fieldset class="field"><legend>Tenure &amp; interest rate</legend>
+                <div class="seg">
+                    <label th:each="t, it : ${tenures}"><input type="radio" name="tenure" th:value="${t}" th:checked="${it.index == 1}"
+                           th:attr="data-rate=${t.rate},data-months=${t.months}">
+                        <span><b th:text="${t.label}"></b><small th:text="${t.rate + '% p.a.'}"></small></span></label>
+                </div>
+            </fieldset>
+            <div class="pf-result"><span>Maturity value</span><strong data-fd-out>—</strong><small data-fd-gain></small></div>
+            <button type="submit" class="btn dark lg full" th:disabled="${!active}">Continue to checkout →</button>
+        </div>
+    </form>
 </main>
 </body>
 </html>

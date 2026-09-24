@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/admin :: page(~{::title}, ~{::main})}">
+<head><title>Investments · JavaBank Staff</title></head>
+<body>
+<main class="container">
+    <div class="actions-bar spread">
+        <div><h1>Investments</h1><p class="muted">All customer FDs, SIPs and mutual fund holdings, valued at the latest real NAV.</p></div>
+        <form th:action="@{/admin/investments/run-sips}" method="post"><button type="submit" class="btn primary">Run due SIP debits now</button></form>
+    </div>
+    <p class="muted" th:if="${holdings.isEmpty()}">No investments yet.</p>
+    <div class="table-wrap" th:unless="${holdings.isEmpty()}">
+        <table class="table">
+            <thead><tr><th>Customer</th><th>Investment</th><th>Reference</th><th>Started</th><th class="num">Invested</th><th class="num">Current value</th><th class="num">Returns</th><th>Next debit / maturity</th></tr></thead>
+            <tbody>
+            <tr th:each="h : ${holdings}" th:with="i=${h.investment}">
+                <td><a th:href="@{/admin/accounts/{id}(id=${i.account.id})}" th:text="${i.account.customer.fullName}"></a></td>
+                <td><b th:text="${i.title}"></b><small class="muted remark" th:text="${i.type.label}"></small></td>
+                <td class="mono small" th:text="${i.reference}"></td>
+                <td th:text="${#temporals.format(i.startDate, 'dd MMM yyyy')}"></td>
+                <td class="num" th:text="${@money.format(i.invested)}"></td>
+                <td class="num" th:text="${h.priced} ? ${@money.format(h.currentValue)} : 'n/a'"></td>
+                <td class="num" th:classappend="${h.gain.signum() < 0} ? 'dr' : 'cr'" th:text="${@money.format(h.gain) + ' (' + h.gainPercent + '%)'}"></td>
+                <td th:text="${i.nextDebitDate != null ? #temporals.format(i.nextDebitDate, 'dd MMM yyyy') : (i.maturityDate != null ? #temporals.format(i.maturityDate, 'dd MMM yyyy') : '—')}"></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+</body>
+</html>

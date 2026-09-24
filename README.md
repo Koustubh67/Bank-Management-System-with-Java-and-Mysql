@@ -17,23 +17,51 @@ transfers, row locking under concurrent access, an append-only transaction ledge
 - Customers log in with a **Customer ID + password** chosen at account opening (BCrypt-hashed). 5 wrong passwords
   lock the login; customers reset it with their debit card + ATM PIN, or staff unlock it
 - Customer and staff logins are separate Spring Security filter chains with separate sessions
+- **Back button / swipe-back safe:** signed-in pages are sent with `Cache-Control: no-store`, reload themselves if the
+  browser restores them from its back-forward cache, logout sends `Clear-Site-Data` (on HTTPS), and visiting `/login`
+  while signed in goes straight back to the dashboard
 - **Dashboard:** balance hidden until you tap "Show", account and card status, quick actions, recent transactions
 - **Passbook:** date and credit/debit filters, pagination, and a **CSV statement download** (protected against
   spreadsheet formula injection)
 - **Profile:** personal and KYC details (PAN and Aadhaar masked), UPI ID, change password
 
-**Investments & insurance (inside net banking)**
-- **Fixed deposits** for 1–5 years (6.80%–7.25% p.a., compounded quarterly) with a live maturity preview
-- **Mutual fund SIPs** from ₹500/month in three demo funds; the first instalment is debited immediately
-- **Insurance:** term life, health, motor and travel; premiums personalised to the customer's age
-- Every purchase debits the account through the same locked, all-or-nothing ledger as the ATM and UPI
-- The dashboard shows total invested, FD maturity value, life and health cover, and every holding; staff see them too
+**Investments with real market data**
+- **Real mutual funds** (Parag Parikh Flexi Cap, UTI Nifty 50 Index, ICICI Prudential Large Cap, SBI Small Cap,
+  Mirae Asset ELSS, Axis Gold, HDFC Liquid; Direct · Growth). Daily NAVs come live from
+  [mfapi.in](https://www.mfapi.in), a free public API that republishes AMFI data, with a 6-hour cache and a clear
+  "prices unavailable" state instead of made-up numbers
+- Fund pages show the real **1-year NAV chart and 1Y / 3Y / 5Y returns** (CAGR) calculated from NAV history
+- **SIP or one-time purchase**: units are bought at the real NAV, so the portfolio's **current value and profit or
+  loss move with the market**. A scheduled job debits due SIP instalments every month (staff can run it on demand)
+- **Checkout like a real app:** choose → confirm KYC (PAN, Aadhaar, mobile must match; every mismatch shown at once)
+  → pay from the account with an **OTP** sent by (simulated) SMS, or with **JavaPay UPI** and the UPI PIN
+- **Fixed deposits** for 1–5 years (6.80%–7.25% p.a., compounded quarterly) with interest accrued to date
+- Every holding has its own page (units, NAV, average cost, returns, next SIP date)
+
+**Insurance through an expert callback (like real bancassurance)**
+- Health, term life, motor and travel plans with what's covered. **"Talk to an expert"** takes the customer's details
+  (cover wanted, family/nominee/vehicle/trip, best time to call); the customer is told an expert will call within
+  24 hours, and gets an SMS and email
+- Staff work an **insurance queue**: mark as contacted, **issue the policy** (insurer, policy number, cover, premium;
+  the first premium is auto-debited) or close it with a reason. Customers track each request and open every
+  **issued policy** on its own page
+- No premiums are made up: prices come from the insurer through the expert, as in a real bank
+
+**SMS & email alerts (simulated)**
+- Application received / approved / declined, investment confirmed, OTPs, SIP instalment missed, insurance request
+  received, policy issued. Stored in an outbox shown on the customer dashboard and to staff, and written to the log
+  (plug in any SMS/email provider in `NotificationService`)
 
 **Account opening and KYC**
 - 3-page application: personal details, KYC details (PAN, Aadhaar, income, occupation…), account type and services
+- **All errors shown at once** in a summary at the top of each page, including **already-registered** mobile
+  numbers (page 1) and PAN / Aadhaar (page 2), so nothing is discovered only at the end. Passwords and uploaded files
+  are kept when another field has an error
+- A **mobile number** is collected for SMS alerts; after submitting, customers are told they'll be notified by SMS and
+  email once approved
 - **Upload PAN and Aadhaar card images** (PDF, JPG or PNG, up to 2 MB, drag-and-drop with preview). The file type is
   checked from the file's first bytes, so a renamed HTML or script file is refused
-- **Track application** page: enter the account number + PAN to see a live timeline (submitted → documents received →
+- **Track application** page: enter the account number **or Customer ID** + PAN to see a live timeline (submitted → documents received →
   verification → active or declined, with the reason)
 - Input validation (PAN format, 12-digit Aadhaar, 6-digit PIN code, email) and duplicate-PAN/Aadhaar checks
 - Generates a 12-digit account number and a 16-digit card number with a valid **Luhn check digit**, plus a 4-digit PIN
@@ -71,7 +99,13 @@ transfers, row locking under concurrent access, an append-only transaction ledge
 - Interaction details: word-by-word headline reveal, magnetic buttons, custom cursor, grain texture, scroll progress
   bar. All motion switches off for users who prefer reduced motion
 
-**Staff (admin) panel**
+**Staff (admin) panel and staff accounts**
+- Two roles: **branch manager** (ADMIN) and **bank officer**. Managers add staff; each new staff member gets a
+  one-time temporary password, logs in on the Bank staff tab, and **must set their own password** before anything
+  else. Managers can reset passwords and disable logins (never their own); officers can't manage staff
+- Approvals and declines record **which staff member** did them, and the customer is alerted
+- Pages: dashboard, accounts (KYC documents, holdings with live P&L, policies, insurance requests, alerts sent),
+  insurance queue, all investments, transactions, alerts sent, staff
 - Dashboard: customers, pending/active/frozen accounts, transactions, total deposits
 - Review the uploaded PAN and Aadhaar documents next to the customer's details
 - **Approve or decline** applications (decline needs a reason, shown to the customer); freeze and unfreeze accounts;
@@ -169,16 +203,20 @@ without signing up. Each one is in a different state. They come from
 - **Customer:** Customer ID + password. **Every demo customer's password is `Demo@1234`.** After logging in you get
   the dashboard (balance, recent transactions), passbook (filters + CSV download) and profile. The **ATM** and
   **JavaPay UPI** open from the dashboard; the ATM then asks for the card's ATM PIN, and UPI asks for the UPI PIN.
-- **Bank staff:** `admin` / `admin123` (Bank staff tab).
+- **Bank staff:** branch manager `admin` / `admin123`, or bank officer `neha.officer` / `Officer@123` (Bank staff tab).
 
 | Customer | Customer ID | Account no. | Card number | ATM PIN | UPI ID | UPI PIN | Balance | State: what to try |
 |---|---|---|---|---|---|---|---|---|
-| Rahul Sharma | `JB10000001` | `100000000001` | `5040930000000017` | `1234` | `rahul.0001@javabank` | `123456` | ₹39,451 | ✅ Active: ATM, UPI, everything. Has a SIP and travel insurance |
-| Priya Verma | `JB10000002` | `100000000002` | `5040930000000025` | `2345` | `priya.0002@javabank` | `234567` | ₹62,550 | ✅ Active current account. Has an FD and motor insurance |
+| Rahul Sharma | `JB10000001` | `100000000001` | `5040930000000017` | `1234` | `rahul.0001@javabank` | `123456` | ₹42,350 | ✅ Active: everything. 12-month Parag Parikh SIP (real P&L), health policy, open term-life request |
+| Priya Verma | `JB10000002` | `100000000002` | `5040930000000025` | `2345` | `priya.0002@javabank` | `234567` | ₹1,20,950 | ✅ Active current account. 24-month UTI Nifty 50 SIP, motor policy |
 | Amit Patel | `JB10000003` | `100000000003` | `5040930000000033` | `3456` | — | — | ₹0 | ⏳ **Pending**: dashboard says "under review"; approve or decline him as staff |
 | Sneha Iyer | `JB10000004` | `100000000004` | `5040930000000041` | `4567` | — | — | ₹20,000 | ❄️ **Frozen**: ATM refuses; unfreeze as staff |
 | Vikram Singh | `JB10000005` | `100000000005` | `5040930000000058` | `5678` | — | — | ₹15,000 | 🚫 **Card blocked** (3 wrong PINs): unblock as staff |
 | Anjali Gupta | `JB10000006` | `100000000006` | `5040930000000066` | `6789` | `anjali.0006@javabank` | `345678` | ₹7,700 | 🔒 **UPI locked**: unlock as staff, or set a new UPI PIN from UPI setup |
+
+Demo mobile numbers are `98765000` + the last two digits of the account number (Rahul: `9876500001`), used for
+KYC confirmation at investment checkout. Balances are for a fresh database; on a database created by an older
+version of the app they can differ.
 
 The demo data also includes real transaction history (deposits, withdrawals, an ATM transfer and UPI payments with
 notes like "Dinner" and "Movie tickets"), so mini statements and UPI history aren't empty.
@@ -193,13 +231,17 @@ notes like "Dinner" and "Movie tickets"), so mini statements and UPI history are
 4. **Security:** log in as Amit (`JB10000003`): the dashboard shows the account is under review and the ATM is locked.
    Enter 5 wrong passwords for any customer to lock the login, then reset it with **Forgot or set password**
    (card number + ATM PIN).
-5. **Invest & insure:** as Rahul open **Invest**, book an FD (watch the maturity preview) and start a SIP; then open
-   **Insurance** and buy a plan. Everything appears on the dashboard and in the passbook.
-6. **Staff:** log in as `admin` / `admin123`, approve Amit, unblock Vikram's card, unlock Anjali's UPI, unfreeze Sneha.
-7. **Sign up with KYC:** open your own account with **Open account** and upload any sample image as the PAN and
+5. **Invest:** as Rahul open **Invest**: see his SIP's real profit or loss, open a fund (real NAV chart and returns),
+   start a SIP → confirm KYC (PAN `ABCPS1234A`, Aadhaar `999900000001`, mobile `9876500001`) → **Send OTP** → pay.
+6. **Insure:** open **Insurance** → **Talk to an expert** → request a callback. Then log in as staff, open
+   **Insurance**, and issue the policy; back as Rahul, open the new policy from the dashboard.
+7. **Staff:** log in as `admin` / `admin123`, approve Amit, unblock Vikram's card, unlock Anjali's UPI, unfreeze Sneha.
+8. **New staff:** as `admin` open **Staff**, add an officer, then log in as them with the temporary password: you'll be
+   asked to set a new one. Officers can't open the Staff page.
+9. **Sign up with KYC:** open your own account with **Open account** and upload any sample image as the PAN and
    Aadhaar card (never real documents). As staff, open the application, view the documents and **decline** it with a
    reason. Then open **Track application** (account number + PAN) to see the reason.
-8. **Home page:** try the SIP / FD calculator in the Investments section.
+10. **Home page:** try the SIP / FD calculator in the Investments section.
 
 Tests check that every login in this table works (`DemoDataSeederTest`), so the table stays correct.
 
@@ -219,7 +261,7 @@ Tests check that every login in this table works (`DemoDataSeederTest`), so the 
 ./mvnw test
 ```
 
-108 tests run against an in-memory H2 database with the real Flyway schema:
+117 tests run against an in-memory H2 database with the real Flyway schema:
 - **Domain unit tests:** balance rules, account states
 - **Service tests:** daily limit, insufficient funds, transfer atomicity, concurrent withdrawals, transfer deadlock
   avoidance, PIN lockout and unblock, PIN change
@@ -227,8 +269,14 @@ Tests check that every login in this table works (`DemoDataSeederTest`), so the 
   reset, staff unlock
 - **KYC tests:** file type detection from content, oversized and disguised files, file name cleaning, upload →
   staff view → decline → tracking page
-- **Investment & insurance tests:** FD maturity maths, min/max rules, insufficient funds, pending accounts, premium
-  formulas, policy purchase debits, portfolio totals, and the full invest → insure → dashboard web flow
+- **Investment tests** (with a fixed fake NAV source, never the internet): units at NAV, market profit on a year-old
+  SIP, monthly SIP debits and missed instalments, FD maths and accrual, order rules; web checkout with KYC mismatches,
+  wrong/right OTP, dashboard and passbook
+- **Insurance tests:** all form errors at once, callback → contacted → policy issued with premium debit, close with
+  reason, policy privacy between customers
+- **Staff tests:** temporary password → forced change, duplicate usernames, officers blocked from staff management,
+  disabled logins, admins can't lock themselves out
+- **Security tests:** no-store cache headers, Clear-Site-Data on logout, `/login` redirect while signed in
 - **Demo data tests:** every demo login, balance and account state in the table above
 - **Login tests:** Customer ID login, 5-attempt lock, reset with debit card, staff unlock, change password, every
   banking page redirects to login, customer and staff sessions can't cross over

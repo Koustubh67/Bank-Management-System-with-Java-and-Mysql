@@ -7,6 +7,12 @@
         <h1>Application submitted</h1>
         <p>Thank you, <strong th:text="${customerName}"></strong>. Your account has been created and is
             <strong>awaiting approval</strong> by bank staff.</p>
+        <div class="notify-box">
+            <span class="nb-ic" aria-hidden="true">🔔</span>
+            <div><b>We'll notify you by SMS and email</b>
+                <p>Our team usually verifies documents within 24 hours. You'll get an SMS on your mobile and an email as
+                    soon as your account is approved. You can also log in anytime or track the application.</p></div>
+        </div>
         <dl class="credentials">
             <dt>Customer ID</dt><dd th:text="${opened.customerId}"></dd>
             <dt>Account number</dt><dd th:text="${opened.accountNumber}"></dd>

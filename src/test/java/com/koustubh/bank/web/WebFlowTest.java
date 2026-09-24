@@ -37,6 +37,7 @@ class WebFlowTest {
 
     @Autowired MockMvc mvc;
     @Autowired TestAccounts accounts;
+    @Autowired com.koustubh.bank.service.CustomerService customerService;
 
     /** Logs a customer in and returns their session. */
     MockHttpSession customer(OpenedAccount a) throws Exception {
@@ -100,11 +101,12 @@ class WebFlowTest {
         mvc.perform(get("/signup/account").session(session)).andExpect(redirectedUrl("/signup/additional"));
         mvc.perform(post("/signup/personal").session(session).with(csrf()).param("fullName", ""))
                 .andExpect(view().name("signup/personal"))
-                .andExpect(model().attributeHasFieldErrors("signupForm", "fullName", "pincode"));
+                .andExpect(model().attributeHasFieldErrors("signupForm", "fullName", "pincode", "mobile"))
+                .andExpect(content().string(containsString("Enter your full name")));
         mvc.perform(post("/signup/personal").session(session).with(csrf())
                         .param("fullName", "Web Customer").param("fatherName", "Web Father")
                         .param("dateOfBirth", "2000-01-15").param("gender", "Female")
-                        .param("email", "web@example.com").param("maritalStatus", "Unmarried")
+                        .param("email", "web@example.com").param("mobile", "9000011111").param("maritalStatus", "Unmarried")
                         .param("address", "1 Lake Road").param("city", "Bhopal").param("state", "MP")
                         .param("pincode", "462001").param("country", "India"))
                 .andExpect(redirectedUrl("/signup/additional"));
@@ -193,33 +195,154 @@ class WebFlowTest {
     }
 
     @Test
-    void customerCanInvestAndBuyInsuranceAndSeesItOnTheDashboard() throws Exception {
+    void investCheckoutNeedsKycAndOtpThenShowsOnDashboard() throws Exception {
         OpenedAccount a = accounts.active(40_000);
         MockHttpSession session = customer(a);
-        mvc.perform(get("/customer").session(session)).andExpect(content().string(containsString("Grow your savings")));
+        var c = customerService.overview(a.customerId()).customer();
 
-        mvc.perform(get("/customer/invest").session(session)).andExpect(status().isOk());
-        mvc.perform(post("/customer/invest/fd").session(session).with(csrf()).param("amount", "20000").param("tenure", "M36"))
-                .andExpect(flash().attribute("message", containsString("Fixed deposit JBFD")));
-        mvc.perform(post("/customer/invest/sip").session(session).with(csrf()).param("amount", "1000").param("fund", "NIFTY_INDEX"))
-                .andExpect(flash().attribute("message", containsString("SIP JBSIP")));
-        mvc.perform(post("/customer/invest/sip").session(session).with(csrf()).param("amount", "abc").param("fund", "NIFTY_INDEX"))
-                .andExpect(flash().attribute("error", "Please enter a valid amount"));
+        mvc.perform(get("/customer/invest").session(session)).andExpect(status().isOk())
+                .andExpect(content().string(containsString("Parag Parikh Flexi Cap")));
+        mvc.perform(get("/customer/invest/funds/122639").session(session)).andExpect(status().isOk())
+                .andExpect(content().string(containsString("NAV over the last 12 months")));
 
-        mvc.perform(get("/customer/insurance").session(session)).andExpect(status().isOk())
-                .andExpect(content().string(containsString("₹8,400")));
-        mvc.perform(post("/customer/insurance").session(session).with(csrf())
-                        .param("plan", "MOTOR").param("cover", "300000").param("details", "MP04 AB 1234"))
-                .andExpect(flash().attribute("message", containsString("You're covered")));
+        mvc.perform(post("/customer/invest/order").session(session).with(csrf())
+                        .param("type", "SIP").param("schemeCode", "122639").param("amount", "2000"))
+                .andExpect(redirectedUrl("/customer/invest/checkout"));
+        // Paying before KYC is not possible
+        mvc.perform(post("/customer/invest/checkout/pay").session(session).with(csrf()).param("method", "ACCOUNT"))
+                .andExpect(redirectedUrl("/customer/invest/checkout"));
+        // Every KYC mismatch is reported together
+        mvc.perform(post("/customer/invest/checkout/kyc").session(session).with(csrf())
+                        .param("pan", "WRONG1234X").param("aadhaar", "000000000000").param("mobile", "9000000000"))
+                .andExpect(flash().attribute("kycErrors", org.hamcrest.Matchers.hasSize(3)));
+        mvc.perform(post("/customer/invest/checkout/kyc").session(session).with(csrf())
+                        .param("pan", c.getPan().toLowerCase()).param("aadhaar", c.getAadhaar()).param("mobile", "+91 " + c.getMobile()))
+                .andExpect(redirectedUrl("/customer/invest/checkout#payment"));
 
-        assertThat(accounts.balanceOf(a)).isEqualByComparingTo("10600");
+        String otp = (String) mvc.perform(post("/customer/invest/checkout/otp").session(session).with(csrf()))
+                .andReturn().getFlashMap().get("smsOtp");
+        mvc.perform(post("/customer/invest/checkout/pay").session(session).with(csrf()).param("method", "ACCOUNT").param("otp", "000000".equals(otp) ? "111111" : "000000"))
+                .andExpect(flash().attribute("payError", containsString("Incorrect OTP")));
+        mvc.perform(post("/customer/invest/checkout/pay").session(session).with(csrf()).param("method", "ACCOUNT").param("otp", otp))
+                .andExpect(redirectedUrl("/customer/invest/done"));
+        assertThat(accounts.balanceOf(a)).isEqualByComparingTo("38000");
+
         mvc.perform(get("/customer").session(session))
-                .andExpect(content().string(containsString("Fixed Deposit · 3 years")))
-                .andExpect(content().string(containsString("JavaBank Nifty 50 Index Fund")))
-                .andExpect(content().string(containsString("Motor insurance")));
-        mvc.perform(get("/customer/passbook").session(session))
-                .andExpect(content().string(containsString("Insurance Premium")));
-        mvc.perform(get("/customer/invest")).andExpect(redirectedUrl("/login"));
+                .andExpect(content().string(containsString("Parag Parikh")))
+                .andExpect(content().string(containsString("Current value")));
+        mvc.perform(get("/customer/passbook").session(session)).andExpect(content().string(containsString("SIP Instalment")));
+    }
+
+    @Test
+    void insuranceCallbackIsHandledByStaffAndPolicyOpensForTheCustomer() throws Exception {
+        OpenedAccount a = accounts.active(30_000);
+        MockHttpSession session = customer(a);
+        mvc.perform(get("/customer/insurance").session(session)).andExpect(status().isOk())
+                .andExpect(content().string(containsString("Talk to an expert")));
+        mvc.perform(get("/customer/insurance/apply/HEALTH").session(session)).andExpect(status().isOk());
+        // All problems at once, and what was typed is kept
+        mvc.perform(post("/customer/insurance/apply/HEALTH").session(session).with(csrf())
+                        .param("contactName", "Asha").param("mobile", "123").param("city", "").param("age", "12"))
+                .andExpect(flash().attribute("errors", org.hamcrest.Matchers.hasSize(org.hamcrest.Matchers.greaterThan(3))));
+        MvcResult ok = mvc.perform(post("/customer/insurance/apply/HEALTH").session(session).with(csrf())
+                        .param("cover", "1000000").param("contactName", "Asha Rao").param("mobile", "9812345678")
+                        .param("city", "Pune").param("age", "34").param("extra", "Self, husband")
+                        .param("preferredTime", "Evening (4–8)"))
+                .andExpect(redirectedUrl("/customer/insurance/requested")).andReturn();
+        mvc.perform(get("/customer/insurance/requested").session(session).flashAttrs(ok.getFlashMap()))
+                .andExpect(content().string(containsString("within 24 hours")));
+
+        MockHttpSession staff = staff();
+        String queue = mvc.perform(get("/admin/insurance").session(staff)).andExpect(content().string(containsString("Asha Rao")))
+                .andReturn().getResponse().getContentAsString();
+        Matcher m = Pattern.compile("/admin/insurance/(\\d+)/issue").matcher(queue);
+        assertThat(m.find()).isTrue();
+        mvc.perform(post("/admin/insurance/" + m.group(1) + "/issue").session(staff).with(csrf())
+                        .param("insurer", "Demo General Insurance").param("policyNumber", "DGI/T/9001")
+                        .param("cover", "1000000").param("premium", "11000"))
+                .andExpect(flash().attribute("message", containsString("Policy issued")));
+        assertThat(accounts.balanceOf(a)).isEqualByComparingTo("19000");
+
+        String page = mvc.perform(get("/customer/insurance").session(session)).andExpect(content().string(containsString("DGI/T/9001")))
+                .andReturn().getResponse().getContentAsString();
+        Matcher pm = Pattern.compile("/customer/insurance/policies/(\\d+)").matcher(page);
+        assertThat(pm.find()).isTrue();
+        mvc.perform(get("/customer/insurance/policies/" + pm.group(1)).session(session))
+                .andExpect(content().string(containsString("Demo General Insurance")));
+    }
+
+    @Test
+    void newStaffMustChangeTheirTemporaryPasswordAndOfficersCantManageStaff() throws Exception {
+        MockHttpSession admin = staff();
+        MvcResult created = mvc.perform(post("/admin/staff").session(admin).with(csrf())
+                        .param("fullName", "Kiran Joshi").param("username", "kiran.j").param("role", "OFFICER"))
+                .andReturn();
+        String temp = (String) created.getFlashMap().get("tempPassword");
+
+        MockHttpSession kiran = new MockHttpSession();
+        mvc.perform(post("/admin/login").session(kiran).with(csrf()).param("username", "kiran.j").param("password", temp))
+                .andExpect(redirectedUrl("/admin"));
+        mvc.perform(get("/admin").session(kiran)).andExpect(redirectedUrl("/admin/password"));
+        mvc.perform(post("/admin/password").session(kiran).with(csrf()).param("currentPassword", temp)
+                        .param("newPassword", "KiranBank1").param("confirmPassword", "KiranBank1"))
+                .andExpect(redirectedUrl("/admin"));
+        mvc.perform(get("/admin").session(kiran)).andExpect(status().isOk());
+        mvc.perform(get("/admin/staff").session(kiran)).andExpect(status().isForbidden());
+
+        // A disabled staff member can't log in
+        String staffPage = mvc.perform(get("/admin/staff").session(admin)).andReturn().getResponse().getContentAsString();
+        Matcher m = Pattern.compile("/admin/staff/(\\d+)/active").matcher(staffPage.substring(staffPage.indexOf("<td class=\"mono\">kiran.j</td>")));
+        assertThat(m.find()).isTrue();
+        mvc.perform(post("/admin/staff/" + m.group(1) + "/active").session(admin).with(csrf()).param("active", "false"))
+                .andExpect(flash().attribute("message", "Login disabled"));
+        mvc.perform(post("/admin/login").with(csrf()).param("username", "kiran.j").param("password", "KiranBank1"))
+                .andExpect(redirectedUrl("/login?as=staff&error"));
+    }
+
+    @Test
+    void signedInPagesAreNotCachedAndLogoutClearsTheBrowserCache() throws Exception {
+        OpenedAccount a = accounts.active(0);
+        MockHttpSession session = customer(a);
+        mvc.perform(get("/customer/profile").session(session))
+                .andExpect(header().string("Cache-Control", containsString("no-store")));
+        // Swiping back to /login while signed in goes back into the account
+        mvc.perform(get("/login").session(session)).andExpect(redirectedUrl("/customer"));
+        // Browsers only accept Clear-Site-Data over HTTPS, so Spring only sends it on secure requests
+        mvc.perform(post("/customer/logout").secure(true).session(session).with(csrf()))
+                .andExpect(header().string("Clear-Site-Data", containsString("cache")));
+        mvc.perform(get("/customer/profile").session(session)).andExpect(redirectedUrl("/login"));
+    }
+
+    @Test
+    void trackingWorksWithCustomerIdAndDuplicatesAreCaughtOnTheirPage() throws Exception {
+        OpenedAccount a = accounts.pending();
+        mvc.perform(post("/signup/status").with(csrf()).param("accountNumber", a.customerId().toLowerCase()).param("pan", TestAccounts.lastPan()))
+                .andExpect(content().string(containsString("Verification by bank staff")));
+
+        var existing = customerService.overview(a.customerId()).customer();
+        MockHttpSession signup = new MockHttpSession();
+        mvc.perform(post("/signup/personal").session(signup).with(csrf())
+                        .param("fullName", "Dup Person").param("fatherName", "F").param("dateOfBirth", "1990-01-01")
+                        .param("gender", "Male").param("email", "dup@example.com").param("mobile", existing.getMobile())
+                        .param("maritalStatus", "Married").param("address", "1 Road").param("city", "Pune")
+                        .param("state", "MH").param("pincode", "411001").param("country", "India"))
+                .andExpect(view().name("signup/personal"))
+                .andExpect(model().attributeHasFieldErrors("signupForm", "mobile"))
+                .andExpect(content().string(containsString("already registered")));
+        mvc.perform(post("/signup/personal").session(signup).with(csrf())
+                        .param("fullName", "Dup Person").param("fatherName", "F").param("dateOfBirth", "1990-01-01")
+                        .param("gender", "Male").param("email", "dup@example.com").param("mobile", "9123400001")
+                        .param("maritalStatus", "Married").param("address", "1 Road").param("city", "Pune")
+                        .param("state", "MH").param("pincode", "411001").param("country", "India"))
+                .andExpect(redirectedUrl("/signup/additional"));
+        // PAN and Aadhaar already used: both errors on page 2, together with the missing documents
+        mvc.perform(multipart("/signup/additional").session(signup).with(csrf())
+                        .param("religion", "Hindu").param("category", "General").param("income", "None")
+                        .param("education", "Graduate").param("occupation", "Student")
+                        .param("pan", existing.getPan()).param("aadhaar", existing.getAadhaar())
+                        .param("seniorCitizen", "false").param("existingAccount", "false"))
+                .andExpect(model().attributeHasFieldErrors("signupForm", "pan", "aadhaar", "panDocument", "aadhaarDocument"))
+                .andExpect(content().string(containsString("Please fix these 4 problems")));
     }
 
     @Test
@@ -244,7 +367,7 @@ class WebFlowTest {
                 .andExpect(flash().attribute("error", "Please give a reason for declining"));
         mvc.perform(post("/admin/accounts/" + id + "/decline").session(staff).with(csrf())
                         .param("reason", "PAN card image is unclear or unreadable").param("note", "Please upload the front side"))
-                .andExpect(flash().attribute("message", "Application declined"));
+                .andExpect(flash().attribute("message", containsString("Application declined")));
 
         String reason = "PAN card image is unclear or unreadable. Please upload the front side";
         mvc.perform(post("/signup/status").with(csrf()).param("accountNumber", opened.accountNumber()).param("pan", TestAccounts.lastPan()))
@@ -260,7 +383,7 @@ class WebFlowTest {
         MockHttpSession signup = new MockHttpSession();
         mvc.perform(post("/signup/personal").session(signup).with(csrf())
                 .param("fullName", "Doc Viewer").param("fatherName", "Father").param("dateOfBirth", "1995-02-02")
-                .param("gender", "Male").param("email", "d@example.com").param("maritalStatus", "Married")
+                .param("gender", "Male").param("email", "d@example.com").param("mobile", "9000022222").param("maritalStatus", "Married")
                 .param("address", "2 Road").param("city", "Pune").param("state", "MH").param("pincode", "411001")
                 .param("country", "India"));
         mvc.perform(multipart("/signup/additional").file(PAN_PNG).file(AADHAAR_PDF).session(signup).with(csrf())

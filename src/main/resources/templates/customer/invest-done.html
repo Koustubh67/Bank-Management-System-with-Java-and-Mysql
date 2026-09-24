@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/customer :: page(~{::title}, ~{::main})}">
+<head><title>Investment confirmed · JavaBank</title></head>
+<body>
+<main class="container cust-main narrow-main" th:with="i=${h.investment}">
+    <section class="panel done-card">
+        <div class="done-tick">✓</div>
+        <h1>Payment successful</h1>
+        <p class="muted" th:text="${i.type.label}"></p>
+        <p class="done-amt" th:text="${@money.format(i.amount)}"></p>
+        <dl class="details">
+            <dt>Investment</dt><dd th:text="${i.title}"></dd>
+            <dt>Reference</dt><dd class="mono" th:text="${i.reference}"></dd>
+            <dt th:if="${i.units}">Units allotted</dt><dd th:if="${i.units}" th:text="${i.units}"></dd>
+            <dt th:if="${h.nav}">NAV</dt><dd th:if="${h.nav}" th:text="${'₹' + h.nav.nav + ' (' + #temporals.format(h.nav.date, 'dd MMM yyyy') + ')'}"></dd>
+            <dt th:if="${i.maturityDate}">Matures on</dt><dd th:if="${i.maturityDate}" th:text="${#temporals.format(i.maturityDate, 'dd MMM yyyy') + ' · ' + @money.format(i.maturityAmount)}"></dd>
+            <dt th:if="${i.nextDebitDate}">Next SIP debit</dt><dd th:if="${i.nextDebitDate}" th:text="${#temporals.format(i.nextDebitDate, 'dd MMM yyyy')}"></dd>
+            <dt>Paid with</dt><dd th:text="${i.paymentMethod.label}"></dd>
+        </dl>
+        <p class="muted small">A confirmation has been sent to you by SMS and email.</p>
+        <div class="form-actions center-row">
+            <a class="btn soft" th:href="@{/customer/invest/holdings/{id}(id=${i.id})}">View holding</a>
+            <a class="btn dark" th:href="@{/customer}">Go to dashboard</a>
+        </div>
+    </section>
+</main>
+</body>
+</html>

@@ -22,6 +22,7 @@
                 <dt>Gender</dt><dd th:text="${c.gender}"></dd>
                 <dt>Marital status</dt><dd th:text="${c.maritalStatus}"></dd>
                 <dt>Email</dt><dd th:text="${c.email}"></dd>
+                <dt>Mobile</dt><dd th:text="${c.mobile != null ? '+91 ' + c.mobile : 'Not added yet'}"></dd>
                 <dt>Address</dt><dd th:text="${c.address + ', ' + c.city + ', ' + c.state + ' ' + c.pincode + ', ' + c.country}"></dd>
                 <dt>Occupation</dt><dd th:text="${c.occupation}"></dd>
                 <dt>Annual income</dt><dd th:text="${c.income}"></dd>
@@ -42,6 +43,16 @@
             <p class="note">To update personal details, please visit your branch with an ID proof.</p>
         </section>
     </div>
+
+    <section class="panel" id="contact">
+        <h2>Contact details for alerts</h2>
+        <p class="muted">We send SMS and email alerts for approvals, payments, investments and insurance.</p>
+        <form th:action="@{/customer/contact}" method="post" class="form pw-form">
+            <label class="field"><span>Mobile number</span><input type="tel" name="mobile" th:value="${c.mobile}" maxlength="13" required placeholder="10 digits"></label>
+            <label class="field"><span>Email</span><input type="email" name="email" th:value="${c.email}" maxlength="100" required></label>
+            <div><button type="submit" class="btn dark">Save contact details</button></div>
+        </form>
+    </section>
 
     <section class="panel" id="security">
         <h2>Change password</h2>

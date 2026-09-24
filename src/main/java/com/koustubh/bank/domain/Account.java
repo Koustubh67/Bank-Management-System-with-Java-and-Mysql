@@ -31,6 +31,10 @@ public class Account {
 
     private String declineReason;
 
+    private String reviewedBy;
+
+    private LocalDateTime reviewedAt;
+
     /** Optimistic locking: a concurrent update of the same row fails instead of silently overwriting. */
     @Version
     private Long version;
@@ -77,6 +81,12 @@ public class Account {
         status = AccountStatus.FROZEN;
     }
 
+    /** Records which staff member approved or declined the application. */
+    public void reviewed(String staff, LocalDateTime at) {
+        reviewedBy = staff;
+        reviewedAt = at;
+    }
+
     public void decline(String reason) {
         status = AccountStatus.DECLINED;
         declineReason = reason;
@@ -90,6 +100,8 @@ public class Account {
     public BigDecimal getBalance() { return balance; }
     public String getServices() { return services; }
     public String getDeclineReason() { return declineReason; }
+    public String getReviewedBy() { return reviewedBy; }
+    public LocalDateTime getReviewedAt() { return reviewedAt; }
     public LocalDateTime getCreatedAt() { return createdAt; }
 
     /** Shown on receipts, e.g. XXXXXXXX4821. */

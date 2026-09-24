@@ -1,6 +1,7 @@
 package com.koustubh.bank.repository;
 
 import com.koustubh.bank.domain.InsurancePolicy;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -10,4 +11,7 @@ public interface InsurancePolicyRepository extends JpaRepository<InsurancePolicy
     List<InsurancePolicy> findByAccountIdOrderByIdDesc(Long accountId);
 
     boolean existsByPolicyNumber(String policyNumber);
+
+    @EntityGraph(attributePaths = {"account", "account.customer"})
+    List<InsurancePolicy> findAllByOrderByIdDesc();
 }

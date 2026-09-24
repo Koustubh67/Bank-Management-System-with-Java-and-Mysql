@@ -2,53 +2,63 @@
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/customer :: page(~{::title}, ~{::main})}">
 <head><title>Insurance · JavaBank</title></head>
 <body>
-<main class="container cust-main" th:with="p=${portfolio}, active=${o.account.status.name() == 'ACTIVE'}">
-    <div class="cust-hello">
-        <div><h1>Insurance</h1>
-            <p class="muted">Premiums are personalised for your age and paid yearly from your account.</p></div>
-    </div>
-    <div class="status-banner pending" th:unless="${active}">Insurance is available once your account is active.</div>
+<main class="container cust-main" th:with="active=${o.account.status.name() == 'ACTIVE'}">
+    <section class="ins-hero">
+        <div>
+            <span class="pf-tag sip">Insurance</span>
+            <h1>Cover that fits your life,<br>chosen with an expert.</h1>
+            <p>Tell us what you need. A licensed JavaBank insurance expert calls you within 24 hours, compares plans from
+                partner insurers and helps you buy the right one. No spam, no pressure.</p>
+            <ul class="ins-steps"><li><b>1</b>Pick a plan</li><li><b>2</b>Expert calls in 24 hrs</li><li><b>3</b>Policy issued</li></ul>
+        </div>
+        <div class="ins-hero-art" aria-hidden="true"><span>🛡</span></div>
+    </section>
+    <div class="status-banner pending" th:unless="${active}">Insurance requests open once your account is approved.</div>
 
-    <div class="plan-grid">
-        <form class="panel plan" th:each="plan : ${plans}" th:action="@{/customer/insurance}" method="post" data-plan
-              th:with="q=${quotes.get(plan)}">
-            <input type="hidden" name="plan" th:value="${plan}">
-            <div class="plan-top">
-                <span class="plan-ic" th:classappend="${#strings.toLowerCase(plan.name())}"
-                      th:text="${plan.name() == 'TERM_LIFE'} ? '☂' : (${plan.name() == 'HEALTH'} ? '♥' : (${plan.name() == 'MOTOR'} ? '🚗' : '✈'))"></span>
-                <div><h2 th:text="${plan.label}"></h2><p class="muted" th:text="${plan.tagline}"></p></div>
-            </div>
-            <fieldset class="field"><legend>Cover</legend>
-                <div class="seg">
-                    <label th:each="entry, it : ${q}" th:with="price=${@money.whole(entry.value)}"><input type="radio" name="cover" th:value="${entry.key}" th:checked="${it.index == 1}"
-                           th:attr="data-premium=${price}">
-                        <span><b th:text="${@money.cover(entry.key)}"></b></span></label>
-                </div>
-            </fieldset>
-            <label class="field" th:if="${plan.detailsLabel}"><span th:text="${plan.detailsLabel}"></span>
-                <input type="text" name="details" maxlength="60" required
-                       th:placeholder="${plan.name() == 'MOTOR'} ? 'e.g. MP04 AB 1234' : 'Full name'"></label>
-            <div class="plan-price"><strong data-premium-out th:text="${@money.whole(q.values().toArray()[1])}"></strong><span>/year</span></div>
-            <button type="submit" class="btn dark full" th:disabled="${!active}">Buy now</button>
-        </form>
-    </div>
-
-    <section class="panel">
-        <div class="panel-head"><h2>My policies</h2></div>
-        <p class="muted empty-state" th:if="${p.policies.isEmpty()}">No policies yet. Pick a plan above. It takes 10 seconds.</p>
-        <div class="policy-cards" th:unless="${p.policies.isEmpty()}">
-            <div class="policy" th:each="pol : ${p.policies}">
-                <div class="policy-head"><b th:text="${pol.plan.label + ' insurance'}"></b><span class="badge active">ACTIVE</span></div>
+    <!-- My policies (clickable) and requests -->
+    <section class="panel" th:unless="${policies.isEmpty() and requests.isEmpty()}">
+        <div class="panel-head"><h2>My insurance</h2></div>
+        <div class="policy-cards">
+            <a class="policy" th:each="pol : ${policies}" th:href="@{/customer/insurance/policies/{id}(id=${pol.id})}">
+                <div class="policy-head"><b th:text="${pol.plan.label + ' insurance'}"></b>
+                    <span class="badge" th:classappend="${pol.isActiveOn(today)} ? 'active' : 'frozen'" th:text="${pol.isActiveOn(today)} ? 'ACTIVE' : 'EXPIRED'"></span></div>
                 <p class="policy-cover" th:text="${@money.cover(pol.cover)}"></p>
-                <dl>
-                    <dt>Policy no.</dt><dd class="mono" th:text="${pol.policyNumber}"></dd>
-                    <dt>Premium</dt><dd th:text="${@money.whole(pol.annualPremium) + ' / year'}"></dd>
-                    <dt th:if="${pol.details}" th:text="${pol.plan.detailsLabel}"></dt><dd th:if="${pol.details}" th:text="${pol.details}"></dd>
-                    <dt>Valid</dt><dd th:text="${#temporals.format(pol.startDate, 'dd MMM yyyy') + ' – ' + #temporals.format(pol.endDate, 'dd MMM yyyy')}"></dd>
-                </dl>
+                <p class="policy-sub" th:text="${(pol.insurer ?: 'JavaBank') + ' · ' + pol.policyNumber}"></p>
+                <p class="policy-sub" th:text="${'Valid till ' + #temporals.format(pol.endDate, 'dd MMM yyyy')}"></p>
+                <span class="policy-go">View policy →</span>
+            </a>
+        </div>
+        <div class="req-list" th:unless="${requests.isEmpty()}">
+            <h3>Requests</h3>
+            <div class="req" th:each="r : ${requests}">
+                <div class="req-main"><b th:text="${r.plan.label + ' · ' + @money.cover(r.coverWanted)}"></b>
+                    <small th:text="${'Ref ' + r.reference + ' · requested ' + #temporals.format(r.createdAt, 'dd MMM, hh:mm a')}"></small></div>
+                <ol class="req-track" th:with="st=${r.status.name()}">
+                    <li class="done">Requested</li>
+                    <li th:classappend="${st == 'REQUESTED'} ? 'now' : (${st == 'CLOSED'} ? '' : 'done')">Expert call</li>
+                    <li th:classappend="${st == 'POLICY_ISSUED'} ? 'done' : (${st == 'CLOSED'} ? 'closed' : '')"
+                        th:text="${st == 'CLOSED'} ? 'Closed' : 'Policy issued'">Policy issued</li>
+                </ol>
+                <small class="muted" th:text="${r.staffNote != null ? r.status.hint + ' · ' + r.staffNote : r.status.hint}"></small>
             </div>
         </div>
     </section>
+
+    <!-- Plans -->
+    <div class="panel-head section-gap"><h2>Choose a plan</h2></div>
+    <div class="plan-cards">
+        <article class="plan-card" th:each="plan : ${plans}" th:classappend="${#strings.toLowerCase(plan.name())}">
+            <div class="pc-top">
+                <span class="pc-ic" th:text="${plan.name() == 'HEALTH'} ? '♥' : (${plan.name() == 'TERM_LIFE'} ? '☂' : (${plan.name() == 'MOTOR'} ? '🚗' : '✈'))"></span>
+                <div><h3 th:text="${plan.label + ' insurance'}"></h3><p th:text="${plan.tagline}"></p></div>
+            </div>
+            <ul class="pc-cover"><li th:each="c : ${plan.coverage}" th:text="${c}"></li></ul>
+            <p class="pc-range" th:text="${'Cover from ' + @money.cover(plan.covers[0]) + ' to ' + @money.cover(plan.covers[plan.covers.size() - 1])}"></p>
+            <a class="btn dark full" th:href="@{/customer/insurance/apply/{p}(p=${plan})}" th:classappend="${!active} ? 'disabled'">Talk to an expert →</a>
+        </article>
+    </div>
+    <p class="note">Insurance is the subject matter of solicitation. JavaBank acts as a corporate agent; policies are issued by
+        partner insurers. Demo project: no real policy is bought.</p>
 </main>
 </body>
 </html>

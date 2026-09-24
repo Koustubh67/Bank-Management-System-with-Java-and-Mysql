@@ -5,12 +5,13 @@ import com.koustubh.bank.domain.Account;
 import com.koustubh.bank.domain.AccountType;
 import com.koustubh.bank.domain.Card;
 import com.koustubh.bank.domain.Customer;
-import com.koustubh.bank.domain.FdTenure;
-import com.koustubh.bank.domain.Fund;
+import com.koustubh.bank.domain.AdminUser;
+import com.koustubh.bank.domain.StaffRole;
 import com.koustubh.bank.domain.InsurancePlan;
 import com.koustubh.bank.domain.UpiHandle;
 import com.koustubh.bank.exception.WrongUpiPinException;
 import com.koustubh.bank.repository.AccountRepository;
+import com.koustubh.bank.repository.AdminUserRepository;
 import com.koustubh.bank.repository.CardRepository;
 import com.koustubh.bank.repository.CustomerRepository;
 import com.koustubh.bank.repository.UpiHandleRepository;
@@ -19,7 +20,8 @@ import com.koustubh.bank.service.AtmService;
 import com.koustubh.bank.service.CardSecurityService;
 import com.koustubh.bank.service.TransferService;
 import com.koustubh.bank.service.UpiService;
-import com.koustubh.bank.service.WealthService;
+import com.koustubh.bank.service.InsuranceService;
+import com.koustubh.bank.service.InvestmentService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
@@ -51,11 +53,19 @@ public class DemoDataSeeder implements ApplicationRunner {
                                String state, String occupation, String pan, String aadhaar, AccountType type,
                                String accountNumber, String cardNumber, String pin, String upiPin, String vpa) {
 
+        /** Demo mobile numbers: 98765000 + two digits, e.g. 9876500001. */
+        public String mobile() {
+            return "98765000" + accountNumber.substring(10);
+        }
+
         /** Net banking login, e.g. JB10000001 for account 100000000001. */
         public String customerId() {
             return "JB1000000" + accountNumber.substring(11);
         }
     }
+
+    /** Demo bank officer (not a branch manager) to show staff roles. */
+    public static final String OFFICER_PASSWORD = "Officer@123";
 
     /** Net banking password of every demo customer. */
     public static final String DEMO_PASSWORD = "Demo@1234";
@@ -91,7 +101,9 @@ public class DemoDataSeeder implements ApplicationRunner {
     private final AtmService atm;
     private final TransferService transfers;
     private final UpiService upi;
-    private final WealthService wealth;
+    private final InvestmentService investments;
+    private final InsuranceService insurance;
+    private final AdminUserRepository adminUsers;
     private final AdminService admin;
     private final CardSecurityService cardSecurity;
     private final PasswordEncoder passwordEncoder;
@@ -102,8 +114,11 @@ public class DemoDataSeeder implements ApplicationRunner {
                           CardRepository cards, UpiHandleRepository upiHandles, AtmService atm,
                           TransferService transfers, UpiService upi, AdminService admin,
                           CardSecurityService cardSecurity, PasswordEncoder passwordEncoder, Clock clock,
-                          PlatformTransactionManager transactionManager, WealthService wealth) {
-        this.wealth = wealth;
+                          PlatformTransactionManager transactionManager, InvestmentService investments,
+                          InsuranceService insurance, AdminUserRepository adminUsers) {
+        this.investments = investments;
+        this.insurance = insurance;
+        this.adminUsers = adminUsers;
         this.admin = admin;
         this.cardSecurity = cardSecurity;
         this.properties = properties;
@@ -127,7 +142,9 @@ public class DemoDataSeeder implements ApplicationRunner {
         if (cards.existsByCardNumber(RAHUL.cardNumber())) {
             // Loaded by an older version of the app: just add the net banking logins if they're missing.
             tx.executeWithoutResult(status -> ALL.forEach(this::ensureLogin));
+            investments.backfillMissingUnits();
             seedWealth();
+            ensureOfficer();
             return;
         }
 
@@ -160,6 +177,7 @@ public class DemoDataSeeder implements ApplicationRunner {
             }
         }
         seedWealth();
+        ensureOfficer();
         log.info("Loaded {} demo customers (see README for card numbers and PINs)", ALL.size());
     }
 
@@ -188,6 +206,7 @@ public class DemoDataSeeder implements ApplicationRunner {
         c.setExistingAccount(false);
         c.setCreatedAt(now);
         c.setCustomerId(d.customerId());
+        c.setMobile(d.mobile());
         c.setPassword(passwordEncoder.encode(DEMO_PASSWORD));
         customers.save(c);
 
@@ -202,22 +221,48 @@ public class DemoDataSeeder implements ApplicationRunner {
         }
     }
 
-    /** A few investments and policies so the dashboard shows them. Uses plans whose price doesn't depend on age. */
+    /**
+     * Holdings so the dashboard shows real profit and loss straight away: SIPs in real funds that have been running
+     * for a year (priced with real historical NAVs), policies already issued, and one open insurance request for staff.
+     * Needs live market data; if it's unavailable the investments are simply skipped.
+     */
     private void seedWealth() {
-        if (!wealth.portfolio(RAHUL.customerId()).isEmpty()) {
+        if (!investments.portfolio(RAHUL.customerId()).holdings().stream()
+                .filter(h -> h.investment().getSchemeCode() != null && h.investment().getInstalmentsPaid() > 1).toList().isEmpty()) {
             return;
         }
-        wealth.startSip(RAHUL.customerId(), Fund.NIFTY_INDEX, rs(2_000));
-        wealth.buyPolicy(RAHUL.customerId(), InsurancePlan.TRAVEL, 500_000L, null);
-        wealth.openFixedDeposit(PRIYA.customerId(), rs(50_000), FdTenure.M24);
-        wealth.buyPolicy(PRIYA.customerId(), InsurancePlan.MOTOR, 300_000L, "MP09 CD 4521");
+        try {
+            investments.importExistingSip(RAHUL.customerId(), 122639, rs(3_000), 12);
+            investments.importExistingSip(PRIYA.customerId(), 120716, rs(5_000), 24);
+        } catch (RuntimeException e) {
+            log.warn("Demo investments skipped (market data unavailable): {}", e.getMessage());
+        }
+        if (insurance.policiesOf(RAHUL.customerId()).stream().noneMatch(p -> p.getInsurer() != null)) {
+            insurance.importExistingPolicy(RAHUL.customerId(), InsurancePlan.HEALTH, "Demo General Insurance Co.",
+                    "DGI/HL/2026/004521", 1_000_000L, rs(11_800), "Self, spouse", LocalDate.now().minusMonths(3));
+            insurance.importExistingPolicy(PRIYA.customerId(), InsurancePlan.MOTOR, "Demo General Insurance Co.",
+                    "DGI/MT/2026/009914", 600_000L, rs(9_450), "MP09 CD 4521, Maruti Baleno", LocalDate.now().minusMonths(1));
+            insurance.request(RAHUL.customerId(), new InsuranceService.Request(InsurancePlan.TERM_LIFE, 10_000_000L,
+                    RAHUL.name(), RAHUL.mobile(), RAHUL.city(), 28, "Neha Sharma, wife", InsuranceService.CALL_TIMES.get(2)));
+        }
+    }
+
+    private void ensureOfficer() {
+        if (adminUsers.findByUsername("neha.officer").isEmpty()) {
+            adminUsers.save(new AdminUser("neha.officer", "Neha Verma", StaffRole.OFFICER,
+                    passwordEncoder.encode(OFFICER_PASSWORD), false, LocalDateTime.now(clock)));
+        }
     }
 
     private void ensureLogin(DemoCustomer d) {
         cards.findByCardNumber(d.cardNumber()).map(card -> card.getAccount().getCustomer()).ifPresent(c -> {
+            if (c.getMobile() == null) {
+                c.setMobile(d.mobile());
+            }
             if (c.getPasswordHash() == null) {
                 if (!c.getCustomerId().equals(d.customerId()) && !customers.existsByCustomerId(d.customerId())) {
                     c.setCustomerId(d.customerId());
+        c.setMobile(d.mobile());
                 }
                 c.setPassword(passwordEncoder.encode(DEMO_PASSWORD));
             }

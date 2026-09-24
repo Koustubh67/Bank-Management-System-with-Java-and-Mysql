@@ -1,5 +1,6 @@
 package com.koustubh.bank.config;
 
+import com.koustubh.bank.domain.StaffRole;
 import com.koustubh.bank.repository.AdminUserRepository;
 import com.koustubh.bank.service.CustomerLoginService;
 import org.springframework.context.annotation.Bean;
@@ -17,7 +18,9 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.logout.HeaderWriterLogoutHandler;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.security.web.header.writers.ClearSiteDataHeaderWriter;
 
 /**
  * Exactly two logins, both on the /login page:
@@ -33,7 +36,10 @@ public class SecurityConfig {
     @Order(1)
     SecurityFilterChain staffChain(HttpSecurity http, AdminUserRepository adminUsers, PasswordEncoder encoder) throws Exception {
         UserDetailsService admins = username -> adminUsers.findByUsername(username)
-                .map(a -> User.withUsername(a.getUsername()).password(a.getPasswordHash()).roles("ADMIN").build())
+                .map(a -> User.withUsername(a.getUsername()).password(a.getPasswordHash())
+                        .roles(a.getRole() == StaffRole.ADMIN ? new String[]{"STAFF", "ADMIN"} : new String[]{"STAFF"})
+                        .disabled(!a.isActive())
+                        .build())
                 .orElseThrow(() -> new UsernameNotFoundException(username));
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider(admins);
         provider.setPasswordEncoder(encoder);
@@ -43,7 +49,8 @@ public class SecurityConfig {
                 .authenticationManager(new ProviderManager(provider))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/admin/login").permitAll()
-                        .anyRequest().hasRole("ADMIN"))
+                        .requestMatchers("/admin/staff/**").hasRole("ADMIN")
+                        .anyRequest().hasRole("STAFF"))
                 .formLogin(form -> form
                         .loginPage("/login?as=staff")
                         .loginProcessingUrl("/admin/login")
@@ -51,6 +58,7 @@ public class SecurityConfig {
                         .failureUrl("/login?as=staff&error"))
                 .logout(logout -> logout
                         .logoutUrl("/admin/logout")
+                        .addLogoutHandler(clearBrowserCache())
                         .logoutSuccessUrl("/login?as=staff&logout"));
         return http.build();
     }
@@ -87,8 +95,18 @@ public class SecurityConfig {
                         .permitAll())
                 .logout(logout -> logout
                         .logoutUrl("/customer/logout")
+                        .addLogoutHandler(clearBrowserCache())
                         .logoutSuccessUrl("/login?logout"));
         return http.build();
+    }
+
+    /**
+     * After logout the browser is told to drop its cache, so pressing or swiping "back" can't show a cached
+     * dashboard or profile. (Every signed-in page is also sent with Cache-Control: no-store, and the pages reload
+     * themselves if the browser restores them from its back-forward cache.)
+     */
+    private static HeaderWriterLogoutHandler clearBrowserCache() {
+        return new HeaderWriterLogoutHandler(new ClearSiteDataHeaderWriter(ClearSiteDataHeaderWriter.Directive.CACHE));
     }
 
     /** Staff and customer logins are stored under different session keys, so one never counts as the other. */

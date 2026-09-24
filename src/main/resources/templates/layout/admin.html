@@ -1,18 +1,27 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org" th:fragment="page(title, content)">
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:fragment="page(title, content)">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title th:replace="${title}">Admin · JavaBank</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
     <link rel="stylesheet" th:href="@{/css/app.css}">
 </head>
-<body class="portal">
+<body class="portal staff-ui">
 <header class="topbar admin">
     <a class="brand" th:href="@{/admin}"><span class="brand-mark">₹</span> JavaBank <small>Staff</small></a>
     <nav class="topnav">
         <a th:href="@{/admin}">Dashboard</a>
         <a th:href="@{/admin/accounts}">Accounts</a>
+        <a th:href="@{/admin/insurance}">Insurance</a>
+        <a th:href="@{/admin/investments}">Investments</a>
         <a th:href="@{/admin/transactions}">Transactions</a>
+        <a th:href="@{/admin/notifications}">Alerts sent</a>
+        <a th:href="@{/admin/staff}" sec:authorize="hasRole('ADMIN')">Staff</a>
+        <span class="who" sec:authorize="isAuthenticated()">
+            <a th:href="@{/admin/password}" title="Change password" sec:authentication="name">me</a>
+        </span>
         <form th:action="@{/admin/logout}" method="post" class="inline">
             <button type="submit" class="link-btn">Log out</button>
         </form>
@@ -23,5 +32,6 @@
     <div class="alert error" th:if="${error}" th:text="${error}"></div>
 </div>
 <main th:replace="${content}"></main>
+<script th:src="@{/js/secure.js}"></script>
 </body>
 </html>

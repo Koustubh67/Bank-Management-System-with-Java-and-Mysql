@@ -4,6 +4,10 @@ import com.koustubh.bank.domain.AccountStatus;
 import com.koustubh.bank.domain.KycDocument;
 import com.koustubh.bank.exception.BankException;
 import com.koustubh.bank.service.AdminService;
+import com.koustubh.bank.service.InsuranceService;
+import com.koustubh.bank.service.InvestmentService;
+import com.koustubh.bank.service.NotificationService;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.CacheControl;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
@@ -14,6 +18,9 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.math.BigDecimal;
+import java.security.Principal;
+import java.time.LocalDate;
 import java.util.function.Consumer;
 
 @Controller
@@ -21,9 +28,16 @@ import java.util.function.Consumer;
 public class AdminController {
 
     private final AdminService admin;
+    private final InsuranceService insurance;
+    private final InvestmentService investments;
+    private final NotificationService notifications;
 
-    public AdminController(AdminService admin) {
+    public AdminController(AdminService admin, InsuranceService insurance, InvestmentService investments,
+                           NotificationService notifications) {
         this.admin = admin;
+        this.insurance = insurance;
+        this.investments = investments;
+        this.notifications = notifications;
     }
 
     /** Staff log in on the shared /login page (Bank staff tab). */
@@ -55,16 +69,18 @@ public class AdminController {
     }
 
     @PostMapping("/accounts/{id}/approve")
-    public String approve(@PathVariable Long id, RedirectAttributes redirect) {
-        return act(id, admin::approve, "Account approved", redirect);
+    public String approve(@PathVariable Long id, Principal staff, RedirectAttributes redirect) {
+        return act(id, accountId -> admin.approve(accountId, staff.getName()),
+                "Account approved. The customer has been notified by SMS and email", redirect);
     }
 
     @PostMapping("/accounts/{id}/decline")
     public String decline(@PathVariable Long id, @RequestParam(required = false) String reason,
-                          @RequestParam(required = false) String note, RedirectAttributes redirect) {
+                          @RequestParam(required = false) String note, Principal staff, RedirectAttributes redirect) {
         String full = (reason == null ? "" : reason.trim())
                 + (note == null || note.isBlank() ? "" : (reason == null || reason.isBlank() ? "" : ". ") + note.trim());
-        return act(id, accountId -> admin.decline(accountId, full), "Application declined", redirect);
+        return act(id, accountId -> admin.decline(accountId, full, staff.getName()),
+                "Application declined. The customer has been notified by SMS and email", redirect);
     }
 
     /** Shows an uploaded KYC document. Only PDF, PNG and JPEG files are ever stored (checked by KycFiles). */
@@ -103,6 +119,70 @@ public class AdminController {
     @PostMapping("/accounts/{id}/unblock-upi")
     public String unblockUpi(@PathVariable Long id, RedirectAttributes redirect) {
         return act(id, admin::unblockUpi, "UPI unlocked", redirect);
+    }
+
+    // ---------------------------------------------------------------- insurance requests
+
+    @GetMapping("/insurance")
+    public String insurance(Model model) {
+        model.addAttribute("open", insurance.openRequests());
+        model.addAttribute("recent", insurance.recentRequests());
+        model.addAttribute("policies", insurance.allPolicies());
+        return "admin/insurance";
+    }
+
+    @PostMapping("/insurance/{id}/contacted")
+    public String contacted(@PathVariable Long id, @RequestParam(required = false) String note, Principal staff,
+                            RedirectAttributes redirect) {
+        return insuranceAction(() -> insurance.markContacted(id, staff.getName(), note), "Marked as contacted", redirect);
+    }
+
+    @PostMapping("/insurance/{id}/issue")
+    public String issue(@PathVariable Long id, @RequestParam(required = false) String insurer,
+                        @RequestParam(required = false) String policyNumber, @RequestParam(required = false) Long cover,
+                        @RequestParam(required = false) BigDecimal premium,
+                        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+                        Principal staff, RedirectAttributes redirect) {
+        return insuranceAction(() -> insurance.issue(id, staff.getName(),
+                        new InsuranceService.Issue(insurer, policyNumber, cover, premium, startDate)),
+                "Policy issued and first premium debited. The customer has been notified", redirect);
+    }
+
+    @PostMapping("/insurance/{id}/close")
+    public String closeRequest(@PathVariable Long id, @RequestParam(required = false) String note, Principal staff,
+                               RedirectAttributes redirect) {
+        return insuranceAction(() -> insurance.close(id, staff.getName(), note), "Request closed", redirect);
+    }
+
+    private String insuranceAction(Runnable action, String success, RedirectAttributes redirect) {
+        try {
+            action.run();
+            redirect.addFlashAttribute("message", success);
+        } catch (BankException e) {
+            redirect.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/admin/insurance";
+    }
+
+    // ---------------------------------------------------------------- investments and alerts
+
+    @GetMapping("/investments")
+    public String investments(Model model) {
+        model.addAttribute("holdings", investments.allHoldings());
+        return "admin/investments";
+    }
+
+    @PostMapping("/investments/run-sips")
+    public String runSips(RedirectAttributes redirect) {
+        int paid = investments.processDueSips();
+        redirect.addFlashAttribute("message", paid == 0 ? "No SIP instalments were due" : paid + " SIP instalment(s) debited");
+        return "redirect:/admin/investments";
+    }
+
+    @GetMapping("/notifications")
+    public String notifications(Model model) {
+        model.addAttribute("notifications", notifications.outbox());
+        return "admin/notifications";
     }
 
     @GetMapping("/transactions")

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/customer :: page(~{::title}, ~{::main})}">
+<head><title>Policy · JavaBank</title></head>
+<body>
+<main class="container cust-main narrow-main">
+    <p><a th:href="@{/customer/insurance}">← Insurance</a></p>
+    <section class="policy-hero">
+        <div class="policy-head"><b th:text="${p.plan.label + ' insurance'}"></b>
+            <span class="badge" th:classappend="${p.isActiveOn(today)} ? 'active' : 'frozen'" th:text="${p.isActiveOn(today)} ? 'ACTIVE' : 'EXPIRED'"></span></div>
+        <p class="policy-cover" th:text="${@money.cover(p.cover)}"></p>
+        <p class="policy-sub">Sum insured</p>
+    </section>
+    <section class="panel">
+        <dl class="details">
+            <dt>Insurer</dt><dd th:text="${p.insurer ?: 'JavaBank'}"></dd>
+            <dt>Policy number</dt><dd class="mono" th:text="${p.policyNumber}"></dd>
+            <dt>Annual premium</dt><dd th:text="${@money.format(p.annualPremium)}"></dd>
+            <dt>Policy period</dt><dd th:text="${#temporals.format(p.startDate, 'dd MMM yyyy') + ' – ' + #temporals.format(p.endDate, 'dd MMM yyyy')}"></dd>
+            <dt th:if="${p.details}" th:text="${p.plan.extraLabel}"></dt><dd th:if="${p.details}" th:text="${p.details}"></dd>
+            <dt>Renewal</dt><dd th:text="${'Due by ' + #temporals.format(p.endDate, 'dd MMM yyyy') + '. We will remind you by SMS and email'}"></dd>
+        </dl>
+        <h3>What's covered</h3>
+        <ul class="pc-cover"><li th:each="c : ${p.plan.coverage}" th:text="${c}"></li></ul>
+        <h3>Need help or want to claim?</h3>
+        <p class="muted">Call the JavaBank insurance desk (demo) or <a th:href="@{/customer/insurance/apply/{pl}(pl=${p.plan})}">request a callback</a>
+            quoting policy <b class="mono" th:text="${p.policyNumber}"></b>.</p>
+    </section>
+</main>
+</body>
+</html>

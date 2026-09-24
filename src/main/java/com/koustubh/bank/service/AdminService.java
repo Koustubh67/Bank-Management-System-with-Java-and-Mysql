@@ -4,7 +4,8 @@ import com.koustubh.bank.domain.Account;
 import com.koustubh.bank.domain.AccountStatus;
 import com.koustubh.bank.domain.Card;
 import com.koustubh.bank.domain.InsurancePolicy;
-import com.koustubh.bank.domain.Investment;
+import com.koustubh.bank.domain.InsuranceRequest;
+import com.koustubh.bank.domain.Notification;
 import com.koustubh.bank.domain.KycDocument;
 import com.koustubh.bank.domain.Transaction;
 import com.koustubh.bank.domain.UpiHandle;
@@ -14,7 +15,7 @@ import com.koustubh.bank.repository.AccountRepository;
 import com.koustubh.bank.repository.CardRepository;
 import com.koustubh.bank.repository.CustomerRepository;
 import com.koustubh.bank.repository.InsurancePolicyRepository;
-import com.koustubh.bank.repository.InvestmentRepository;
+import com.koustubh.bank.repository.InsuranceRequestRepository;
 import com.koustubh.bank.repository.KycDocumentRepository;
 import com.koustubh.bank.repository.DocumentInfo;
 import com.koustubh.bank.repository.TransactionRepository;
@@ -24,6 +25,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /** Actions available to bank staff in the admin panel. */
@@ -31,11 +34,12 @@ import java.util.List;
 public class AdminService {
 
     public record Dashboard(long customers, long pending, long active, long frozen, long declined, long transactions,
-                            long upiUsers, BigDecimal totalDeposits) {
+                            long upiUsers, BigDecimal totalDeposits, long insuranceRequests) {
     }
 
     public record AccountDetails(Account account, Card card, UpiHandle upi, List<DocumentInfo> documents,
-                                 List<Investment> investments, List<InsurancePolicy> policies,
+                                 List<InvestmentService.Holding> holdings, List<InsurancePolicy> policies,
+                                 List<InsuranceRequest> insuranceRequests, List<Notification> notifications,
                                  List<Transaction> transactions) {
     }
 
@@ -55,16 +59,25 @@ public class AdminService {
     private final TransactionRepository transactions;
     private final UpiHandleRepository upiHandles;
     private final KycDocumentRepository documents;
-    private final InvestmentRepository investments;
     private final InsurancePolicyRepository policies;
+    private final InsuranceRequestRepository insuranceRequests;
+    private final InvestmentService investmentService;
+    private final InsuranceService insurance;
+    private final NotificationService notifications;
+    private final Clock clock;
 
     public AdminService(CustomerRepository customers, AccountRepository accounts, CardRepository cards,
                         TransactionRepository transactions, UpiHandleRepository upiHandles,
-                        KycDocumentRepository documents, InvestmentRepository investments,
-                        InsurancePolicyRepository policies) {
+                        KycDocumentRepository documents, InsurancePolicyRepository policies,
+                        InsuranceRequestRepository insuranceRequests, InvestmentService investmentService,
+                        InsuranceService insurance, NotificationService notifications, Clock clock) {
         this.documents = documents;
-        this.investments = investments;
         this.policies = policies;
+        this.insuranceRequests = insuranceRequests;
+        this.investmentService = investmentService;
+        this.insurance = insurance;
+        this.notifications = notifications;
+        this.clock = clock;
         this.customers = customers;
         this.accounts = accounts;
         this.cards = cards;
@@ -77,7 +90,7 @@ public class AdminService {
         return new Dashboard(customers.count(), accounts.countByStatus(AccountStatus.PENDING),
                 accounts.countByStatus(AccountStatus.ACTIVE), accounts.countByStatus(AccountStatus.FROZEN),
                 accounts.countByStatus(AccountStatus.DECLINED), transactions.count(), upiHandles.count(),
-                accounts.totalBalance());
+                accounts.totalBalance(), insurance.openRequestCount());
     }
 
     @Transactional(readOnly = true)
@@ -94,7 +107,9 @@ public class AdminService {
         Card card = cards.findByAccountId(accountId).orElseThrow(() -> new NotFoundException("Card not found"));
         return new AccountDetails(account, card, upiHandles.findByAccountId(accountId).orElse(null),
                 documents.findInfoByCustomerId(account.getCustomer().getId()),
-                investments.findByAccountIdOrderByIdDesc(accountId), policies.findByAccountIdOrderByIdDesc(accountId),
+                investmentService.portfolio(account.getCustomer().getCustomerId()).holdings(),
+                policies.findByAccountIdOrderByIdDesc(accountId), insuranceRequests.findByAccountIdOrderByIdDesc(accountId),
+                notifications.recentFor(account.getCustomer()),
                 transactions.findByAccountIdOrderByIdDesc(accountId, PageRequest.of(0, 50)));
     }
 
@@ -105,15 +120,29 @@ public class AdminService {
 
     @Transactional
     public void approve(Long accountId) {
+        approve(accountId, "system");
+    }
+
+    @Transactional
+    public void approve(Long accountId, String staff) {
         Account account = lock(accountId);
         if (account.getStatus() != AccountStatus.PENDING) {
             throw new InvalidRequestException("Only pending accounts can be approved");
         }
         account.activate();
+        account.reviewed(staff, LocalDateTime.now(clock));
+        notifications.notify(account.getCustomer(), "Your account is active",
+                "Good news! Your JavaBank account " + account.getMaskedNumber() + " is approved. Log in with Customer ID "
+                        + account.getCustomer().getCustomerId() + " to use net banking, the ATM and UPI.");
     }
 
     @Transactional
     public void decline(Long accountId, String reason) {
+        decline(accountId, reason, "system");
+    }
+
+    @Transactional
+    public void decline(Long accountId, String reason, String staff) {
         String clean = reason == null ? "" : reason.trim();
         if (clean.isEmpty()) {
             throw new InvalidRequestException("Please give a reason for declining");
@@ -126,6 +155,9 @@ public class AdminService {
             throw new InvalidRequestException("Only pending applications can be declined");
         }
         account.decline(clean);
+        account.reviewed(staff, LocalDateTime.now(clock));
+        notifications.notify(account.getCustomer(), "Update on your JavaBank application",
+                "We couldn't approve your application: " + clean + ". You can apply again with the correct details.");
     }
 
     @Transactional(readOnly = true)

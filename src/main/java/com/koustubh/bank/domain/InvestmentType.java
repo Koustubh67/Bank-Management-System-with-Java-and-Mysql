@@ -2,7 +2,8 @@ package com.koustubh.bank.domain;
 
 public enum InvestmentType {
     FIXED_DEPOSIT("Fixed Deposit"),
-    SIP("Mutual Fund SIP");
+    SIP("Mutual Fund SIP"),
+    LUMPSUM("Mutual Fund · One-time");
 
     private final String label;
 
@@ -12,5 +13,9 @@ public enum InvestmentType {
 
     public String getLabel() {
         return label;
+    }
+
+    public boolean isMutualFund() {
+        return this != FIXED_DEPOSIT;
     }
 }

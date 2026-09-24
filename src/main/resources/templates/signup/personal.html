@@ -7,12 +7,14 @@
     <ol th:replace="~{fragments/form :: steps(1)}"></ol>
     <form class="card form" th:action="@{/signup/personal}" th:object="${signupForm}" method="post" novalidate>
         <h2>Page 1 · Personal details</h2>
+        <div th:replace="~{fragments/form :: summary}"></div>
         <div class="grid">
             <label th:replace="~{fragments/form :: input('fullName', 'Full name', 'text')}"></label>
             <label th:replace="~{fragments/form :: input('fatherName', 'Father’s name', 'text')}"></label>
             <label th:replace="~{fragments/form :: input('dateOfBirth', 'Date of birth', 'date')}"></label>
             <label th:replace="~{fragments/form :: select('gender', 'Gender', ${genders})}"></label>
             <label th:replace="~{fragments/form :: input('email', 'Email address', 'email')}"></label>
+            <label th:replace="~{fragments/form :: input('mobile', 'Mobile number (for SMS alerts)', 'tel')}"></label>
             <label th:replace="~{fragments/form :: select('maritalStatus', 'Marital status', ${maritalStatuses})}"></label>
         </div>
         <label th:replace="~{fragments/form :: input('address', 'Address', 'text')}"></label>

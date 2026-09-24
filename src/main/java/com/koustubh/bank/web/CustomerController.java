@@ -6,7 +6,9 @@ import com.koustubh.bank.exception.InvalidRequestException;
 import com.koustubh.bank.service.CustomerLoginService;
 import com.koustubh.bank.service.CustomerService;
 import com.koustubh.bank.service.CustomerService.PassbookFilter;
-import com.koustubh.bank.service.WealthService;
+import com.koustubh.bank.service.InsuranceService;
+import com.koustubh.bank.service.InvestmentService;
+import com.koustubh.bank.service.NotificationService;
 import org.springframework.data.domain.Page;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
@@ -33,11 +35,16 @@ public class CustomerController {
     private final CustomerService customers;
     private final CustomerLoginService customerLogin;
     private final Clock clock;
-    private final WealthService wealth;
+    private final InvestmentService investments;
+    private final InsuranceService insurance;
+    private final NotificationService notifications;
 
     public CustomerController(CustomerService customers, CustomerLoginService customerLogin, Clock clock,
-                              WealthService wealth) {
-        this.wealth = wealth;
+                              InvestmentService investments, InsuranceService insurance,
+                              NotificationService notifications) {
+        this.investments = investments;
+        this.insurance = insurance;
+        this.notifications = notifications;
         this.customers = customers;
         this.customerLogin = customerLogin;
         this.clock = clock;
@@ -46,7 +53,10 @@ public class CustomerController {
     @GetMapping
     public String dashboard(Principal principal, Model model) {
         model.addAttribute("o", customers.overview(principal.getName()));
-        model.addAttribute("portfolio", wealth.portfolio(principal.getName()));
+        model.addAttribute("portfolio", investments.portfolio(principal.getName()));
+        model.addAttribute("policies", insurance.policiesOf(principal.getName()));
+        model.addAttribute("insuranceRequests", insurance.requestsOf(principal.getName()).stream().filter(r -> r.isOpen()).toList());
+        model.addAttribute("alerts", notifications.recentFor(customers.overview(principal.getName()).customer()));
         return "customer/dashboard";
     }
 
@@ -95,6 +105,19 @@ public class CustomerController {
     public String profile(Principal principal, Model model) {
         model.addAttribute("o", customers.overview(principal.getName()));
         return "customer/profile";
+    }
+
+    /** Updates the mobile number and email used for SMS and email alerts. */
+    @PostMapping("/contact")
+    public String updateContact(@RequestParam(required = false) String mobile, @RequestParam(required = false) String email,
+                                Principal principal, RedirectAttributes redirect) {
+        try {
+            customers.updateContact(principal.getName(), mobile, email);
+            redirect.addFlashAttribute("message", "Contact details updated");
+        } catch (BankException e) {
+            redirect.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/customer/profile";
     }
 
     @PostMapping("/password")

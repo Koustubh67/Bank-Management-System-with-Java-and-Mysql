@@ -8,6 +8,7 @@
     <div class="alert error" th:if="${error}" th:text="${error}"></div>
     <form class="card form" th:action="@{/signup/account}" th:object="${signupForm}" method="post" novalidate>
         <h2>Page 3 · Account details</h2>
+        <div th:replace="~{fragments/form :: summary}"></div>
         <fieldset class="field">
             <legend>Account type</legend>
             <div class="choices">
@@ -28,9 +29,15 @@
         <h2 class="sub-head">Net banking login</h2>
         <p class="note">You'll log in with your Customer ID (shown after you submit) and this password.</p>
         <div class="grid">
-            <label th:replace="~{fragments/form :: input('password', 'Create password', 'password')}"></label>
+            <!-- Password values are kept after an error elsewhere on the page, so they don't have to be typed again -->
+            <label class="field"><span>Create password</span>
+                <input type="password" name="password" th:value="*{password}" autocomplete="new-password"
+                       placeholder="8+ characters, letters and numbers" th:classappend="${#fields.hasErrors('password')} ? 'invalid'">
+                <small class="err" th:if="${#fields.hasErrors('password')}" th:errors="*{password}"></small>
+            </label>
             <label class="field"><span>Confirm password</span>
-                <input type="password" th:field="*{confirmPassword}" th:classappend="${#fields.hasErrors('passwordConfirmed')} ? 'invalid'">
+                <input type="password" name="confirmPassword" th:value="*{confirmPassword}" autocomplete="new-password"
+                       th:classappend="${#fields.hasErrors('passwordConfirmed')} ? 'invalid'">
                 <small class="err" th:if="${#fields.hasErrors('passwordConfirmed')}" th:errors="*{passwordConfirmed}"></small>
             </label>
         </div>

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/customer :: page(~{::title}, ~{::main})}">
+<head><title>Request received · JavaBank</title></head>
+<body>
+<main class="container cust-main narrow-main">
+    <section class="panel done-card">
+        <div class="done-tick">✓</div>
+        <h1>Thanks! We've got your request.</h1>
+        <p class="lead-dark">Our <b th:text="${requestedPlan}"></b> insurance expert will call you on
+            <b th:text="${requestedMobile}"></b> <span th:text="${#strings.toLowerCase(requestedTime)}"></span>, within 24 hours.</p>
+        <p class="muted">They'll understand your needs, compare plans from our partner insurers and take the remaining
+            details on the call. You'll get an SMS and email with every update.</p>
+        <dl class="details"><dt>Request reference</dt><dd class="mono" th:text="${requested}"></dd></dl>
+        <div class="form-actions center-row">
+            <a class="btn soft" th:href="@{/customer/insurance}">Track request</a>
+            <a class="btn dark" th:href="@{/customer}">Go to dashboard</a>
+        </div>
+    </section>
+</main>
+</body>
+</html>

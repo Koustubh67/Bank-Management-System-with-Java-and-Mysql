@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/admin :: page(~{::title}, ~{::main})}">
+<head><title>Alerts sent · JavaBank Staff</title></head>
+<body>
+<main class="container">
+    <h1>Alerts sent</h1>
+    <p class="muted">The last 100 SMS and email alerts. This demo has no SMS or email provider, so alerts are recorded here and in the server log.</p>
+    <div class="table-wrap">
+        <table class="table">
+            <thead><tr><th>When</th><th>Channel</th><th>To</th><th>Customer</th><th>Subject</th><th>Message</th></tr></thead>
+            <tbody>
+            <tr th:each="n : ${notifications}">
+                <td th:text="${#temporals.format(n.createdAt, 'dd MMM HH:mm')}"></td>
+                <td><span class="badge" th:classappend="${n.channel.name() == 'SMS'} ? 'active' : 'frozen'" th:text="${n.channel}"></span></td>
+                <td class="mono small" th:text="${n.channel.name() == 'SMS'} ? ${'+91 ******' + #strings.substring(n.destination, n.destination.length() - 4)} : ${n.customer.maskedEmail}"></td>
+                <td th:text="${n.customer.fullName}"></td>
+                <td th:text="${n.subject}"></td>
+                <td class="wrap" th:text="${n.subject == 'OTP'} ? 'One-time password (hidden)' : ${n.message}"></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+</body>
+</html>

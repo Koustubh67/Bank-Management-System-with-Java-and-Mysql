@@ -30,7 +30,8 @@ class DemoDataSeederTest {
     @Autowired CardSecurityService cardSecurity;
     @Autowired UpiService upi;
     @Autowired CustomerLoginService customerLogin;
-    @Autowired com.koustubh.bank.service.WealthService wealth;
+    @Autowired com.koustubh.bank.service.InvestmentService investments;
+    @Autowired com.koustubh.bank.service.InsuranceService insurance;
     @Autowired AccountRepository accounts;
     @Autowired CustomerRepository customers;
 
@@ -61,8 +62,8 @@ class DemoDataSeederTest {
 
     @Test
     void balancesMatchTheReadme() {
-        assertThat(balance(DemoDataSeeder.RAHUL)).isEqualByComparingTo("39451");
-        assertThat(balance(DemoDataSeeder.PRIYA)).isEqualByComparingTo("62550");
+        assertThat(balance(DemoDataSeeder.RAHUL)).isEqualByComparingTo("42350");
+        assertThat(balance(DemoDataSeeder.PRIYA)).isEqualByComparingTo("120950");
         assertThat(balance(DemoDataSeeder.AMIT)).isEqualByComparingTo("0");
         assertThat(balance(DemoDataSeeder.SNEHA)).isEqualByComparingTo("20000");
         assertThat(balance(DemoDataSeeder.VIKRAM)).isEqualByComparingTo("15000");
@@ -70,10 +71,17 @@ class DemoDataSeederTest {
     }
 
     @Test
-    void demoCustomersHaveInvestmentsAndInsurance() {
-        assertThat(wealth.portfolio(DemoDataSeeder.RAHUL.customerId()).investments()).hasSize(1);
-        assertThat(wealth.portfolio(DemoDataSeeder.RAHUL.customerId()).policies()).hasSize(1);
-        assertThat(wealth.portfolio(DemoDataSeeder.PRIYA.customerId()).fdMaturityValue()).isPositive();
+    void demoCustomersHaveRealFundSipsPoliciesAndAnOpenInsuranceRequest() {
+        var rahul = investments.portfolio(DemoDataSeeder.RAHUL.customerId());
+        assertThat(rahul.holdings()).hasSize(1);
+        var sip = rahul.holdings().get(0);
+        assertThat(sip.investment().getSchemeCode()).isEqualTo(122639L);
+        assertThat(sip.investment().getInstalmentsPaid()).isEqualTo(12);
+        // Test NAVs rise every day, so a year-old SIP shows a profit
+        assertThat(sip.gain()).isPositive();
+        assertThat(insurance.policiesOf(DemoDataSeeder.RAHUL.customerId())).hasSize(1);
+        assertThat(insurance.requestsOf(DemoDataSeeder.RAHUL.customerId())).hasSize(1);
+        assertThat(customers.findByCustomerId("JB10000001").orElseThrow().getMobile()).isEqualTo("9876500001");
     }
 
     @Test

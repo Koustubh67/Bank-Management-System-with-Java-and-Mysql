@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/customer :: page(~{::title}, ~{::main})}">
+<head><title>Talk to an expert · JavaBank</title></head>
+<body>
+<main class="container cust-main narrow-main">
+    <p><a th:href="@{/customer/insurance}">← Insurance</a></p>
+    <div class="apply-grid">
+        <aside class="panel apply-side" th:classappend="${#strings.toLowerCase(plan.name())}">
+            <span class="pc-ic big" th:text="${plan.name() == 'HEALTH'} ? '♥' : (${plan.name() == 'TERM_LIFE'} ? '☂' : (${plan.name() == 'MOTOR'} ? '🚗' : '✈'))"></span>
+            <h2 th:text="${plan.label + ' insurance'}"></h2>
+            <p th:text="${plan.tagline}"></p>
+            <ul class="pc-cover"><li th:each="c : ${plan.coverage}" th:text="${c}"></li></ul>
+            <div class="expert"><span>👩‍💼</span><p><b>An expert will call you</b>within 24 hours to understand your needs, compare plans from partner insurers and share quotes.</p></div>
+        </aside>
+
+        <form class="panel form" th:action="@{/customer/insurance/apply/{p}(p=${plan})}" method="post" th:with="f=${form}">
+            <h1>Request a callback</h1>
+            <p class="muted">We've filled in what we know. Please check the details.</p>
+            <div class="error-summary" th:if="${errors}"><strong th:text="${errors.size() == 1} ? 'Please fix this problem:' : 'Please fix these ' + ${errors.size()} + ' problems:'"></strong>
+                <ul><li th:each="e : ${errors}" th:text="${e}"></li></ul></div>
+
+            <fieldset class="field"><legend>Cover you're looking for</legend>
+                <div class="seg">
+                    <label th:each="c : ${plan.covers}"><input type="radio" name="cover" th:value="${c}" th:checked="${f.cover == c}">
+                        <span><b th:text="${@money.cover(c)}"></b></span></label>
+                </div>
+            </fieldset>
+            <div class="grid">
+                <label class="field"><span>Your name</span><input type="text" name="contactName" th:value="${f.contactName}" maxlength="80" required></label>
+                <label class="field"><span>Mobile number</span><input type="tel" name="mobile" th:value="${f.mobile}" maxlength="10" required placeholder="10 digits"></label>
+                <label class="field"><span>City</span><input type="text" name="city" th:value="${f.city}" maxlength="50" required></label>
+                <label class="field"><span>Age</span><input type="number" name="age" th:value="${f.age}" min="18" max="80" required></label>
+            </div>
+            <label class="field"><span th:text="${plan.extraLabel}"></span>
+                <input type="text" name="extra" th:value="${f.extra}" maxlength="300" required th:placeholder="${plan.extraPlaceholder}"></label>
+            <fieldset class="field"><legend>Best time to call</legend>
+                <div class="seg">
+                    <label th:each="t : ${times}"><input type="radio" name="preferredTime" th:value="${t}" th:checked="${f.preferredTime == t}">
+                        <span><b th:text="${t}"></b></span></label>
+                </div>
+            </fieldset>
+            <button type="submit" class="btn dark lg full">Request a callback</button>
+            <p class="note">By continuing you agree to be contacted about this request. We never share your number.</p>
+        </form>
+    </div>
+</main>
+</body>
+</html>

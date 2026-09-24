@@ -296,4 +296,29 @@
             });
         }
     }
+
+    // Fund page: SIP vs one-time changes the amount label and minimum; chips fill the amount
+    document.querySelectorAll('[data-invest-box]').forEach((form) => {
+        const amount = form.querySelector('input[name=amount]');
+        const label = form.querySelector('[data-amount-label]');
+        form.querySelectorAll('input[name=type]').forEach((r) => r.addEventListener('change', () => {
+            const sip = form.querySelector('input[name=type]:checked').value === 'SIP';
+            label.textContent = sip ? 'Monthly amount (₹)' : 'One-time amount (₹)';
+            amount.min = sip ? 500 : 1000;
+        }));
+        form.querySelectorAll('[data-amt]').forEach((chip) => chip.addEventListener('click', () => {
+            amount.value = chip.dataset.amt;
+            amount.focus();
+        }));
+    });
+
+    // Checkout: short "processing" overlay while the payment is sent
+    document.querySelectorAll('[data-processing-pay]').forEach((form) => {
+        form.addEventListener('submit', (e) => {
+            const submitter = e.submitter;
+            if (submitter && submitter.formAction && submitter.formAction.endsWith('/otp')) return;
+            const overlay = document.querySelector('[data-pay-overlay]');
+            if (overlay) overlay.hidden = false;
+        });
+    });
 })();

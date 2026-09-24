@@ -66,6 +66,11 @@ public class SignupController {
     @PostMapping("/personal")
     public String savePersonal(@Validated(SignupForm.Personal.class) @ModelAttribute("signupForm") SignupForm form,
                                BindingResult result) {
+        // Already-registered details are reported on this page, together with every other error
+        if (!result.hasFieldErrors("mobile")) {
+            accountOpening.duplicatesOnPersonalPage(form.getMobile())
+                    .forEach((field, message) -> result.rejectValue(field, "duplicate", message));
+        }
         if (result.hasErrors()) {
             return "signup/personal";
         }
@@ -101,6 +106,9 @@ public class SignupController {
         } catch (BankException e) {
             result.rejectValue("aadhaarDocument", "upload", e.getMessage());
         }
+        accountOpening.duplicatesOnKycPage(result.hasFieldErrors("pan") ? null : form.getPan(),
+                        result.hasFieldErrors("aadhaar") ? null : form.getAadhaar())
+                .forEach((field, message) -> result.rejectValue(field, "duplicate", message));
         if (result.hasErrors()) {
             return "signup/additional";
         }
@@ -141,7 +149,8 @@ public class SignupController {
     }
 
     @PostMapping("/status")
-    public String status(@RequestParam String accountNumber, @RequestParam String pan, Model model) {
+    public String status(@RequestParam(required = false) String accountNumber, @RequestParam(required = false) String pan,
+                         Model model) {
         model.addAttribute("accountNumber", accountNumber);
         model.addAttribute("pan", pan);
         try {

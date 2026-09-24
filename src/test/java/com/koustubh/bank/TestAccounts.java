@@ -48,6 +48,7 @@ public class TestAccounts {
         f.setDateOfBirth(LocalDate.of(1999, 5, 17));
         f.setGender("Male");
         f.setEmail("test" + n + "@example.com");
+        f.setMobile("9" + String.format("%09d", n));
         f.setMaritalStatus("Unmarried");
         f.setAddress("12 MG Road");
         f.setCity("Bhopal");

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/customer :: page(~{::title}, ~{::main})}">
+<head><title>Checkout · JavaBank</title></head>
+<body>
+<main class="container cust-main narrow-main" th:with="c=${o.customer}">
+    <h1>Checkout</h1>
+    <ol class="stepper-x"><li class="done">Choose</li><li th:classappend="${kycOk} ? 'done' : 'on'">Confirm KYC</li><li th:classappend="${kycOk} ? 'on'">Pay</li></ol>
+
+    <section class="panel order-sum">
+        <div>
+            <span class="muted small" th:text="${order.type.label}"></span>
+            <h2 th:text="${fund != null ? fund.schemeName : (order.tenure != null ? 'Fixed Deposit · ' + order.tenure.label + ' @ ' + order.tenure.rate + '% p.a.' : 'Mutual fund')}"></h2>
+            <p class="muted small" th:if="${fund}" th:text="${'NAV ₹' + fund.nav + ' as on ' + #temporals.format(fund.navDate, 'dd MMM yyyy') + ' · about ' + #numbers.formatDecimal(order.amount.doubleValue() / fund.nav.doubleValue(), 1, 3) + ' units'}"></p>
+            <p class="muted small" th:if="${order.type.name() == 'SIP'}">Then the same amount every month on this date. Stop anytime.</p>
+        </div>
+        <strong class="order-amt" th:text="${@money.format(order.amount)}"></strong>
+    </section>
+
+    <!-- Step 2: KYC -->
+    <form class="panel" th:action="@{/customer/invest/checkout/kyc}" method="post" th:unless="${kycOk}">
+        <h2>Confirm your KYC</h2>
+        <p class="muted">As required for investments, please confirm your PAN, Aadhaar and mobile number.</p>
+        <div class="error-summary" th:if="${kycErrors}"><strong>Please fix these problems:</strong>
+            <ul><li th:each="e : ${kycErrors}" th:text="${e}"></li></ul></div>
+        <div class="grid3">
+            <label class="field"><span>PAN</span><input type="text" name="pan" th:value="${kycPan}" maxlength="10" required placeholder="ABCDE1234F" autocapitalize="characters"></label>
+            <label class="field"><span>Aadhaar number</span><input type="text" name="aadhaar" inputmode="numeric" maxlength="14" required placeholder="12 digits" autocomplete="off"></label>
+            <label class="field"><span>Mobile number</span><input type="tel" name="mobile" th:value="${kycMobile}" maxlength="13" required placeholder="10 digits"></label>
+        </div>
+        <p class="note" th:if="${c.mobile == null}">No mobile number on your account yet. <a th:href="@{/customer/profile}">Add it in Profile</a> first.</p>
+        <div class="form-actions"><button type="submit" class="btn dark lg">Verify &amp; continue</button></div>
+    </form>
+
+    <!-- Step 3: payment -->
+    <section class="panel" id="payment" th:if="${kycOk}">
+        <h2>Payment</h2>
+        <div class="kyc-ok">✓ KYC confirmed for <b th:text="${c.fullName}"></b> · PAN <span class="mono" th:text="${c.maskedPan}"></span></div>
+        <div class="alert error" th:if="${payError}" th:text="${payError}"></div>
+        <div class="sms-toast" th:if="${smsOtp}" role="status">
+            <span>💬</span><div><b>SMS · JavaBank</b><p th:text="${smsOtp + ' is your JavaBank OTP to confirm your investment. Valid for 5 minutes. Never share it.'}"></p>
+            <small th:text="'Sent to ' + ${c.maskedMobile} + ' (shown here because this is a demo)'"></small></div>
+        </div>
+
+        <div class="pay-methods">
+            <form class="pay-card" th:action="@{/customer/invest/checkout/pay}" method="post" data-processing-pay>
+                <input type="hidden" name="method" value="ACCOUNT">
+                <div class="pm-head"><span class="pm-ic">🏦</span><div><b>JavaBank savings account</b>
+                    <small th:text="${'A/c ' + o.account.maskedNumber + ' · balance ' + @money.format(o.account.balance)}"></small></div></div>
+                <div th:unless="${otpSent}">
+                    <p class="muted small">We'll send a one-time password to <span th:text="${c.maskedMobile}"></span>.</p>
+                    <button type="submit" class="btn soft full" th:formaction="@{/customer/invest/checkout/otp}" formnovalidate>Send OTP</button>
+                </div>
+                <div th:if="${otpSent}">
+                    <label class="field"><span>Enter OTP</span><input type="text" name="otp" inputmode="numeric" maxlength="6" required autocomplete="one-time-code"></label>
+                    <button type="submit" class="btn dark full" th:text="'Pay ' + ${@money.format(order.amount)}">Pay</button>
+                    <button type="submit" class="link-btn small" th:formaction="@{/customer/invest/checkout/otp}" formnovalidate>Resend OTP</button>
+                </div>
+            </form>
+
+            <form class="pay-card" th:action="@{/customer/invest/checkout/pay}" method="post" data-processing-pay>
+                <input type="hidden" name="method" value="UPI">
+                <div class="pm-head"><span class="pm-ic">📱</span><div><b>JavaPay UPI</b>
+                    <small th:text="${vpa != null ? vpa : 'UPI not activated'}"></small></div></div>
+                <div th:if="${vpa}">
+                    <label class="field"><span>UPI PIN</span><input type="password" name="upiPin" inputmode="numeric" maxlength="6" required autocomplete="off"></label>
+                    <button type="submit" class="btn dark full" th:text="'Pay ' + ${@money.format(order.amount)} + ' via UPI'">Pay</button>
+                </div>
+                <p class="muted small" th:unless="${vpa}"><a th:href="@{/upi}">Activate JavaPay UPI</a> to pay with UPI.</p>
+            </form>
+        </div>
+        <p class="note">Demo payment: money moves between your JavaBank account and the investment on the bank's ledger. No real payment gateway is charged.</p>
+    </section>
+
+    <form th:action="@{/customer/invest/checkout/cancel}" method="post"><button type="submit" class="link-btn">Cancel and go back</button></form>
+    <div class="pay-overlay" hidden data-pay-overlay><div class="spinner-dark"></div><p>Processing your payment securely…</p></div>
+</main>
+</body>
+</html>

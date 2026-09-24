@@ -73,6 +73,7 @@
                 <dt>Balance</dt><dd th:text="${@money.format(a.balance)}"></dd>
                 <dt>Services</dt><dd th:text="${#strings.isEmpty(a.services) ? '—' : a.services}"></dd>
                 <dt>Opened</dt><dd th:text="${#temporals.format(a.createdAt, 'dd MMM yyyy HH:mm')}"></dd>
+                <dt>Reviewed by</dt><dd th:text="${a.reviewedBy != null ? a.reviewedBy + ' on ' + #temporals.format(a.reviewedAt, 'dd MMM yyyy HH:mm') : '—'}"></dd>
                 <dt>Card</dt><dd class="mono" th:text="${card.maskedNumber}"></dd>
                 <dt>Card status</dt>
                 <dd th:text="${card.blocked ? 'Blocked' : (card.failedAttempts > 0 ? 'Active (' + card.failedAttempts + ' wrong PIN attempts)' : 'Active')}"></dd>
@@ -85,6 +86,7 @@
             <h2>Customer (KYC)</h2>
             <dl class="details">
                 <dt>Customer ID</dt><dd class="mono" th:text="${c.customerId}"></dd>
+                <dt>Mobile</dt><dd th:text="${c.mobile != null ? '+91 ' + c.mobile : '—'}"></dd>
                 <dt>Net banking</dt><dd th:text="${c.loginLocked ? 'Locked (too many wrong passwords)' : (c.passwordHash == null ? 'Password not set' : 'Active')}"></dd>
                 <dt>Father's name</dt><dd th:text="${c.fatherName}"></dd>
                 <dt>Date of birth</dt><dd th:text="${#temporals.format(c.dateOfBirth, 'dd MMM yyyy')}"></dd>
@@ -100,25 +102,64 @@
         </section>
     </div>
 
-    <section class="card" th:unless="${details.investments.isEmpty() and details.policies.isEmpty()}">
-        <h2>Investments &amp; insurance</h2>
-        <div class="table-wrap">
+    <section class="card">
+        <h2>Investments <small class="muted" th:text="${'(' + details.holdings.size() + ')'}"></small></h2>
+        <p class="muted" th:if="${details.holdings.isEmpty()}">No investments.</p>
+        <div class="table-wrap" th:unless="${details.holdings.isEmpty()}">
             <table class="table">
-                <thead><tr><th>Product</th><th>Reference</th><th class="num">Amount</th><th>Details</th></tr></thead>
+                <thead><tr><th>Investment</th><th>Reference</th><th>Started</th><th class="num">Invested</th><th class="num">Current value</th><th class="num">Returns</th><th>Details</th></tr></thead>
                 <tbody>
-                <tr th:each="i : ${details.investments}">
-                    <td th:text="${i.title}"></td><td class="mono" th:text="${i.reference}"></td>
+                <tr th:each="h : ${details.holdings}" th:with="i=${h.investment}">
+                    <td><b th:text="${i.title}"></b><small class="muted remark" th:text="${i.type.label}"></small></td>
+                    <td class="mono" th:text="${i.reference}"></td>
+                    <td th:text="${#temporals.format(i.startDate, 'dd MMM yyyy')}"></td>
                     <td class="num" th:text="${@money.format(i.invested)}"></td>
-                    <td th:text="${i.type.name() == 'SIP'} ? ${@money.whole(i.amount) + '/month'} : ${'Matures ' + i.maturityDate + ' at ' + @money.format(i.maturityAmount)}"></td>
-                </tr>
-                <tr th:each="p : ${details.policies}">
-                    <td th:text="${p.plan.label + ' insurance'}"></td><td class="mono" th:text="${p.policyNumber}"></td>
-                    <td class="num" th:text="${@money.whole(p.annualPremium) + '/yr'}"></td>
-                    <td th:text="${@money.cover(p.cover) + ' cover · till ' + p.endDate}"></td>
+                    <td class="num" th:text="${h.priced} ? ${@money.format(h.currentValue)} : 'n/a'"></td>
+                    <td class="num" th:classappend="${h.gain.signum() < 0} ? 'dr' : 'cr'" th:text="${h.gainPercent + '%'}"></td>
+                    <td th:text="${i.type.name() == 'SIP'} ? ${@money.whole(i.amount) + '/month · ' + i.instalmentsPaid + ' paid · units ' + i.units}
+                                 : (${i.type.name() == 'FIXED_DEPOSIT'} ? ${i.ratePercent + '% · matures ' + i.maturityDate} : ${'units ' + i.units})"></td>
                 </tr>
                 </tbody>
             </table>
         </div>
+    </section>
+
+    <section class="card">
+        <h2>Insurance</h2>
+        <p class="muted" th:if="${details.policies.isEmpty() and details.insuranceRequests.isEmpty()}">No policies or requests.</p>
+        <div class="table-wrap" th:unless="${details.policies.isEmpty()}">
+            <table class="table">
+                <thead><tr><th>Policy</th><th>Insurer</th><th>Policy no.</th><th class="num">Cover</th><th class="num">Premium</th><th>Valid</th><th>Details</th></tr></thead>
+                <tbody>
+                <tr th:each="p : ${details.policies}">
+                    <td th:text="${p.plan.label}"></td><td th:text="${p.insurer ?: 'JavaBank'}"></td><td class="mono" th:text="${p.policyNumber}"></td>
+                    <td class="num" th:text="${@money.cover(p.cover)}"></td><td class="num" th:text="${@money.whole(p.annualPremium) + '/yr'}"></td>
+                    <td th:text="${p.startDate + ' – ' + p.endDate}"></td><td th:text="${p.details ?: '—'}"></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="table-wrap" th:unless="${details.insuranceRequests.isEmpty()}">
+            <table class="table">
+                <thead><tr><th>Request</th><th>Plan</th><th class="num">Cover wanted</th><th>Status</th><th>Handled by</th><th>Note</th></tr></thead>
+                <tbody>
+                <tr th:each="r : ${details.insuranceRequests}">
+                    <td class="mono" th:text="${r.reference}"></td><td th:text="${r.plan.label}"></td>
+                    <td class="num" th:text="${@money.cover(r.coverWanted)}"></td><td th:text="${r.status.label}"></td>
+                    <td th:text="${r.handledBy ?: '—'}"></td><td th:text="${r.staffNote ?: '—'}"></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <p><a th:href="@{/admin/insurance}">Open the insurance request queue →</a></p>
+    </section>
+
+    <section class="card" th:unless="${details.notifications.isEmpty()}">
+        <h2>Alerts sent to this customer</h2>
+        <ul class="plain-list">
+            <li th:each="n : ${details.notifications}"><b th:text="${n.subject}"></b> · <span th:text="${n.message}"></span>
+                <small class="muted" th:text="${' (' + #temporals.format(n.createdAt, 'dd MMM HH:mm') + ')'}"></small></li>
+        </ul>
     </section>
 
     <h2>Recent transactions</h2>

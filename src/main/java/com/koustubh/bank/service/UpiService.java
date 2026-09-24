@@ -158,6 +158,12 @@ public class UpiService {
                 "UPI/" + payee.vpa() + narration, "UPI/" + payer.getVpa() + narration);
     }
 
+    /** Checks the UPI PIN on its own (e.g. to approve a payment at checkout). Wrong PINs still count. */
+    @Transactional(noRollbackFor = WrongUpiPinException.class)
+    public void verifyPin(String vpa, String pin) {
+        checkPin(vpa, pin);
+    }
+
     @Transactional(noRollbackFor = WrongUpiPinException.class)
     public BigDecimal balance(String vpa, String pin) {
         return checkPin(vpa, pin).getAccount().getBalance();

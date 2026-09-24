@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/admin :: page(~{::title}, ~{::main})}">
+<head><title>Insurance requests · JavaBank Staff</title></head>
+<body>
+<main class="container">
+    <h1>Insurance requests</h1>
+    <p class="muted">Call the customer at their preferred time, get a quote from a partner insurer, then record the policy.
+        Issuing auto-debits the first premium from the customer's account and sends them an SMS and email.</p>
+
+    <h2>Waiting for a call <span class="badge pending" th:text="${open.size()}"></span></h2>
+    <p class="muted" th:if="${open.isEmpty()}">No open requests. 🎉</p>
+    <div class="req-cards">
+        <article class="card req-card" th:each="r : ${open}" th:with="c=${r.account.customer}">
+            <div class="rc-head">
+                <div><b th:text="${r.plan.label + ' · ' + @money.cover(r.coverWanted)}"></b>
+                    <small class="muted mono" th:text="${r.reference}"></small></div>
+                <span class="badge" th:classappend="${r.status.name() == 'REQUESTED'} ? 'pending' : 'active'" th:text="${r.status.label}"></span>
+            </div>
+            <dl class="details">
+                <dt>Customer</dt><dd><a th:href="@{/admin/accounts/{id}(id=${r.account.id})}" th:text="${c.fullName + ' (' + c.customerId + ')'}"></a></dd>
+                <dt>Call</dt><dd><b th:text="${r.contactName + ' · +91 ' + r.mobile}"></b> · <span th:text="${r.preferredTime}"></span></dd>
+                <dt>Age · city</dt><dd th:text="${r.age + ' · ' + r.city}"></dd>
+                <dt th:text="${r.plan.extraLabel}"></dt><dd th:text="${r.extra}"></dd>
+                <dt>Requested</dt><dd th:text="${#temporals.format(r.createdAt, 'dd MMM yyyy, hh:mm a')}"></dd>
+                <dt th:if="${r.staffNote}">Note</dt><dd th:if="${r.staffNote}" th:text="${r.staffNote + ' (' + r.handledBy + ')'}"></dd>
+            </dl>
+            <details class="act" th:if="${r.status.name() == 'REQUESTED'}"><summary>Mark as contacted</summary>
+                <form th:action="@{/admin/insurance/{id}/contacted(id=${r.id})}" method="post" class="form">
+                    <label class="field"><span>Call notes</span><input type="text" name="note" maxlength="300" placeholder="e.g. Wants family floater, sharing 3 quotes"></label>
+                    <button type="submit" class="btn primary small">Save</button>
+                </form></details>
+            <details class="act"><summary>Issue policy</summary>
+                <form th:action="@{/admin/insurance/{id}/issue(id=${r.id})}" method="post" class="form grid">
+                    <label class="field"><span>Insurer</span><input type="text" name="insurer" maxlength="80" required></label>
+                    <label class="field"><span>Policy number</span><input type="text" name="policyNumber" maxlength="20" required></label>
+                    <label class="field"><span>Sum insured (₹)</span><input type="number" name="cover" th:value="${r.coverWanted}" min="1" required></label>
+                    <label class="field"><span>Annual premium (₹)</span><input type="number" name="premium" min="1" step="0.01" required></label>
+                    <label class="field"><span>Start date</span><input type="date" name="startDate"></label>
+                    <div><button type="submit" class="btn primary small">Issue &amp; debit premium</button></div>
+                </form></details>
+            <details class="act"><summary>Close request</summary>
+                <form th:action="@{/admin/insurance/{id}/close(id=${r.id})}" method="post" class="form">
+                    <label class="field"><span>Reason (sent to the customer)</span><input type="text" name="note" maxlength="300" required placeholder="e.g. Customer not interested right now"></label>
+                    <button type="submit" class="btn danger small">Close</button>
+                </form></details>
+        </article>
+    </div>
+
+    <h2>Issued policies</h2>
+    <p class="muted" th:if="${policies.isEmpty()}">No policies yet.</p>
+    <div class="table-wrap" th:unless="${policies.isEmpty()}">
+        <table class="table">
+            <thead><tr><th>Customer</th><th>Plan</th><th>Insurer</th><th>Policy no.</th><th class="num">Cover</th><th class="num">Premium</th><th>Valid till</th></tr></thead>
+            <tbody>
+            <tr th:each="p : ${policies}">
+                <td><a th:href="@{/admin/accounts/{id}(id=${p.account.id})}" th:text="${p.account.customer.fullName}"></a></td>
+                <td th:text="${p.plan.label}"></td><td th:text="${p.insurer ?: 'JavaBank'}"></td><td class="mono" th:text="${p.policyNumber}"></td>
+                <td class="num" th:text="${@money.cover(p.cover)}"></td><td class="num" th:text="${@money.whole(p.annualPremium)}"></td>
+                <td th:text="${#temporals.format(p.endDate, 'dd MMM yyyy')}"></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <h2>All requests</h2>
+    <div class="table-wrap">
+        <table class="table">
+            <thead><tr><th>Ref</th><th>Customer</th><th>Plan</th><th>Status</th><th>Handled by</th><th>Updated</th></tr></thead>
+            <tbody>
+            <tr th:each="r : ${recent}">
+                <td class="mono" th:text="${r.reference}"></td>
+                <td><a th:href="@{/admin/accounts/{id}(id=${r.account.id})}" th:text="${r.account.customer.fullName}"></a></td>
+                <td th:text="${r.plan.label}"></td><td th:text="${r.status.label}"></td>
+                <td th:text="${r.handledBy ?: '—'}"></td><td th:text="${#temporals.format(r.updatedAt, 'dd MMM HH:mm')}"></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+</body>
+</html>

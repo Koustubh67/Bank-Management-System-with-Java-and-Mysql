@@ -5,6 +5,7 @@ import com.koustubh.bank.service.AdminService;
 import com.koustubh.bank.service.CustomerLoginService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.web.WebAttributes;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -36,6 +37,13 @@ public class HomeController {
     public String login(@RequestParam(required = false) String as, @RequestParam(required = false) String error,
                         HttpSession session, Model model) {
         boolean staff = "staff".equals(as);
+        // Back-swiping to the login page while still signed in takes you back into your account
+        if (signedIn(session, "CUSTOMER_SECURITY_CONTEXT") && !staff) {
+            return "redirect:/customer";
+        }
+        if (signedIn(session, "STAFF_SECURITY_CONTEXT") && staff) {
+            return "redirect:/admin";
+        }
         model.addAttribute("staff", staff);
         if (error != null) {
             Object ex = session.getAttribute(WebAttributes.AUTHENTICATION_EXCEPTION);
@@ -45,6 +53,11 @@ public class HomeController {
                     ? ae.getMessage() : "Invalid username or password");
         }
         return "login";
+    }
+
+    private static boolean signedIn(HttpSession session, String key) {
+        return session.getAttribute(key) instanceof SecurityContext ctx && ctx.getAuthentication() != null
+                && ctx.getAuthentication().isAuthenticated();
     }
 
     @GetMapping("/login/setup")

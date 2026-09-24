@@ -12,8 +12,10 @@
     </div>
 
     <div class="status-banner pending" th:if="${s == 'PENDING'}">
-        <strong>Your account is under review.</strong> Our staff are verifying your KYC documents. The ATM and UPI will
-        unlock once it's approved.
+        <strong>Your account is under review.</strong> Our staff are verifying your KYC documents, usually within 24 hours.
+        We'll notify you by SMS<span th:if="${o.customer.maskedMobile}" th:text="' (' + ${o.customer.maskedMobile} + ')'"></span>
+        and email (<span th:text="${o.customer.maskedEmail}"></span>) as soon as it's approved. The ATM, UPI and investing
+        unlock then.
     </div>
     <div class="status-banner declined" th:if="${s == 'DECLINED'}">
         <strong>Your application was declined.</strong> Reason: <span th:text="${a.declineReason}"></span>.
@@ -62,36 +64,67 @@
 
     <section class="panel wealth-panel" th:with="p=${portfolio}">
         <div class="panel-head">
-            <h2>My investments &amp; insurance</h2>
-            <span class="head-links"><a th:href="@{/customer/invest}">Invest →</a> <a th:href="@{/customer/insurance}">Insurance →</a></span>
+            <h2>My investments</h2>
+            <a th:href="@{/customer/invest}">Explore funds →</a>
         </div>
         <div class="wealth-stats" th:unless="${p.empty}">
-            <div><span>Total invested</span><strong th:text="${@money.whole(p.invested)}"></strong></div>
-            <div><span>FD maturity value</span><strong th:text="${@money.whole(p.fdMaturityValue)}"></strong></div>
-            <div><span>Life cover</span><strong th:text="${p.lifeCover.signum() > 0 ? @money.cover(p.lifeCover) : '—'}"></strong></div>
-            <div><span>Health cover</span><strong th:text="${p.healthCover.signum() > 0 ? @money.cover(p.healthCover) : '—'}"></strong></div>
+            <div><span>Invested</span><strong th:text="${@money.whole(p.invested)}"></strong></div>
+            <div><span>Current value</span><strong th:text="${@money.whole(p.currentValue)}"></strong></div>
+            <div><span>Total returns</span>
+                <strong th:classappend="${p.gain.signum() < 0} ? 'loss' : 'profit'"
+                        th:text="${(p.gain.signum() < 0 ? '− ' : '+ ') + @money.whole(p.gain.abs()) + ' (' + p.gainPercent + '%)'}"></strong></div>
+            <div><span>Holdings</span><strong th:text="${p.holdings.size()}"></strong></div>
         </div>
+        <p class="note" th:if="${!p.empty and !p.allPriced}">Live prices are unavailable for some funds right now; they show the amount invested.</p>
         <div class="holdings" th:unless="${p.empty}">
-            <a class="holding" th:each="i : ${p.investments}" th:href="@{/customer/invest}">
-                <span class="h-ic" th:classappend="${i.type.name() == 'SIP'} ? 'sip' : 'fd'" th:text="${i.type.name() == 'SIP'} ? '↺' : '₹'"></span>
+            <a class="holding" th:each="h : ${p.holdings}" th:with="i=${h.investment}" th:href="@{/customer/invest/holdings/{id}(id=${i.id})}">
+                <span class="h-ic" th:classappend="${i.type.name() == 'FIXED_DEPOSIT'} ? 'fd' : 'sip'" th:text="${i.type.name() == 'FIXED_DEPOSIT'} ? '₹' : '↗'"></span>
                 <span class="h-body"><b th:text="${i.title}"></b>
-                    <small th:if="${i.type.name() == 'SIP'}" th:text="${@money.whole(i.amount) + '/month · next debit ' + #temporals.format(i.nextDebitDate, 'dd MMM')}"></small>
-                    <small th:unless="${i.type.name() == 'SIP'}" th:text="${i.ratePercent + '% p.a. · matures ' + #temporals.format(i.maturityDate, 'dd MMM yyyy')}"></small></span>
-                <span class="h-amt" th:text="${@money.whole(i.invested)}"></span>
-            </a>
-            <a class="holding" th:each="pol : ${p.policies}" th:href="@{/customer/insurance}">
-                <span class="h-ic ins">🛡</span>
-                <span class="h-body"><b th:text="${pol.plan.label + ' insurance'}"></b>
-                    <small th:text="${@money.cover(pol.cover) + ' cover · valid till ' + #temporals.format(pol.endDate, 'dd MMM yyyy')}"></small></span>
-                <span class="h-amt muted" th:text="${@money.whole(pol.annualPremium) + '/yr'}"></span>
+                    <small th:text="${i.type.label + ' · invested ' + @money.whole(i.invested)}"></small></span>
+                <span class="h-val"><b th:text="${@money.whole(h.currentValue)}"></b>
+                    <small th:classappend="${h.gain.signum() < 0} ? 'loss' : 'profit'"
+                           th:text="${(h.gain.signum() < 0 ? '−' : '+') + h.gainPercent.abs() + '%'}"></small></span>
             </a>
         </div>
         <div class="wealth-empty" th:if="${p.empty}">
             <a th:href="@{/customer/invest}" class="promo-card invest">
-                <b>Grow your savings</b><span>FDs up to 7.25% p.a. and SIPs from ₹500/month</span><em>Start investing →</em></a>
-            <a th:href="@{/customer/insurance}" class="promo-card insure">
-                <b>Protect what matters</b><span>Term life, health, motor and travel cover</span><em>Get a quote →</em></a>
+                <b>Start your first SIP</b><span>Real mutual funds with live NAVs, from ₹500 a month</span><em>Explore funds →</em></a>
+            <a th:href="@{/customer/invest#fd}" class="promo-card insure">
+                <b>Book a fixed deposit</b><span>1 to 5 years, 6.80%–7.25% p.a.</span><em>Open FD →</em></a>
         </div>
+    </section>
+
+    <section class="panel">
+        <div class="panel-head">
+            <h2>My insurance</h2>
+            <a th:href="@{/customer/insurance}">View plans →</a>
+        </div>
+        <div class="holdings" th:unless="${policies.isEmpty() and insuranceRequests.isEmpty()}">
+            <a class="holding" th:each="pol : ${policies}" th:href="@{/customer/insurance/policies/{id}(id=${pol.id})}">
+                <span class="h-ic ins">🛡</span>
+                <span class="h-body"><b th:text="${pol.plan.label + ' · ' + (pol.insurer ?: 'JavaBank')}"></b>
+                    <small th:text="${@money.cover(pol.cover) + ' cover · valid till ' + #temporals.format(pol.endDate, 'dd MMM yyyy')}"></small></span>
+                <span class="badge active">ACTIVE</span>
+            </a>
+            <a class="holding" th:each="r : ${insuranceRequests}" th:href="@{/customer/insurance}">
+                <span class="h-ic req">☎</span>
+                <span class="h-body"><b th:text="${r.plan.label + ' insurance · ' + r.status.label}"></b>
+                    <small th:text="${r.status.hint + ' · ref ' + r.reference}"></small></span>
+                <span class="badge pending">IN PROGRESS</span>
+            </a>
+        </div>
+        <div class="wealth-empty" th:if="${policies.isEmpty() and insuranceRequests.isEmpty()}">
+            <a th:href="@{/customer/insurance/apply/HEALTH}" class="promo-card invest"><b>Health insurance</b><span>Cashless treatment for your family</span><em>Talk to an expert →</em></a>
+            <a th:href="@{/customer/insurance/apply/TERM_LIFE}" class="promo-card insure"><b>Term life cover</b><span>Up to ₹2 crore for your family</span><em>Talk to an expert →</em></a>
+        </div>
+    </section>
+
+    <section class="panel" th:unless="${alerts.isEmpty()}">
+        <div class="panel-head"><h2>Messages</h2><span class="muted small">Also sent to you by SMS and email</span></div>
+        <ul class="alerts">
+            <li th:each="n : ${alerts}"><b th:text="${n.subject}"></b><span th:text="${n.message}"></span>
+                <small th:text="${#temporals.format(n.createdAt, 'dd MMM, hh:mm a')}"></small></li>
+        </ul>
     </section>
 
     <section class="panel">

@@ -4,11 +4,12 @@
 <body>
 <main class="container narrow page-pad">
     <h1>Track your application</h1>
-    <p class="muted">Enter the account number you received and your PAN to see where your application is.</p>
+    <p class="muted">Enter your account number <b>or</b> Customer ID (both were shown after you applied) and your PAN.</p>
     <form class="card form" th:action="@{/signup/status}" method="post">
         <div class="grid">
-            <label class="field"><span>Account number</span>
-                <input type="text" name="accountNumber" th:value="${accountNumber}" inputmode="numeric" maxlength="12" required></label>
+            <label class="field"><span>Account number or Customer ID</span>
+                <input type="text" name="accountNumber" th:value="${accountNumber}" maxlength="20" required
+                       placeholder="e.g. 100000000003 or JB10000003"></label>
             <label class="field"><span>PAN</span>
                 <input type="text" name="pan" th:value="${pan}" maxlength="10" required placeholder="ABCDE1234F"></label>
         </div>
@@ -23,7 +24,7 @@
             <li class="done"><b>Application submitted</b><small th:text="${#temporals.format(tracked.appliedAt, 'dd MMM yyyy, hh:mm a')}"></small></li>
             <li class="done"><b>Documents received</b><small>PAN and Aadhaar</small></li>
             <li th:classappend="${s == 'PENDING'} ? 'current' : 'done'"><b>Verification by bank staff</b>
-                <small th:text="${s == 'PENDING'} ? 'In progress' : 'Completed'"></small></li>
+                <small th:text="${s == 'PENDING'} ? 'In progress: we will notify you by SMS and email once it is done (usually within 24 hours)' : 'Completed'"></small></li>
             <li th:if="${s != 'DECLINED'}" th:classappend="${s == 'PENDING'} ? '' : 'done'"><b>Account active</b>
                 <small th:text="${s == 'ACTIVE'} ? 'Your card and UPI are ready to use' : (${s == 'FROZEN'} ? 'Account frozen: contact your branch' : 'Waiting')"></small></li>
             <li th:if="${s == 'DECLINED'}" class="declined"><b>Application declined</b>

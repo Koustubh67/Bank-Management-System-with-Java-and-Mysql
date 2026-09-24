@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/admin :: page(~{::title}, ~{::main})}">
+<head><title>Staff · JavaBank Staff</title></head>
+<body>
+<main class="container">
+    <h1>Staff</h1>
+    <p class="muted">Branch managers add staff here. Each new staff member gets a one-time temporary password: share it in
+        person. They log in on the <b>Bank staff</b> tab of the login page and must choose their own password first.</p>
+
+    <div class="alert warn" th:if="${tempPassword}">
+        <span th:if="${newStaff}">Staff login created: username <b class="mono" th:text="${newStaff}"></b>.</span>
+        Temporary password: <b class="mono" th:text="${tempPassword}"></b>. It is shown only once.
+    </div>
+
+    <section class="card">
+        <h2>Add a staff member</h2>
+        <form th:action="@{/admin/staff}" method="post" class="form grid">
+            <label class="field"><span>Full name</span><input type="text" name="fullName" maxlength="80" required></label>
+            <label class="field"><span>Username</span><input type="text" name="username" maxlength="30" required placeholder="e.g. amit.officer"></label>
+            <label class="field"><span>Role</span>
+                <select name="role" required>
+                    <option th:each="r : ${roles}" th:value="${r}" th:text="${r.label}" th:selected="${r.name() == 'OFFICER'}"></option>
+                </select></label>
+            <div><button type="submit" class="btn primary">Create login</button></div>
+        </form>
+    </section>
+
+    <div class="table-wrap">
+        <table class="table">
+            <thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Status</th><th>Added</th><th></th></tr></thead>
+            <tbody>
+            <tr th:each="u : ${staff}">
+                <td th:text="${u.fullName}"></td>
+                <td class="mono" th:text="${u.username}"></td>
+                <td th:text="${u.role.label}"></td>
+                <td><span class="badge" th:classappend="${u.active} ? 'active' : 'declined'" th:text="${u.active ? (u.mustChangePassword ? 'MUST CHANGE PASSWORD' : 'ACTIVE') : 'DISABLED'}"></span></td>
+                <td th:text="${u.createdAt != null ? #temporals.format(u.createdAt, 'dd MMM yyyy') : '—'}"></td>
+                <td class="actions">
+                    <form th:action="@{/admin/staff/{id}/reset(id=${u.id})}" method="post" class="inline"><button type="submit" class="btn small ghost">Reset password</button></form>
+                    <form th:action="@{/admin/staff/{id}/active(id=${u.id})}" method="post" class="inline">
+                        <input type="hidden" name="active" th:value="${!u.active}">
+                        <button type="submit" class="btn small" th:classappend="${u.active} ? 'danger' : 'primary'" th:text="${u.active} ? 'Disable' : 'Enable'"></button></form>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+</body>
+</html>

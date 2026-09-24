@@ -8,6 +8,7 @@
     <form class="card form" th:action="@{/signup/additional}" th:object="${signupForm}" method="post"
           enctype="multipart/form-data" novalidate>
         <h2>Page 2 · Additional details</h2>
+        <div th:replace="~{fragments/form :: summary}"></div>
         <div class="grid">
             <label th:replace="~{fragments/form :: select('religion', 'Religion', ${religions})}"></label>
             <label th:replace="~{fragments/form :: select('category', 'Category', ${categories})}"></label>
