@@ -100,6 +100,27 @@
         </section>
     </div>
 
+    <section class="card" th:unless="${details.investments.isEmpty() and details.policies.isEmpty()}">
+        <h2>Investments &amp; insurance</h2>
+        <div class="table-wrap">
+            <table class="table">
+                <thead><tr><th>Product</th><th>Reference</th><th class="num">Amount</th><th>Details</th></tr></thead>
+                <tbody>
+                <tr th:each="i : ${details.investments}">
+                    <td th:text="${i.title}"></td><td class="mono" th:text="${i.reference}"></td>
+                    <td class="num" th:text="${@money.format(i.invested)}"></td>
+                    <td th:text="${i.type.name() == 'SIP'} ? ${@money.whole(i.amount) + '/month'} : ${'Matures ' + i.maturityDate + ' at ' + @money.format(i.maturityAmount)}"></td>
+                </tr>
+                <tr th:each="p : ${details.policies}">
+                    <td th:text="${p.plan.label + ' insurance'}"></td><td class="mono" th:text="${p.policyNumber}"></td>
+                    <td class="num" th:text="${@money.whole(p.annualPremium) + '/yr'}"></td>
+                    <td th:text="${@money.cover(p.cover) + ' cover · till ' + p.endDate}"></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
     <h2>Recent transactions</h2>
     <p th:if="${details.transactions.isEmpty()}" class="muted">No transactions yet.</p>
     <div class="table-wrap" th:unless="${details.transactions.isEmpty()}">

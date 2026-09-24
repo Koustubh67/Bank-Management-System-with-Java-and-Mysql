@@ -6,6 +6,7 @@ import com.koustubh.bank.exception.InvalidRequestException;
 import com.koustubh.bank.service.CustomerLoginService;
 import com.koustubh.bank.service.CustomerService;
 import com.koustubh.bank.service.CustomerService.PassbookFilter;
+import com.koustubh.bank.service.WealthService;
 import org.springframework.data.domain.Page;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
@@ -32,8 +33,11 @@ public class CustomerController {
     private final CustomerService customers;
     private final CustomerLoginService customerLogin;
     private final Clock clock;
+    private final WealthService wealth;
 
-    public CustomerController(CustomerService customers, CustomerLoginService customerLogin, Clock clock) {
+    public CustomerController(CustomerService customers, CustomerLoginService customerLogin, Clock clock,
+                              WealthService wealth) {
+        this.wealth = wealth;
         this.customers = customers;
         this.customerLogin = customerLogin;
         this.clock = clock;
@@ -42,6 +46,7 @@ public class CustomerController {
     @GetMapping
     public String dashboard(Principal principal, Model model) {
         model.addAttribute("o", customers.overview(principal.getName()));
+        model.addAttribute("portfolio", wealth.portfolio(principal.getName()));
         return "customer/dashboard";
     }
 

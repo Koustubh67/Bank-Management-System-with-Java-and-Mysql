@@ -60,6 +60,40 @@
         </section>
     </div>
 
+    <section class="panel wealth-panel" th:with="p=${portfolio}">
+        <div class="panel-head">
+            <h2>My investments &amp; insurance</h2>
+            <span class="head-links"><a th:href="@{/customer/invest}">Invest →</a> <a th:href="@{/customer/insurance}">Insurance →</a></span>
+        </div>
+        <div class="wealth-stats" th:unless="${p.empty}">
+            <div><span>Total invested</span><strong th:text="${@money.whole(p.invested)}"></strong></div>
+            <div><span>FD maturity value</span><strong th:text="${@money.whole(p.fdMaturityValue)}"></strong></div>
+            <div><span>Life cover</span><strong th:text="${p.lifeCover.signum() > 0 ? @money.cover(p.lifeCover) : '—'}"></strong></div>
+            <div><span>Health cover</span><strong th:text="${p.healthCover.signum() > 0 ? @money.cover(p.healthCover) : '—'}"></strong></div>
+        </div>
+        <div class="holdings" th:unless="${p.empty}">
+            <a class="holding" th:each="i : ${p.investments}" th:href="@{/customer/invest}">
+                <span class="h-ic" th:classappend="${i.type.name() == 'SIP'} ? 'sip' : 'fd'" th:text="${i.type.name() == 'SIP'} ? '↺' : '₹'"></span>
+                <span class="h-body"><b th:text="${i.title}"></b>
+                    <small th:if="${i.type.name() == 'SIP'}" th:text="${@money.whole(i.amount) + '/month · next debit ' + #temporals.format(i.nextDebitDate, 'dd MMM')}"></small>
+                    <small th:unless="${i.type.name() == 'SIP'}" th:text="${i.ratePercent + '% p.a. · matures ' + #temporals.format(i.maturityDate, 'dd MMM yyyy')}"></small></span>
+                <span class="h-amt" th:text="${@money.whole(i.invested)}"></span>
+            </a>
+            <a class="holding" th:each="pol : ${p.policies}" th:href="@{/customer/insurance}">
+                <span class="h-ic ins">🛡</span>
+                <span class="h-body"><b th:text="${pol.plan.label + ' insurance'}"></b>
+                    <small th:text="${@money.cover(pol.cover) + ' cover · valid till ' + #temporals.format(pol.endDate, 'dd MMM yyyy')}"></small></span>
+                <span class="h-amt muted" th:text="${@money.whole(pol.annualPremium) + '/yr'}"></span>
+            </a>
+        </div>
+        <div class="wealth-empty" th:if="${p.empty}">
+            <a th:href="@{/customer/invest}" class="promo-card invest">
+                <b>Grow your savings</b><span>FDs up to 7.25% p.a. and SIPs from ₹500/month</span><em>Start investing →</em></a>
+            <a th:href="@{/customer/insurance}" class="promo-card insure">
+                <b>Protect what matters</b><span>Term life, health, motor and travel cover</span><em>Get a quote →</em></a>
+        </div>
+    </section>
+
     <section class="panel">
         <div class="panel-head">
             <h2>Recent transactions</h2>

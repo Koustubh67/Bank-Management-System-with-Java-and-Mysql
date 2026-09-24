@@ -22,9 +22,11 @@
         <nav class="main-nav" aria-label="Net banking">
             <a th:href="@{/customer}">Dashboard</a>
             <a th:href="@{/customer/passbook}">Passbook</a>
+            <a th:href="@{/customer/invest}">Invest</a>
+            <a th:href="@{/customer/insurance}">Insurance</a>
             <a th:href="@{/atm/login}">ATM</a>
-            <a th:href="@{/upi}">JavaPay UPI</a>
-            <a th:href="@{/customer/profile}">Profile</a>
+            <a th:href="@{/upi}">UPI</a>
+            <a th:href="@{/customer/profile}" class="nav-avatar" title="Profile" aria-label="Profile">👤</a>
             <form th:action="@{/customer/logout}" method="post" class="inline">
                 <button type="submit" class="btn ghost-dark small">Log out</button>
             </form>

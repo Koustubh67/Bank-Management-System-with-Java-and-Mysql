@@ -30,6 +30,7 @@ class DemoDataSeederTest {
     @Autowired CardSecurityService cardSecurity;
     @Autowired UpiService upi;
     @Autowired CustomerLoginService customerLogin;
+    @Autowired com.koustubh.bank.service.WealthService wealth;
     @Autowired AccountRepository accounts;
     @Autowired CustomerRepository customers;
 
@@ -60,12 +61,19 @@ class DemoDataSeederTest {
 
     @Test
     void balancesMatchTheReadme() {
-        assertThat(balance(DemoDataSeeder.RAHUL)).isEqualByComparingTo("42350");
-        assertThat(balance(DemoDataSeeder.PRIYA)).isEqualByComparingTo("120950");
+        assertThat(balance(DemoDataSeeder.RAHUL)).isEqualByComparingTo("39451");
+        assertThat(balance(DemoDataSeeder.PRIYA)).isEqualByComparingTo("62550");
         assertThat(balance(DemoDataSeeder.AMIT)).isEqualByComparingTo("0");
         assertThat(balance(DemoDataSeeder.SNEHA)).isEqualByComparingTo("20000");
         assertThat(balance(DemoDataSeeder.VIKRAM)).isEqualByComparingTo("15000");
         assertThat(balance(DemoDataSeeder.ANJALI)).isEqualByComparingTo("7700");
+    }
+
+    @Test
+    void demoCustomersHaveInvestmentsAndInsurance() {
+        assertThat(wealth.portfolio(DemoDataSeeder.RAHUL.customerId()).investments()).hasSize(1);
+        assertThat(wealth.portfolio(DemoDataSeeder.RAHUL.customerId()).policies()).hasSize(1);
+        assertThat(wealth.portfolio(DemoDataSeeder.PRIYA.customerId()).fdMaturityValue()).isPositive();
     }
 
     @Test

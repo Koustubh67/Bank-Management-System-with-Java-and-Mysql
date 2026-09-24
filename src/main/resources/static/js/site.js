@@ -154,4 +154,146 @@
             btn.setAttribute('aria-pressed', String(show));
         });
     });
+
+    // Invest page: live FD maturity and SIP projection (the server calculates the real values)
+    const rupees = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 });
+    const fdForm = document.querySelector('[data-fd]');
+    if (fdForm) {
+        const update = () => {
+            const amount = Number(fdForm.querySelector('[data-fd-amount]').value) || 0;
+            const t = fdForm.querySelector('input[name=tenure]:checked');
+            const total = amount * Math.pow(1 + Number(t.dataset.rate) / 400, Number(t.dataset.months) / 3);
+            fdForm.querySelector('[data-fd-out]').textContent = rupees.format(total);
+            fdForm.querySelector('[data-fd-gain]').textContent = '+' + rupees.format(total - amount) + ' interest';
+        };
+        fdForm.addEventListener('input', update);
+        update();
+    }
+    const sipForm = document.querySelector('[data-sip]');
+    if (sipForm) {
+        const update = () => {
+            const monthly = Number(sipForm.querySelector('[data-sip-amount]').value) || 0;
+            const r = Number(sipForm.querySelector('input[name=fund]:checked').dataset.return) / 1200, n = 120;
+            sipForm.querySelector('[data-sip-out]').textContent = rupees.format(monthly * ((Math.pow(1 + r, n) - 1) / r) * (1 + r));
+        };
+        sipForm.addEventListener('input', update);
+        update();
+    }
+    // Insurance page: show the premium for the chosen cover
+    document.querySelectorAll('[data-plan]').forEach((form) => {
+        const update = () => {
+            const checked = form.querySelector('input[name=cover]:checked');
+            if (checked) form.querySelector('[data-premium-out]').textContent = checked.dataset.premium;
+        };
+        form.addEventListener('change', update);
+        update();
+    });
+
+    // ---------- Home v2 effects ----------
+    // Scroll progress bar
+    const progress = document.querySelector('.scroll-progress i');
+    if (progress) {
+        const onScroll = () => {
+            const max = document.documentElement.scrollHeight - innerHeight;
+            progress.style.width = (max > 0 ? scrollY / max * 100 : 0) + '%';
+        };
+        addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+    }
+
+    // Rotating hero word: save. → pay. → grow. → protect.
+    const words = document.querySelectorAll('.rot-word');
+    if (words.length && !reduceMotion) {
+        let i = 0;
+        setInterval(() => {
+            words[i].classList.remove('on');
+            words[i].classList.add('out');
+            const prev = words[i];
+            setTimeout(() => prev.classList.remove('out'), 600);
+            i = (i + 1) % words.length;
+            words[i].classList.add('on');
+        }, 2200);
+    }
+
+    // Hero orb drifts slightly with the mouse
+    const orb = document.querySelector('.hx-orb');
+    if (orb && !reduceMotion) {
+        addEventListener('mousemove', (e) => {
+            orb.style.transform = `translate(${(e.clientX / innerWidth - .5) * -40}px, ${(e.clientY / innerHeight - .5) * -40}px)`;
+        }, { passive: true });
+    }
+
+    // Product showcase: tabs that advance on their own, pause on hover or focus
+    const sc = document.querySelector('[data-showcase]');
+    if (sc) {
+        const tabs = [...sc.querySelectorAll('[role=tab]')].filter((t) => t.closest('.sc-tabs'));
+        const TAB_MS = 6000;
+        sc.style.setProperty('--tab-ms', TAB_MS + 'ms');
+        let current = 0, timer = null, paused = false;
+        function select(index, focus) {
+            tabs.forEach((t, n) => {
+                const on = n === index;
+                t.classList.toggle('on', on);
+                t.setAttribute('aria-selected', String(on));
+                t.tabIndex = on ? 0 : -1;
+                const panel = document.getElementById(t.getAttribute('aria-controls'));
+                panel.hidden = !on;
+                panel.classList.toggle('on', on);
+            });
+            // restart the progress bar animation
+            const bar = tabs[index].querySelector('i');
+            bar.style.animation = 'none'; void bar.offsetWidth; bar.style.animation = '';
+            current = index;
+            if (focus) tabs[index].focus();
+            schedule();
+        }
+        function schedule() {
+            clearTimeout(timer);
+            if (!paused && !reduceMotion) timer = setTimeout(() => select((current + 1) % tabs.length), TAB_MS);
+        }
+        tabs.forEach((t, n) => {
+            t.addEventListener('click', () => select(n));
+            t.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowRight') select((current + 1) % tabs.length, true);
+                if (e.key === 'ArrowLeft') select((current + tabs.length - 1) % tabs.length, true);
+            });
+        });
+        const pause = (p) => { paused = p; sc.classList.toggle('paused', p); if (!p) schedule(); else clearTimeout(timer); };
+        sc.addEventListener('mouseenter', () => pause(true));
+        sc.addEventListener('mouseleave', () => pause(false));
+        sc.addEventListener('focusin', () => pause(true));
+        sc.addEventListener('focusout', () => pause(false));
+        // Nav links like "Invest" open the matching tab
+        document.querySelectorAll('[data-tab-link]').forEach((a) => a.addEventListener('click', () => {
+            const n = tabs.findIndex((t) => t.id === a.dataset.tabLink);
+            if (n >= 0) select(n);
+        }));
+        if (reduceMotion) sc.querySelector('.sc-hint').hidden = true;
+        schedule();
+    }
+
+    // Magnetic buttons and custom cursor (mouse only)
+    if (!reduceMotion && matchMedia('(pointer: fine)').matches) {
+        document.querySelectorAll('.magnetic').forEach((el) => {
+            el.addEventListener('mousemove', (e) => {
+                const r = el.getBoundingClientRect();
+                el.style.transform = `translate(${(e.clientX - r.left - r.width / 2) * .25}px, ${(e.clientY - r.top - r.height / 2) * .35}px)`;
+            });
+            el.addEventListener('mouseleave', () => { el.style.transform = ''; });
+        });
+        const cursor = document.querySelector('.cursor');
+        if (cursor && document.querySelector('.hx')) {
+            let x = 0, y = 0, cx = 0, cy = 0;
+            addEventListener('mousemove', (e) => { x = e.clientX; y = e.clientY; cursor.classList.add('show'); }, { passive: true });
+            (function follow() {
+                cx += (x - cx) * .2; cy += (y - cy) * .2;
+                cursor.style.transform = `translate(${cx}px, ${cy}px)`;
+                requestAnimationFrame(follow);
+            })();
+            document.querySelectorAll('a, button, summary, input, [role=tab]').forEach((el) => {
+                el.addEventListener('mouseenter', () => cursor.classList.add('big'));
+                el.addEventListener('mouseleave', () => cursor.classList.remove('big'));
+            });
+        }
+    }
 })();

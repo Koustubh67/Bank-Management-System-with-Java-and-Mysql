@@ -5,6 +5,9 @@ import com.koustubh.bank.domain.Account;
 import com.koustubh.bank.domain.AccountType;
 import com.koustubh.bank.domain.Card;
 import com.koustubh.bank.domain.Customer;
+import com.koustubh.bank.domain.FdTenure;
+import com.koustubh.bank.domain.Fund;
+import com.koustubh.bank.domain.InsurancePlan;
 import com.koustubh.bank.domain.UpiHandle;
 import com.koustubh.bank.exception.WrongUpiPinException;
 import com.koustubh.bank.repository.AccountRepository;
@@ -16,6 +19,7 @@ import com.koustubh.bank.service.AtmService;
 import com.koustubh.bank.service.CardSecurityService;
 import com.koustubh.bank.service.TransferService;
 import com.koustubh.bank.service.UpiService;
+import com.koustubh.bank.service.WealthService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
@@ -87,6 +91,7 @@ public class DemoDataSeeder implements ApplicationRunner {
     private final AtmService atm;
     private final TransferService transfers;
     private final UpiService upi;
+    private final WealthService wealth;
     private final AdminService admin;
     private final CardSecurityService cardSecurity;
     private final PasswordEncoder passwordEncoder;
@@ -97,7 +102,8 @@ public class DemoDataSeeder implements ApplicationRunner {
                           CardRepository cards, UpiHandleRepository upiHandles, AtmService atm,
                           TransferService transfers, UpiService upi, AdminService admin,
                           CardSecurityService cardSecurity, PasswordEncoder passwordEncoder, Clock clock,
-                          PlatformTransactionManager transactionManager) {
+                          PlatformTransactionManager transactionManager, WealthService wealth) {
+        this.wealth = wealth;
         this.admin = admin;
         this.cardSecurity = cardSecurity;
         this.properties = properties;
@@ -121,6 +127,7 @@ public class DemoDataSeeder implements ApplicationRunner {
         if (cards.existsByCardNumber(RAHUL.cardNumber())) {
             // Loaded by an older version of the app: just add the net banking logins if they're missing.
             tx.executeWithoutResult(status -> ALL.forEach(this::ensureLogin));
+            seedWealth();
             return;
         }
 
@@ -152,6 +159,7 @@ public class DemoDataSeeder implements ApplicationRunner {
                 // a wrong UPI PIN is exactly what we want here
             }
         }
+        seedWealth();
         log.info("Loaded {} demo customers (see README for card numbers and PINs)", ALL.size());
     }
 
@@ -192,6 +200,17 @@ public class DemoDataSeeder implements ApplicationRunner {
         if (d.upiPin() != null) {
             upiHandles.save(new UpiHandle(d.vpa(), account, passwordEncoder.encode(d.upiPin()), now));
         }
+    }
+
+    /** A few investments and policies so the dashboard shows them. Uses plans whose price doesn't depend on age. */
+    private void seedWealth() {
+        if (!wealth.portfolio(RAHUL.customerId()).isEmpty()) {
+            return;
+        }
+        wealth.startSip(RAHUL.customerId(), Fund.NIFTY_INDEX, rs(2_000));
+        wealth.buyPolicy(RAHUL.customerId(), InsurancePlan.TRAVEL, 500_000L, null);
+        wealth.openFixedDeposit(PRIYA.customerId(), rs(50_000), FdTenure.M24);
+        wealth.buyPolicy(PRIYA.customerId(), InsurancePlan.MOTOR, 300_000L, "MP09 CD 4521");
     }
 
     private void ensureLogin(DemoCustomer d) {

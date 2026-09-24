@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/customer :: page(~{::title}, ~{::main})}">
+<head><title>Insurance · JavaBank</title></head>
+<body>
+<main class="container cust-main" th:with="p=${portfolio}, active=${o.account.status.name() == 'ACTIVE'}">
+    <div class="cust-hello">
+        <div><h1>Insurance</h1>
+            <p class="muted">Premiums are personalised for your age and paid yearly from your account.</p></div>
+    </div>
+    <div class="status-banner pending" th:unless="${active}">Insurance is available once your account is active.</div>
+
+    <div class="plan-grid">
+        <form class="panel plan" th:each="plan : ${plans}" th:action="@{/customer/insurance}" method="post" data-plan
+              th:with="q=${quotes.get(plan)}">
+            <input type="hidden" name="plan" th:value="${plan}">
+            <div class="plan-top">
+                <span class="plan-ic" th:classappend="${#strings.toLowerCase(plan.name())}"
+                      th:text="${plan.name() == 'TERM_LIFE'} ? '☂' : (${plan.name() == 'HEALTH'} ? '♥' : (${plan.name() == 'MOTOR'} ? '🚗' : '✈'))"></span>
+                <div><h2 th:text="${plan.label}"></h2><p class="muted" th:text="${plan.tagline}"></p></div>
+            </div>
+            <fieldset class="field"><legend>Cover</legend>
+                <div class="seg">
+                    <label th:each="entry, it : ${q}" th:with="price=${@money.whole(entry.value)}"><input type="radio" name="cover" th:value="${entry.key}" th:checked="${it.index == 1}"
+                           th:attr="data-premium=${price}">
+                        <span><b th:text="${@money.cover(entry.key)}"></b></span></label>
+                </div>
+            </fieldset>
+            <label class="field" th:if="${plan.detailsLabel}"><span th:text="${plan.detailsLabel}"></span>
+                <input type="text" name="details" maxlength="60" required
+                       th:placeholder="${plan.name() == 'MOTOR'} ? 'e.g. MP04 AB 1234' : 'Full name'"></label>
+            <div class="plan-price"><strong data-premium-out th:text="${@money.whole(q.values().toArray()[1])}"></strong><span>/year</span></div>
+            <button type="submit" class="btn dark full" th:disabled="${!active}">Buy now</button>
+        </form>
+    </div>
+
+    <section class="panel">
+        <div class="panel-head"><h2>My policies</h2></div>
+        <p class="muted empty-state" th:if="${p.policies.isEmpty()}">No policies yet. Pick a plan above. It takes 10 seconds.</p>
+        <div class="policy-cards" th:unless="${p.policies.isEmpty()}">
+            <div class="policy" th:each="pol : ${p.policies}">
+                <div class="policy-head"><b th:text="${pol.plan.label + ' insurance'}"></b><span class="badge active">ACTIVE</span></div>
+                <p class="policy-cover" th:text="${@money.cover(pol.cover)}"></p>
+                <dl>
+                    <dt>Policy no.</dt><dd class="mono" th:text="${pol.policyNumber}"></dd>
+                    <dt>Premium</dt><dd th:text="${@money.whole(pol.annualPremium) + ' / year'}"></dd>
+                    <dt th:if="${pol.details}" th:text="${pol.plan.detailsLabel}"></dt><dd th:if="${pol.details}" th:text="${pol.details}"></dd>
+                    <dt>Valid</dt><dd th:text="${#temporals.format(pol.startDate, 'dd MMM yyyy') + ' – ' + #temporals.format(pol.endDate, 'dd MMM yyyy')}"></dd>
+                </dl>
+            </div>
+        </div>
+    </section>
+</main>
+</body>
+</html>

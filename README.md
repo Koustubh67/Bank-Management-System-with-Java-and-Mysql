@@ -22,6 +22,13 @@ transfers, row locking under concurrent access, an append-only transaction ledge
   spreadsheet formula injection)
 - **Profile:** personal and KYC details (PAN and Aadhaar masked), UPI ID, change password
 
+**Investments & insurance (inside net banking)**
+- **Fixed deposits** for 1–5 years (6.80%–7.25% p.a., compounded quarterly) with a live maturity preview
+- **Mutual fund SIPs** from ₹500/month in three demo funds; the first instalment is debited immediately
+- **Insurance:** term life, health, motor and travel; premiums personalised to the customer's age
+- Every purchase debits the account through the same locked, all-or-nothing ledger as the ATM and UPI
+- The dashboard shows total invested, FD maturity value, life and health cover, and every holding; staff see them too
+
 **Account opening and KYC**
 - 3-page application: personal details, KYC details (PAN, Aadhaar, income, occupation…), account type and services
 - **Upload PAN and Aadhaar card images** (PDF, JPG or PNG, up to 2 MB, drag-and-drop with preview). The file type is
@@ -56,10 +63,13 @@ transfers, row locking under concurrent access, an append-only transaction ledge
 - Frozen or pending accounts cannot log in or transact
 - CSRF protection on every form; separate login sessions for ATM, UPI and staff
 
-**Home page**
-- Modern landing page with live "Trusted by N+ customers" numbers from the database (no money totals are shown publicly)
-- Investments section (mutual fund SIP, FD, digital gold, stocks) with a working **SIP / FD returns calculator**
-- Insurance section (term life, health, motor, travel). Investment and insurance products are marked "coming soon"
+**Home page (award-style, built to sell)**
+- About 5 screens long: a full-screen dark hero with a rotating headline (save → pay → grow → protect), live
+  "Trusted by N+ customers" numbers, a scrolling highlights marquee, **one product showcase with auto-advancing tabs**
+  (Accounts · UPI · Invest with a SIP/FD calculator · Insure), a security bento grid, a 4-step call to action and a
+  short FAQ
+- Interaction details: word-by-word headline reveal, magnetic buttons, custom cursor, grain texture, scroll progress
+  bar. All motion switches off for users who prefer reduced motion
 
 **Staff (admin) panel**
 - Dashboard: customers, pending/active/frozen accounts, transactions, total deposits
@@ -69,6 +79,10 @@ transfers, row locking under concurrent access, an append-only transaction ledge
 - Customer KYC view (Aadhaar masked) and full transaction history
 
 ## Screenshots
+
+| Customer dashboard | Invest |
+|---|---|
+| ![Dashboard](docs/screenshots/dashboard.png) | ![Invest](docs/screenshots/invest.png) |
 
 | KYC document upload | Track application |
 |---|---|
@@ -159,8 +173,8 @@ without signing up. Each one is in a different state. They come from
 
 | Customer | Customer ID | Account no. | Card number | ATM PIN | UPI ID | UPI PIN | Balance | State: what to try |
 |---|---|---|---|---|---|---|---|---|
-| Rahul Sharma | `JB10000001` | `100000000001` | `5040930000000017` | `1234` | `rahul.0001@javabank` | `123456` | ₹42,350 | ✅ Active: ATM, UPI, everything |
-| Priya Verma | `JB10000002` | `100000000002` | `5040930000000025` | `2345` | `priya.0002@javabank` | `234567` | ₹1,20,950 | ✅ Active current account: pay Rahul by UPI |
+| Rahul Sharma | `JB10000001` | `100000000001` | `5040930000000017` | `1234` | `rahul.0001@javabank` | `123456` | ₹39,451 | ✅ Active: ATM, UPI, everything. Has a SIP and travel insurance |
+| Priya Verma | `JB10000002` | `100000000002` | `5040930000000025` | `2345` | `priya.0002@javabank` | `234567` | ₹62,550 | ✅ Active current account. Has an FD and motor insurance |
 | Amit Patel | `JB10000003` | `100000000003` | `5040930000000033` | `3456` | — | — | ₹0 | ⏳ **Pending**: dashboard says "under review"; approve or decline him as staff |
 | Sneha Iyer | `JB10000004` | `100000000004` | `5040930000000041` | `4567` | — | — | ₹20,000 | ❄️ **Frozen**: ATM refuses; unfreeze as staff |
 | Vikram Singh | `JB10000005` | `100000000005` | `5040930000000058` | `5678` | — | — | ₹15,000 | 🚫 **Card blocked** (3 wrong PINs): unblock as staff |
@@ -179,11 +193,13 @@ notes like "Dinner" and "Movie tickets"), so mini statements and UPI history are
 4. **Security:** log in as Amit (`JB10000003`): the dashboard shows the account is under review and the ATM is locked.
    Enter 5 wrong passwords for any customer to lock the login, then reset it with **Forgot or set password**
    (card number + ATM PIN).
-5. **Staff:** log in as `admin` / `admin123`, approve Amit, unblock Vikram's card, unlock Anjali's UPI, unfreeze Sneha.
-6. **Sign up with KYC:** open your own account with **Open account** and upload any sample image as the PAN and
+5. **Invest & insure:** as Rahul open **Invest**, book an FD (watch the maturity preview) and start a SIP; then open
+   **Insurance** and buy a plan. Everything appears on the dashboard and in the passbook.
+6. **Staff:** log in as `admin` / `admin123`, approve Amit, unblock Vikram's card, unlock Anjali's UPI, unfreeze Sneha.
+7. **Sign up with KYC:** open your own account with **Open account** and upload any sample image as the PAN and
    Aadhaar card (never real documents). As staff, open the application, view the documents and **decline** it with a
    reason. Then open **Track application** (account number + PAN) to see the reason.
-7. **Home page:** try the SIP / FD calculator in the Investments section.
+8. **Home page:** try the SIP / FD calculator in the Investments section.
 
 Tests check that every login in this table works (`DemoDataSeederTest`), so the table stays correct.
 
@@ -203,7 +219,7 @@ Tests check that every login in this table works (`DemoDataSeederTest`), so the 
 ./mvnw test
 ```
 
-100 tests run against an in-memory H2 database with the real Flyway schema:
+108 tests run against an in-memory H2 database with the real Flyway schema:
 - **Domain unit tests:** balance rules, account states
 - **Service tests:** daily limit, insufficient funds, transfer atomicity, concurrent withdrawals, transfer deadlock
   avoidance, PIN lockout and unblock, PIN change
@@ -211,6 +227,8 @@ Tests check that every login in this table works (`DemoDataSeederTest`), so the 
   reset, staff unlock
 - **KYC tests:** file type detection from content, oversized and disguised files, file name cleaning, upload →
   staff view → decline → tracking page
+- **Investment & insurance tests:** FD maturity maths, min/max rules, insufficient funds, pending accounts, premium
+  formulas, policy purchase debits, portfolio totals, and the full invest → insure → dashboard web flow
 - **Demo data tests:** every demo login, balance and account state in the table above
 - **Login tests:** Customer ID login, 5-attempt lock, reset with debit card, staff unlock, change password, every
   banking page redirects to login, customer and staff sessions can't cross over

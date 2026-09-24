@@ -193,6 +193,36 @@ class WebFlowTest {
     }
 
     @Test
+    void customerCanInvestAndBuyInsuranceAndSeesItOnTheDashboard() throws Exception {
+        OpenedAccount a = accounts.active(40_000);
+        MockHttpSession session = customer(a);
+        mvc.perform(get("/customer").session(session)).andExpect(content().string(containsString("Grow your savings")));
+
+        mvc.perform(get("/customer/invest").session(session)).andExpect(status().isOk());
+        mvc.perform(post("/customer/invest/fd").session(session).with(csrf()).param("amount", "20000").param("tenure", "M36"))
+                .andExpect(flash().attribute("message", containsString("Fixed deposit JBFD")));
+        mvc.perform(post("/customer/invest/sip").session(session).with(csrf()).param("amount", "1000").param("fund", "NIFTY_INDEX"))
+                .andExpect(flash().attribute("message", containsString("SIP JBSIP")));
+        mvc.perform(post("/customer/invest/sip").session(session).with(csrf()).param("amount", "abc").param("fund", "NIFTY_INDEX"))
+                .andExpect(flash().attribute("error", "Please enter a valid amount"));
+
+        mvc.perform(get("/customer/insurance").session(session)).andExpect(status().isOk())
+                .andExpect(content().string(containsString("₹8,400")));
+        mvc.perform(post("/customer/insurance").session(session).with(csrf())
+                        .param("plan", "MOTOR").param("cover", "300000").param("details", "MP04 AB 1234"))
+                .andExpect(flash().attribute("message", containsString("You're covered")));
+
+        assertThat(accounts.balanceOf(a)).isEqualByComparingTo("10600");
+        mvc.perform(get("/customer").session(session))
+                .andExpect(content().string(containsString("Fixed Deposit · 3 years")))
+                .andExpect(content().string(containsString("JavaBank Nifty 50 Index Fund")))
+                .andExpect(content().string(containsString("Motor insurance")));
+        mvc.perform(get("/customer/passbook").session(session))
+                .andExpect(content().string(containsString("Insurance Premium")));
+        mvc.perform(get("/customer/invest")).andExpect(redirectedUrl("/login"));
+    }
+
+    @Test
     void passwordCanBeSetWithTheDebitCard() throws Exception {
         OpenedAccount a = accounts.active(0);
         mvc.perform(post("/login/setup").with(csrf()).param("cardNumber", a.cardNumber()).param("atmPin", a.pin())

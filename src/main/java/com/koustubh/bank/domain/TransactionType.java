@@ -6,7 +6,10 @@ public enum TransactionType {
     TRANSFER_IN("Transfer In", true),
     TRANSFER_OUT("Transfer Out", false),
     UPI_IN("UPI Received", true),
-    UPI_OUT("UPI Payment", false);
+    UPI_OUT("UPI Payment", false),
+    FD_BOOKING("Fixed Deposit", false),
+    SIP_INSTALMENT("SIP Instalment", false),
+    INSURANCE_PREMIUM("Insurance Premium", false);
 
     private final String label;
     private final boolean credit;

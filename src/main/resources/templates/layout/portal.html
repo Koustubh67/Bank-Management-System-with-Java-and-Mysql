@@ -13,6 +13,8 @@
 </head>
 <body class="portal">
 <a class="skip-link" href="#main">Skip to content</a>
+<div class="scroll-progress" aria-hidden="true"><i></i></div>
+<div class="cursor" aria-hidden="true"></div>
 <svg th:replace="~{fragments/icons :: sprite}"></svg>
 <header class="site-header" id="siteHeader">
     <div class="container header-inner">
@@ -23,11 +25,10 @@
         <input type="checkbox" id="navToggle" class="nav-toggle" aria-label="Open menu">
         <label for="navToggle" class="nav-burger" aria-hidden="true"><span></span><span></span><span></span></label>
         <nav class="main-nav" aria-label="Main">
-            <a th:href="@{/#accounts}">Accounts</a>
-            <a th:href="@{/#invest}">Invest</a>
-            <a th:href="@{/#insurance}">Insurance</a>
-            <a th:href="@{/#upi}">UPI</a>
-            <a th:href="@{/#security}">Security</a>
+            <a th:href="@{/#products}" data-tab-link="t-accounts">Accounts</a>
+            <a th:href="@{/#products}" data-tab-link="t-upi">UPI</a>
+            <a th:href="@{/#products}" data-tab-link="t-invest">Invest</a>
+            <a th:href="@{/#products}" data-tab-link="t-insure">Insurance</a>
             <a th:href="@{/signup/status}">Track application</a>
             <a class="btn ghost-dark small" th:href="@{/login}">Login</a>
             <a class="btn primary small" th:href="@{/signup}">Open account</a>
@@ -49,8 +50,7 @@
         </div>
         <div>
             <h4>Explore</h4>
-            <a th:href="@{/#invest}">Investments</a>
-            <a th:href="@{/#insurance}">Insurance</a>
+            <a th:href="@{/#products}">Investments &amp; insurance</a>
             <a th:href="@{/#security}">How we keep you safe</a>
             <a th:href="@{/#engineering}">Under the hood</a>
             <a th:href="@{/#faq}">FAQ</a>

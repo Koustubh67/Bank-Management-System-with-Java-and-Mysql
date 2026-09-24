@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/customer :: page(~{::title}, ~{::main})}">
+<head><title>Invest · JavaBank</title></head>
+<body>
+<main class="container cust-main" th:with="p=${portfolio}, active=${o.account.status.name() == 'ACTIVE'}">
+    <div class="cust-hello">
+        <div><h1>Invest</h1>
+            <p class="muted">Money is moved from your account (<span th:text="${@money.format(o.account.balance)}"></span> available) instantly.</p></div>
+    </div>
+    <div class="status-banner pending" th:unless="${active}">Investing is available once your account is active.</div>
+
+    <div class="wealth-grid">
+        <!-- Fixed deposit -->
+        <form class="panel product-form" th:action="@{/customer/invest/fd}" method="post" data-fd>
+            <span class="pf-tag fd">Fixed Deposit</span>
+            <h2>Guaranteed returns, up to 7.25% p.a.</h2>
+            <label class="field"><span>Amount (₹5,000 – ₹10,00,000)</span>
+                <input type="number" name="amount" min="5000" max="1000000" step="1000" value="50000" required data-fd-amount></label>
+            <fieldset class="field"><legend>Tenure</legend>
+                <div class="seg">
+                    <label th:each="t, it : ${tenures}"><input type="radio" name="tenure" th:value="${t}" th:checked="${it.index == 1}"
+                           th:attr="data-rate=${t.rate},data-months=${t.months}">
+                        <span><b th:text="${t.label}"></b><small th:text="${t.rate + '%'}"></small></span></label>
+                </div>
+            </fieldset>
+            <div class="pf-result"><span>You'll get at maturity</span><strong data-fd-out>—</strong><small data-fd-gain></small></div>
+            <button type="submit" class="btn dark lg full" th:disabled="${!active}">Open fixed deposit</button>
+            <p class="note">Interest compounded quarterly. Illustrative demo rates.</p>
+        </form>
+
+        <!-- SIP -->
+        <form class="panel product-form" th:action="@{/customer/invest/sip}" method="post" data-sip>
+            <span class="pf-tag sip">Mutual Fund SIP</span>
+            <h2>Build wealth every month</h2>
+            <fieldset class="field"><legend>Choose a fund</legend>
+                <div class="fund-list">
+                    <label th:each="f, it : ${funds}" class="fund"><input type="radio" name="fund" th:value="${f}" th:checked="${it.first}"
+                           th:attr="data-return=${f.expectedReturn}">
+                        <span><b th:text="${f.label}"></b><small th:text="${f.category + ' · ' + f.risk + ' risk'}"></small></span>
+                        <em th:text="${f.expectedReturn + '%'}"></em></label>
+                </div>
+            </fieldset>
+            <label class="field"><span>Monthly amount (₹500 – ₹1,00,000)</span>
+                <input type="number" name="amount" min="500" max="100000" step="100" value="5000" required data-sip-amount></label>
+            <div class="pf-result"><span>Estimated value in 10 years</span><strong data-sip-out>—</strong><small>Illustrative, based on the fund's expected return. Not guaranteed.</small></div>
+            <button type="submit" class="btn dark lg full" th:disabled="${!active}">Start SIP · first instalment today</button>
+        </form>
+    </div>
+
+    <section class="panel">
+        <div class="panel-head"><h2>My investments</h2></div>
+        <p class="muted empty-state" th:if="${p.investments.isEmpty()}">You haven't invested yet. Your first FD or SIP will show up here.</p>
+        <div class="table-wrap plain" th:unless="${p.investments.isEmpty()}">
+            <table class="table">
+                <thead><tr><th>Investment</th><th>Reference</th><th>Started</th><th class="num">Invested</th><th class="num">Rate</th><th>Maturity / next debit</th></tr></thead>
+                <tbody>
+                <tr th:each="i : ${p.investments}">
+                    <td><b th:text="${i.title}"></b><small class="muted remark" th:text="${i.type.label}"></small></td>
+                    <td class="mono small" th:text="${i.reference}"></td>
+                    <td th:text="${#temporals.format(i.startDate, 'dd MMM yyyy')}"></td>
+                    <td class="num" th:text="${@money.format(i.invested)}"></td>
+                    <td class="num" th:text="${i.ratePercent + '%'}"></td>
+                    <td th:if="${i.type.name() == 'SIP'}" th:text="${@money.whole(i.amount) + ' on ' + #temporals.format(i.nextDebitDate, 'dd MMM yyyy')}"></td>
+                    <td th:unless="${i.type.name() == 'SIP'}" th:text="${@money.format(i.maturityAmount) + ' on ' + #temporals.format(i.maturityDate, 'dd MMM yyyy')}"></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</main>
+</body>
+</html>

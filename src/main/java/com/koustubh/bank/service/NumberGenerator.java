@@ -32,6 +32,11 @@ public class NumberGenerator {
         return "JB" + randomDigits(8);
     }
 
+    /** Reference numbers for deposits, SIPs and policies, e.g. JBFD4821337712. */
+    public String newReference(String prefix) {
+        return prefix + randomDigits(10);
+    }
+
     public String newPin() {
         return randomDigits(4);
     }
