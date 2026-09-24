@@ -7,7 +7,11 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-/** A loan from application to closure. Sanction terms are set once, when a loan officer approves it. */
+/**
+ * A loan from application to closure. Sanction terms are set once, when a loan officer approves it. For a
+ * floating-rate loan the rate is the repo rate plus {@code spreadPercent}; when the repo rate changes the rate and EMI
+ * are reset (see LendingRateService), but the spread and the end date never change.
+ */
 @Entity
 public class Loan {
 
@@ -21,6 +25,9 @@ public class Loan {
     @Enumerated(EnumType.STRING)
     private LoanType type;
 
+    @Enumerated(EnumType.STRING)
+    private RateType rateType;
+
     private String reference;
     private BigDecimal amountRequested;
     private int monthsRequested;
@@ -33,6 +40,7 @@ public class Loan {
 
     private BigDecimal principal;
     private BigDecimal ratePercent;
+    private BigDecimal spreadPercent;
     private Integer tenureMonths;
     private BigDecimal emi;
     private LocalDate disbursedOn;
@@ -51,10 +59,11 @@ public class Loan {
     protected Loan() {
     }
 
-    public Loan(Account account, LoanType type, String reference, BigDecimal amountRequested, int monthsRequested,
-                String purpose, String employment, BigDecimal monthlyIncome, LocalDateTime now) {
+    public Loan(Account account, LoanType type, RateType rateType, String reference, BigDecimal amountRequested,
+                int monthsRequested, String purpose, String employment, BigDecimal monthlyIncome, LocalDateTime now) {
         this.account = account;
         this.type = type;
+        this.rateType = rateType;
         this.reference = reference;
         this.amountRequested = amountRequested;
         this.monthsRequested = monthsRequested;
@@ -65,12 +74,19 @@ public class Loan {
         this.createdAt = now;
     }
 
-    /** Sets the sanctioned terms and marks the loan active. The schedule and disbursal are done by LoanService. */
-    public void approve(BigDecimal principal, BigDecimal rate, int months, BigDecimal emi, LocalDate disbursedOn,
-                        LocalDate firstEmiDate, LocalDate endDate, String staff, LocalDateTime now) {
+    /**
+     * Sets the sanctioned terms and marks the loan active. The schedule and disbursal are done by LoanService.
+     * {@code spread} is the part of the rate above the repo rate; only floating-rate loans have one.
+     */
+    public void approve(BigDecimal principal, BigDecimal rate, BigDecimal spread, int months, BigDecimal emi,
+                        LocalDate disbursedOn, LocalDate firstEmiDate, LocalDate endDate, String staff, LocalDateTime now) {
         requireStatus(LoanStatus.APPLIED, "Only applications waiting for review can be approved");
+        if ((rateType == RateType.FLOATING) != (spread != null)) {
+            throw new IllegalArgumentException("Floating-rate loans need a spread over the repo rate; fixed-rate loans don't");
+        }
         this.principal = principal;
         this.ratePercent = rate;
+        this.spreadPercent = spread;
         this.tenureMonths = months;
         this.emi = emi;
         this.disbursedOn = disbursedOn;
@@ -99,6 +115,16 @@ public class Loan {
         }
     }
 
+    /** The repo rate changed: new rate, and the EMI of the remaining schedule. Only for active floating-rate loans. */
+    public void reprice(BigDecimal newRate, BigDecimal newEmi) {
+        requireStatus(LoanStatus.ACTIVE, "This loan is not active");
+        if (rateType != RateType.FLOATING) {
+            throw new InvalidRequestException("Only floating-rate loans follow the repo rate");
+        }
+        this.ratePercent = newRate;
+        this.emi = newEmi;
+    }
+
     private void requireStatus(LoanStatus expected, String message) {
         if (status != expected) {
             throw new InvalidRequestException(message);
@@ -108,6 +134,7 @@ public class Loan {
     public Long getId() { return id; }
     public Account getAccount() { return account; }
     public LoanType getType() { return type; }
+    public RateType getRateType() { return rateType; }
     public String getReference() { return reference; }
     public BigDecimal getAmountRequested() { return amountRequested; }
     public int getMonthsRequested() { return monthsRequested; }
@@ -117,6 +144,7 @@ public class Loan {
     public LoanStatus getStatus() { return status; }
     public BigDecimal getPrincipal() { return principal; }
     public BigDecimal getRatePercent() { return ratePercent; }
+    public BigDecimal getSpreadPercent() { return spreadPercent; }
     public Integer getTenureMonths() { return tenureMonths; }
     public BigDecimal getEmi() { return emi; }
     public LocalDate getDisbursedOn() { return disbursedOn; }

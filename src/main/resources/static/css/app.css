@@ -231,6 +231,16 @@ a.stat:hover { border-color: var(--accent); }
 .table .cr { color: #047857; }
 .alert.info { background: #eef2ff; color: #3730a3; }
 .rc-head { align-items: flex-start; }
+.repo-card { display: grid; grid-template-columns: 220px 1fr; gap: 24px; align-items: start; margin-bottom: 26px; }
+.repo-now { display: grid; gap: 2px; padding: 18px; border-radius: 14px; background: #0f172a; color: #fff; }
+.repo-now span { color: #94a3b8; font-size: .85rem; }
+.repo-now strong { font-size: 2.2rem; letter-spacing: -.03em; }
+.repo-now small { color: #94a3b8; }
+.repo-form { display: grid; grid-template-columns: 160px 1fr auto; gap: 12px; align-items: end; }
+.repo-form .field { margin: 0; }
+.repo-history { margin-top: 12px; }
+.repo-history summary { cursor: pointer; font-weight: 600; color: var(--accent-dark); }
+@media (max-width: 800px) { .repo-card, .repo-form { grid-template-columns: 1fr; } }
 .rc-head .badge { flex: none; white-space: nowrap; }
 .req-card > .btn { margin-top: 16px; }
 .enq-status { min-width: 160px !important; max-width: 240px; }

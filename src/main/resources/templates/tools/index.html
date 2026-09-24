@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/portal :: page(~{::title}, ~{::main})}">
+<head><title>Money tools: EMI, SIP &amp; FD calculators · JavaBank</title></head>
+<body>
+<main id="main" class="mk tools-page">
+    <section class="mk-hero tools-hero">
+        <div class="container">
+            <span class="eyebrow">JavaBank tools</span>
+            <h1>Money tools, <span class="grad-text">free for everyone.</span></h1>
+            <p class="lead">Work out your EMI at a fixed or floating rate, how much you can borrow, and what a SIP, lump sum
+                or FD could grow into. Drag a slider or type any amount, like <b>25,00,000</b>, <b>25L</b> or <b>1.2Cr</b>.</p>
+            <div class="tool-tabs" role="tablist" aria-label="Tools">
+                <a role="tab" href="#emi" data-tool="emi" aria-controls="tool-emi"><span>🧮</span><b>EMI calculator</b><small>Fixed or floating</small></a>
+                <a role="tab" href="#eligibility" data-tool="eligibility" aria-controls="tool-eligibility"><span>✅</span><b>Loan eligibility</b><small>How much can I borrow?</small></a>
+                <a role="tab" href="#sip" data-tool="sip" aria-controls="tool-sip"><span>📈</span><b>SIP</b><small>Monthly investing</small></a>
+                <a role="tab" href="#lumpsum" data-tool="lumpsum" aria-controls="tool-lumpsum"><span>💰</span><b>Lump sum</b><small>One-time investment</small></a>
+                <a role="tab" href="#fd" data-tool="fd" aria-controls="tool-fd"><span>🏦</span><b>Fixed deposit</b><small>Maturity value</small></a>
+            </div>
+        </div>
+    </section>
+
+    <div class="container">
+        <section class="tool-panel" id="tool-emi" role="tabpanel">
+            <div class="tool-head">
+                <h2>EMI calculator</h2>
+                <p class="muted">Pick a loan, then compare a fixed rate with a floating rate linked to the RBI repo rate.</p>
+            </div>
+            <section th:replace="~{fragments/calculators :: emi}"></section>
+            <p class="tool-cta"><a class="btn dark" th:href="@{/customer/loans/apply}">Apply online</a>
+                <a class="btn soft" th:href="@{/loans#enquire}">Not a customer? Get a call back</a></p>
+        </section>
+
+        <section class="tool-panel" id="tool-eligibility" role="tabpanel">
+            <div class="tool-head">
+                <h2>Loan eligibility</h2>
+                <p class="muted">See the most you could borrow for the EMI you can afford.</p>
+            </div>
+            <div th:replace="~{fragments/calculators :: eligibility}"></div>
+        </section>
+
+        <section class="tool-panel" id="tool-sip" role="tabpanel">
+            <div class="tool-split">
+                <div class="tool-head">
+                    <h2>SIP calculator</h2>
+                    <p class="muted">A SIP invests a fixed amount every month. Each instalment grows for the months it stays
+                        invested, so starting early matters more than investing a lot.</p>
+                    <a class="more-link" th:href="@{/invest}">See real past returns of 17 funds →</a>
+                </div>
+                <div class="mk-card" th:insert="~{fragments/calculators :: compact('t-sip', 'sip')}"></div>
+            </div>
+        </section>
+
+        <section class="tool-panel" id="tool-lumpsum" role="tabpanel">
+            <div class="tool-split">
+                <div class="tool-head">
+                    <h2>Lump sum calculator</h2>
+                    <p class="muted">Invest once and let it compound every year. Compare it with a SIP of the same total to see
+                        why timing matters.</p>
+                    <a class="more-link" th:href="@{/invest}">Browse funds →</a>
+                </div>
+                <div class="mk-card" th:insert="~{fragments/calculators :: compact('t-ls', 'lumpsum')}"></div>
+            </div>
+        </section>
+
+        <section class="tool-panel" id="tool-fd" role="tabpanel">
+            <div class="tool-split">
+                <div class="tool-head">
+                    <h2>Fixed deposit calculator</h2>
+                    <p class="muted">FD interest is compounded every quarter. Tap a JavaBank rate or type any rate to compare
+                        with other banks.</p>
+                    <div class="fd-presets">
+                        <button type="button" class="chip" th:each="t : ${tenures}" data-fd-preset="#tool-fd [data-calc]"
+                                th:attr="data-rate=${t.rate},data-years=${t.months / 12}"
+                                th:text="${t.label + ' · ' + t.rate + '%'}"></button>
+                    </div>
+                    <a class="more-link" th:href="@{/customer/invest#fd}">Open an FD →</a>
+                </div>
+                <div class="mk-card" th:insert="~{fragments/calculators :: compact('t-fd', 'fd')}"></div>
+            </div>
+        </section>
+
+        <p class="note mk-disclaimer">These calculators are for planning only. Loan rates are JavaBank's rates today; floating
+            rates follow the RBI repo rate (<span th:text="${repo.ratePercent + '%'}"></span> since
+            <span th:text="${#temporals.format(repo.effectiveFrom, 'dd MMM yyyy')}"></span>). Mutual fund returns are not
+            guaranteed. JavaBank is a demo project.</p>
+    </div>
+</main>
+</body>
+</html>

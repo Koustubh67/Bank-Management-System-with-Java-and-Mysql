@@ -73,7 +73,7 @@
         <div class="container">
             <div class="sc-head reveal">
                 <span class="eyebrow">Everything in one place</span>
-                <h2>Four things you need from a bank.<br><span class="muted-2">Done beautifully.</span></h2>
+                <h2>Everything you need from a bank.<br><span class="muted-2">Done beautifully.</span></h2>
             </div>
             <div class="sc" data-showcase>
                 <div class="sc-tabs" role="tablist" aria-label="Products">
@@ -81,6 +81,7 @@
                     <button type="button" role="tab" aria-selected="false" aria-controls="p-upi" id="t-upi"><b>02</b> UPI<i></i></button>
                     <button type="button" role="tab" aria-selected="false" aria-controls="p-invest" id="t-invest"><b>03</b> Invest<i></i></button>
                     <button type="button" role="tab" aria-selected="false" aria-controls="p-insure" id="t-insure"><b>04</b> Insure<i></i></button>
+                    <button type="button" role="tab" aria-selected="false" aria-controls="p-tools" id="t-tools"><b>05</b> Tools<i></i></button>
                 </div>
 
                 <div class="sc-panel on" role="tabpanel" id="p-accounts" aria-labelledby="t-accounts">
@@ -125,25 +126,7 @@
                         <a class="btn dark lg magnetic" th:href="@{/invest}">Explore funds &amp; live charts →</a>
                     </div>
                     <div class="sc-art" aria-hidden="false">
-                        <div class="calc compact" data-calc>
-                            <div class="calc-tabs" role="tablist">
-                                <button type="button" role="tab" class="on" data-mode="sip" aria-selected="true">SIP</button>
-                                <button type="button" role="tab" data-mode="fd" aria-selected="false">Fixed deposit</button>
-                            </div>
-                            <label class="range"><span><span data-label-amount>Monthly investment</span><b data-out="amount"></b></span>
-                                <input type="range" data-in="amount" min="500" max="100000" step="500" value="5000"></label>
-                            <label class="range"><span>Time period<b data-out="years"></b></span>
-                                <input type="range" data-in="years" min="1" max="30" step="1" value="10"></label>
-                            <label class="range"><span>Expected return (p.a.)<b data-out="rate"></b></span>
-                                <input type="range" data-in="rate" min="1" max="20" step="0.5" value="12"></label>
-                            <div class="calc-bar" aria-hidden="true"><i data-bar></i></div>
-                            <dl class="calc-out">
-                                <div><dt><i class="sw inv"></i>Invested</dt><dd data-out="invested"></dd></div>
-                                <div><dt><i class="sw ret"></i>Est. returns</dt><dd data-out="returns"></dd></div>
-                                <div class="total"><dt>Total value</dt><dd data-out="total"></dd></div>
-                            </dl>
-                            <p class="calc-note">For illustration only. Returns are not guaranteed.</p>
-                        </div>
+                        <div th:replace="~{fragments/calculators :: compact('home', 'sip,fd')}"></div>
                     </div>
                 </div>
 
@@ -159,6 +142,21 @@
                         <div class="ins-chip c2"><b>♥ Health</b><span>₹10 lakh family</span></div>
                         <div class="ins-chip c3"><b>🚗 Motor</b><span>Comprehensive</span></div>
                         <div class="ins-chip c4"><b>✈ Travel</b><span>Multi-trip</span></div>
+                    </div>
+                </div>
+                <div class="sc-panel" role="tabpanel" id="p-tools" aria-labelledby="t-tools" hidden>
+                    <div class="sc-copy">
+                        <h3>Plan first. Free money tools.</h3>
+                        <p>Work out your EMI with a fixed or floating rate, how much you can borrow, and what a SIP or FD grows into. No login needed.</p>
+                        <ul class="ticks"><li>Type exact amounts or drag the sliders</li><li>Fixed vs floating, with "what if rates change"</li><li>Floating rates follow the real RBI repo rate</li></ul>
+                        <a class="btn dark lg magnetic" th:href="@{/tools}">Open all tools →</a>
+                    </div>
+                    <div class="sc-art art-tools">
+                        <a class="tool-tile" th:href="@{/tools#emi}"><span>🧮</span><b>EMI calculator</b><small>Fixed or floating</small></a>
+                        <a class="tool-tile" th:href="@{/tools#eligibility}"><span>✅</span><b>Loan eligibility</b><small>How much can I borrow?</small></a>
+                        <a class="tool-tile" th:href="@{/tools#sip}"><span>📈</span><b>SIP calculator</b><small>Monthly investing</small></a>
+                        <a class="tool-tile" th:href="@{/tools#lumpsum}"><span>💰</span><b>Lump sum</b><small>One-time investment</small></a>
+                        <a class="tool-tile" th:href="@{/tools#fd}"><span>🏦</span><b>FD calculator</b><small>Maturity value</small></a>
                     </div>
                 </div>
                 <p class="sc-hint">Tip: tabs change on their own. Hover to pause.</p>
@@ -180,7 +178,7 @@
                 <div class="why-tile reveal"><svg class="ic big"><use href="#i-swap"/></svg><h3>All-or-nothing</h3><p>Transfers commit together, or not at all.</p></div>
                 <div class="why-tile reveal"><svg class="ic big"><use href="#i-gauge"/></svg><h3>Daily limits</h3><p>₹25k ATM · ₹1L UPI per day.</p></div>
                 <div class="why-tile reveal"><svg class="ic big"><use href="#i-ledger"/></svg><h3>Tamper-proof ledger</h3><p>Every rupee recorded, never edited.</p></div>
-                <div class="why-tile code reveal"><code>BigDecimal · SELECT … FOR UPDATE · @Transactional · Flyway · 147 tests</code>
+                <div class="why-tile code reveal"><code>BigDecimal · SELECT … FOR UPDATE · @Transactional · Flyway · 154 tests</code>
                     <p>Built with Java 17 &amp; Spring Boot, engineered like core banking software.</p></div>
             </div>
         </div>

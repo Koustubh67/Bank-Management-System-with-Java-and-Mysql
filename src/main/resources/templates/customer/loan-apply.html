@@ -13,10 +13,18 @@
 
         <fieldset class="field"><legend>Loan type</legend>
             <div class="seg type-seg">
-                <label th:each="t : ${types}"><input type="radio" name="type" th:value="${t}" th:checked="${f.type == t}"
-                        th:attr="data-rate=${t.rate},data-min=${t.minAmount},data-max=${t.maxAmount},data-minm=${t.minMonths},data-maxm=${t.maxMonths}">
-                    <span><b th:text="${t.icon + ' ' + t.label}"></b><small th:text="${t.rate + '% p.a.'}"></small></span></label>
+                <label th:each="o : ${offers}"><input type="radio" name="type" th:value="${o.type}" th:checked="${f.type == o.type}"
+                        th:attr="data-floating=${o.floating},data-fixed=${o.fixed},data-min=${o.type.minAmount},data-max=${o.type.maxAmount},data-minm=${o.type.minMonths},data-maxm=${o.type.maxMonths}">
+                    <span><b th:text="${o.type.icon + ' ' + o.type.label}"></b><small th:text="${'from ' + o.floating + '% p.a.'}"></small></span></label>
             </div>
+        </fieldset>
+        <fieldset class="field"><legend>Interest rate</legend>
+            <div class="seg two rate-choice">
+                <label th:each="rt : ${rateTypes}"><input type="radio" name="rateType" th:value="${rt}" th:checked="${f.rateType == rt}">
+                    <span><b th:text="${rt.label}"></b><small th:attr="data-rate-of=${rt}">—</small><em th:text="${rt.description}"></em></span></label>
+            </div>
+            <p class="note" th:text="${'Floating rates follow the RBI repo rate, now ' + repo.ratePercent + '% (since ' + #temporals.format(repo.effectiveFrom, 'dd MMM yyyy') + '). If it changes, the EMIs still to come are recalculated and your loan still ends on the same date.'}"></p>
+            <p class="note"><a th:href="@{/tools#emi}" target="_blank" rel="noopener">Compare fixed and floating in the EMI calculator →</a></p>
         </fieldset>
         <div class="grid">
             <label class="field"><span>Loan amount (₹) <small class="muted" data-limits></small></span>
@@ -46,6 +54,7 @@
         <p class="note">The loan officer may change the amount, rate or tenure. On approval the money is credited to your
             savings account and EMIs are auto-debited every month.</p>
     </form>
+    <script th:src="@{/js/calc.js}"></script>
     <script th:src="@{/js/loans.js}"></script>
 </main>
 </body>

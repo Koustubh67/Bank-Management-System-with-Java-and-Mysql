@@ -4,6 +4,7 @@ import com.koustubh.bank.domain.LoanEnquiry;
 import com.koustubh.bank.domain.LoanStatus;
 import com.koustubh.bank.exception.BankException;
 import com.koustubh.bank.service.EmiCalculator;
+import com.koustubh.bank.service.LendingRateService;
 import com.koustubh.bank.service.LoanService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -15,16 +16,21 @@ import java.security.Principal;
 import java.time.Clock;
 import java.time.LocalDate;
 
-/** Loan officers: decide applications, follow active loans and EMIs, call back public enquiries. */
+/**
+ * Loan officers: decide applications, follow active loans and EMIs, call back public enquiries. Branch managers also
+ * record repo rate changes, which reprice every floating-rate loan.
+ */
 @Controller
 @RequestMapping("/admin/loans")
 public class AdminLoanController {
 
     private final LoanService loans;
+    private final LendingRateService rates;
     private final Clock clock;
 
-    public AdminLoanController(LoanService loans, Clock clock) {
+    public AdminLoanController(LoanService loans, LendingRateService rates, Clock clock) {
         this.loans = loans;
+        this.rates = rates;
         this.clock = clock;
     }
 
@@ -34,6 +40,9 @@ public class AdminLoanController {
         model.addAttribute("active", loans.byStatus(LoanStatus.ACTIVE));
         model.addAttribute("decided", loans.byStatus(LoanStatus.REJECTED, LoanStatus.CLOSED));
         model.addAttribute("enquiries", loans.recentEnquiries());
+        model.addAttribute("repo", rates.current());
+        model.addAttribute("repoHistory", rates.history());
+        model.addAttribute("floatingLoans", rates.activeFloatingLoans());
         return "admin/loans";
     }
 
@@ -42,6 +51,7 @@ public class AdminLoanController {
         model.addAttribute("v", loans.loanForStaff(id));
         // If approved today, the first EMI would fall on this date (same rule as LoanService.approve)
         model.addAttribute("firstEmi", EmiCalculator.firstEmiDate(LocalDate.now(clock)));
+        model.addAttribute("repo", rates.current());
         return "admin/loan";
     }
 
@@ -71,6 +81,21 @@ public class AdminLoanController {
             redirect.addFlashAttribute("error", e.getMessage());
         }
         return "redirect:/admin/loans/" + id;
+    }
+
+    /** Branch managers only (see SecurityConfig): record a new repo rate and reprice floating-rate loans. */
+    @PostMapping("/repo-rate")
+    public String repoRate(@RequestParam(required = false) BigDecimal rate, @RequestParam(required = false) String note,
+                           Principal staff, RedirectAttributes redirect) {
+        try {
+            var result = rates.changeRepoRate(rate, note, staff.getName());
+            redirect.addFlashAttribute("message", "Repo rate is now " + result.change().getNewRate() + "% (was "
+                    + result.change().getOldRate() + "%). " + result.repriced()
+                    + " floating-rate loan(s) repriced and the customers notified");
+        } catch (BankException e) {
+            redirect.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/admin/loans#repo";
     }
 
     @PostMapping("/collect")

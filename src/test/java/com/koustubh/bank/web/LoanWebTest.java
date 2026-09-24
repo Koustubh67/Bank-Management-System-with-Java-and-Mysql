@@ -79,13 +79,19 @@ class LoanWebTest {
         MockHttpSession session = customer(a);
         mvc.perform(get("/customer/loans").session(session)).andExpect(status().isOk());
         mvc.perform(get("/customer/loans/apply").param("type", "CAR").session(session)).andExpect(status().isOk());
-        // Missing declaration and tenure: errors shown, values kept
+        // The form offers both rates for every loan type
+        mvc.perform(get("/customer/loans/apply").param("type", "CAR").session(session))
+                .andExpect(content().string(containsString("name=\"rateType\" value=\"FLOATING\"")))
+                .andExpect(content().string(containsString("name=\"rateType\" value=\"FIXED\"")))
+                .andExpect(content().string(containsString("RBI repo rate")));
+        // Missing tenure and rate type: every error shown, values kept
         mvc.perform(post("/customer/loans/apply").session(session).with(csrf()).param("type", "CAR").param("amount", "500000")
-                        .param("purpose", "Car").param("employment", "Salaried").param("monthlyIncome", "90000"))
+                        .param("purpose", "Car").param("employment", "Salaried").param("monthlyIncome", "90000")
+                        .param("declaration", "true"))
                 .andExpect(redirectedUrl("/customer/loans/apply"))
-                .andExpect(flash().attributeExists("errors"));
-        mvc.perform(post("/customer/loans/apply").session(session).with(csrf()).param("type", "CAR").param("amount", "500000")
-                        .param("months", "48").param("purpose", "Maruti Brezza").param("employment", "Salaried")
+                .andExpect(flash().attribute("errors", org.hamcrest.Matchers.hasItems(containsString("tenure"), containsString("fixed or floating"))));
+        mvc.perform(post("/customer/loans/apply").session(session).with(csrf()).param("type", "CAR").param("rateType", "FLOATING")
+                        .param("amount", "500000").param("months", "48").param("purpose", "Maruti Brezza").param("employment", "Salaried")
                         .param("monthlyIncome", "90000").param("declaration", "true"))
                 .andExpect(redirectedUrl("/customer/loans/applied"));
         String list = mvc.perform(get("/customer/loans").session(session)).andExpect(content().string(containsString("UNDER REVIEW")))
@@ -102,7 +108,8 @@ class LoanWebTest {
         mvc.perform(get("/admin/loans/" + loanId).session(staff))
                 .andExpect(content().string(containsString("Approve &amp; disburse")))
                 .andExpect(content().string(containsString("first on <b>" + firstEmi)))
-                .andExpect(content().string(containsString(endDate)));
+                .andExpect(content().string(containsString(endDate)))
+                .andExpect(content().string(containsString("Floating: repo rate")));
         mvc.perform(post("/admin/loans/" + loanId + "/approve").session(staff).with(csrf())
                         .param("principal", "450000").param("rate", "8.75").param("months", "48"))
                 .andExpect(flash().attribute("message", containsString("disbursed")));
@@ -134,7 +141,7 @@ class LoanWebTest {
     void staffCanRejectWithAReasonTheCustomerSees() throws Exception {
         OpenedAccount a = accounts.active(0);
         MockHttpSession session = customer(a);
-        mvc.perform(post("/customer/loans/apply").session(session).with(csrf()).param("type", "PERSONAL").param("amount", "200000")
+        mvc.perform(post("/customer/loans/apply").session(session).with(csrf()).param("type", "PERSONAL").param("rateType", "FIXED").param("amount", "200000")
                 .param("months", "24").param("purpose", "Wedding").param("employment", "Salaried")
                 .param("monthlyIncome", "60000").param("declaration", "true"));
         String list = mvc.perform(get("/customer/loans").session(session)).andReturn().getResponse().getContentAsString();
@@ -146,5 +153,48 @@ class LoanWebTest {
         mvc.perform(post("/admin/loans/" + m.group(1) + "/reject").session(staff).with(csrf()).param("reason", "Credit score below 650"))
                 .andExpect(flash().attribute("message", containsString("rejected")));
         mvc.perform(get("/customer/loans/" + m.group(1)).session(session)).andExpect(content().string(containsString("Credit score below 650")));
+    }
+
+    @Test
+    void toolsAreOpenToEveryoneAndLinkedFromTheHomePage() throws Exception {
+        mvc.perform(get("/tools"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("data-emi-calc")))
+                .andExpect(content().string(containsString("data-eligibility")))
+                .andExpect(content().string(containsString("data-modes=\"sip\"")))
+                .andExpect(content().string(containsString("data-modes=\"lumpsum\"")))
+                .andExpect(content().string(containsString("data-modes=\"fd\"")))
+                .andExpect(content().string(containsString("Fixed or floating?")))
+                .andExpect(content().string(containsString("class=\"rv-in\"")))
+                .andExpect(content().string(containsString("</html>")));
+        mvc.perform(get("/"))
+                .andExpect(content().string(containsString("id=\"t-tools\"")))
+                .andExpect(content().string(containsString("href=\"/tools#emi\"")))
+                .andExpect(content().string(containsString("href=\"/tools\"")));
+        mvc.perform(get("/loans")).andExpect(content().string(containsString("Fixed or floating?")));
+        mvc.perform(get("/invest")).andExpect(content().string(containsString("data-modes=\"sip,lumpsum\"")));
+    }
+
+    @Test
+    void onlyABranchManagerCanChangeTheRepoRate() throws Exception {
+        MockHttpSession admin = staff();
+        String temp = (String) mvc.perform(post("/admin/staff").session(admin).with(csrf())
+                        .param("fullName", "Ravi Loans").param("username", "ravi.loans").param("role", "OFFICER"))
+                .andReturn().getFlashMap().get("tempPassword");
+        MockHttpSession officer = new MockHttpSession();
+        mvc.perform(post("/admin/login").session(officer).with(csrf()).param("username", "ravi.loans").param("password", temp));
+        mvc.perform(post("/admin/password").session(officer).with(csrf()).param("currentPassword", temp)
+                .param("newPassword", "RaviBank12").param("confirmPassword", "RaviBank12"));
+        mvc.perform(get("/admin/loans").session(officer))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("RBI repo rate")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("Change &amp; reprice loans"))));
+        mvc.perform(post("/admin/loans/repo-rate").session(officer).with(csrf()).param("rate", "6.00").param("note", "x"))
+                .andExpect(status().isForbidden());
+
+        mvc.perform(get("/admin/loans").session(admin)).andExpect(content().string(containsString("Change &amp; reprice loans")));
+        mvc.perform(post("/admin/loans/repo-rate").session(admin).with(csrf()).param("rate", "99").param("note", ""))
+                .andExpect(flash().attribute("error", containsString("between 0.50% and 15.00%")))
+                .andExpect(flash().attribute("error", containsString("note")));
     }
 }

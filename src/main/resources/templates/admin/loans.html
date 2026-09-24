@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/admin :: page(~{::title}, ~{::main})}">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security" th:replace="~{layout/admin :: page(~{::title}, ~{::main})}">
 <head><title>Loans · JavaBank Staff</title></head>
 <body>
 <main class="container">
@@ -7,6 +7,39 @@
         <div><h1>Loans</h1><p class="muted">Review applications, follow active loans and EMIs, and call back enquiries.</p></div>
         <form th:action="@{/admin/loans/collect}" method="post"><button type="submit" class="btn primary">Collect due EMIs now</button></form>
     </div>
+
+    <section class="card repo-card" id="repo">
+        <div class="repo-now">
+            <span>RBI repo rate</span>
+            <strong th:text="${repo.ratePercent + '%'}">5.25%</strong>
+            <small th:text="${'since ' + #temporals.format(repo.effectiveFrom, 'dd MMM yyyy') + ' · ' + floatingLoans + ' active floating-rate loan(s) linked to it'}"></small>
+        </div>
+        <div class="repo-side">
+            <form sec:authorize="hasRole('ADMIN')" th:action="@{/admin/loans/repo-rate}" method="post" class="form repo-form"
+                  onsubmit="return confirm('Change the repo rate? Every active floating-rate loan will be repriced and its customer notified.')">
+                <label class="field"><span>New repo rate (%)</span><input type="number" name="rate" step="0.01" min="0.5" max="15" required></label>
+                <label class="field"><span>Note</span><input type="text" name="note" maxlength="200" required placeholder="e.g. RBI policy, 7 Oct 2026"></label>
+                <button type="submit" class="btn primary">Change &amp; reprice loans</button>
+            </form>
+            <p class="muted small" sec:authorize="!hasRole('ADMIN')">When the RBI changes the repo rate, a branch manager records it
+                here and every floating-rate loan is repriced automatically.</p>
+            <details class="repo-history">
+                <summary>History</summary>
+                <table class="table">
+                    <thead><tr><th>Date</th><th>Change</th><th>Note</th><th>By</th><th class="num">Loans repriced</th></tr></thead>
+                    <tbody>
+                    <tr th:each="h : ${repoHistory}">
+                        <td th:text="${#temporals.format(h.effectiveFrom, 'dd MMM yyyy')}"></td>
+                        <td th:text="${(h.oldRate != null ? h.oldRate + '% → ' : '') + h.newRate + '%'}"></td>
+                        <td class="wrap" th:text="${h.note}"></td>
+                        <td th:text="${h.changedBy}"></td>
+                        <td class="num" th:text="${h.loansRepriced}"></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </details>
+        </div>
+    </section>
 
     <h2>Applications to review <span class="badge pending" th:text="${applications.size()}"></span></h2>
     <p class="muted" th:if="${applications.isEmpty()}">No applications waiting. 🎉</p>
@@ -20,9 +53,10 @@
             <dl class="details">
                 <dt>Customer</dt><dd><a th:href="@{/admin/accounts/{id}(id=${l.account.id})}" th:text="${c.fullName + ' (' + c.customerId + ')'}"></a></dd>
                 <dt>Tenure</dt><dd th:text="${l.tenureLabel}"></dd>
+                <dt>Rate</dt><dd th:text="${l.rateType.label + ' · ' + v.quotedRate + '% today'}"></dd>
                 <dt>Purpose</dt><dd th:text="${l.purpose}"></dd>
                 <dt>Income</dt><dd th:text="${@money.whole(l.monthlyIncome) + '/month · ' + l.employment}"></dd>
-                <dt>EMI at list rate</dt><dd th:text="${@money.format(q.emi) + ' at ' + l.type.rate + '%'}"></dd>
+                <dt>EMI at list rate</dt><dd th:text="${@money.format(q.emi)}"></dd>
                 <dt>Account balance</dt><dd th:text="${@money.format(l.account.balance)}"></dd>
                 <dt>Applied</dt><dd th:text="${#temporals.format(l.createdAt, 'dd MMM yyyy, hh:mm a')}"></dd>
             </dl>
@@ -37,7 +71,8 @@
             <thead><tr><th>Loan</th><th>Customer</th><th class="num">Principal</th><th class="num">Outstanding</th><th class="num">EMI</th><th>Next EMI</th><th>Ends</th><th>Paid</th></tr></thead>
             <tbody>
             <tr th:each="v : ${active}" th:with="l=${v.loan}">
-                <td><a th:href="@{/admin/loans/{id}(id=${l.id})}" th:text="${l.type.label}"></a><small class="muted remark mono" th:text="${l.reference}"></small></td>
+                <td><a th:href="@{/admin/loans/{id}(id=${l.id})}" th:text="${l.type.label}"></a><small class="muted remark mono" th:text="${l.reference}"></small>
+                    <small class="muted remark" th:text="${l.ratePercent + '% ' + #strings.toLowerCase(l.rateType.label)}"></small></td>
                 <td><a th:href="@{/admin/accounts/{id}(id=${l.account.id})}" th:text="${l.account.customer.fullName}"></a></td>
                 <td class="num" th:text="${@money.whole(l.principal)}"></td>
                 <td class="num" th:text="${@money.format(l.outstanding)}"></td>

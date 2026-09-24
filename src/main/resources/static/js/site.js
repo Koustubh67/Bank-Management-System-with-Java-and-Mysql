@@ -63,56 +63,6 @@
         area.addEventListener('mouseleave', () => { card.style.transform = ''; });
     }
 
-    // SIP / FD calculator (illustration only)
-    const calc = document.querySelector('[data-calc]');
-    if (calc) {
-        const inr = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 });
-        const input = (name) => calc.querySelector(`[data-in="${name}"]`);
-        const out = (name, text) => { calc.querySelector(`[data-out="${name}"]`).textContent = text; };
-        let mode = 'sip';
-        function update() {
-            const amount = Number(input('amount').value);
-            const years = Number(input('years').value);
-            const rate = Number(input('rate').value);
-            let invested, total;
-            if (mode === 'sip') {
-                const r = rate / 12 / 100, n = years * 12;
-                invested = amount * n;
-                total = amount * ((Math.pow(1 + r, n) - 1) / r) * (1 + r);
-            } else {
-                invested = amount;
-                total = amount * Math.pow(1 + rate / 400, 4 * years); // compounded quarterly, like most bank FDs
-            }
-            out('amount', inr.format(amount));
-            out('years', years + (years === 1 ? ' yr' : ' yrs'));
-            out('rate', rate + '%');
-            out('invested', inr.format(invested));
-            out('returns', inr.format(total - invested));
-            out('total', inr.format(total));
-            calc.querySelector('[data-bar]').style.width = (invested / total * 100).toFixed(1) + '%';
-        }
-        calc.querySelectorAll('[data-mode]').forEach((tab) => tab.addEventListener('click', () => {
-            mode = tab.dataset.mode;
-            calc.querySelectorAll('[data-mode]').forEach((t) => {
-                t.classList.toggle('on', t === tab);
-                t.setAttribute('aria-selected', String(t === tab));
-            });
-            const amount = input('amount');
-            if (mode === 'fd') {
-                calc.querySelector('[data-label-amount]').textContent = 'Deposit amount';
-                amount.min = 5000; amount.max = 1000000; amount.step = 5000; amount.value = 100000;
-                input('rate').value = 7;
-            } else {
-                calc.querySelector('[data-label-amount]').textContent = 'Monthly investment';
-                amount.min = 500; amount.max = 100000; amount.step = 500; amount.value = 5000;
-                input('rate').value = 12;
-            }
-            update();
-        }));
-        calc.querySelectorAll('input[type=range]').forEach((r) => r.addEventListener('input', update));
-        update();
-    }
-
     // KYC uploads: show the chosen file name, an image preview, and highlight when dragging a file over
     document.querySelectorAll('[data-upload]').forEach((box) => {
         const zone = box.querySelector('.dropzone');

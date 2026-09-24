@@ -31,6 +31,7 @@
             <a th:href="@{/invest}">Invest</a>
             <a th:href="@{/loans}">Loans</a>
             <a th:href="@{/#products}" data-tab-link="t-insure">Insurance</a>
+            <a th:href="@{/tools}">Tools</a>
             <a th:href="@{/signup/status}">Track application</a>
             <a class="btn ghost-dark small" th:href="@{/login}">Login</a>
             <a class="btn primary small" th:href="@{/signup}">Open account</a>
@@ -53,7 +54,8 @@
         <div>
             <h4>Explore</h4>
             <a th:href="@{/invest}">Mutual funds &amp; FDs</a>
-            <a th:href="@{/loans}">Loans &amp; EMI calculator</a>
+            <a th:href="@{/loans}">Loans</a>
+            <a th:href="@{/tools}">EMI, SIP &amp; FD calculators</a>
             <a th:href="@{/#products}">Insurance</a>
             <a th:href="@{/#security}">How we keep you safe</a>
             <a th:href="@{/#engineering}">Under the hood</a>
@@ -69,6 +71,7 @@
         <span>Not a real bank. Never enter real card numbers, PINs or Aadhaar numbers.</span>
     </div>
 </footer>
+<script th:src="@{/js/calc.js}"></script>
 <script th:src="@{/js/site.js}"></script>
 <script th:src="@{/js/chart.js}"></script>
 </body>

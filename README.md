@@ -3,7 +3,8 @@
 A banking web application built with **Java 17, Spring Boot and MySQL**. Customers open an account online, withdraw
 cash at a realistic web **ATM** (card insert, notes coming out of the cash slot, printed receipt), and pay each other
 with **JavaPay UPI**, a phone-style UPI app with QR codes and a 6-digit UPI PIN. They invest in real mutual funds, take
-**loans with a full EMI schedule**, and request insurance. Bank staff approve accounts and loans in an **admin panel**.
+**loans at a fixed or floating rate** with a full EMI schedule, plan with free **money tools** (EMI, eligibility, SIP,
+lump sum, FD), and request insurance. Bank staff approve accounts and loans in an **admin panel**.
 
 The project focuses on the correctness rules real banking software needs: exact money arithmetic, all-or-nothing
 transfers, row locking under concurrent access, an append-only transaction ledger, and secure PIN handling.
@@ -64,9 +65,17 @@ transfers, row locking under concurrent access, an append-only transaction ledge
   **issued policy** on its own page
 - No premiums are made up: prices come from the insurer through the expert, as in a real bank
 
-**Loans with EMI calculator, approval and auto-debited EMIs**
+**Loans with fixed or floating rates, approval and auto-debited EMIs**
 - Public `/loans` page (no login): home, car, personal, education, two-wheeler and gold loans with an **EMI
-  calculator** for each (amount, rate and tenure sliders, principal vs interest split, year-by-year repayment table)
+  calculator** for each (principal vs interest split, year-by-year repayment table)
+- **Fixed or floating, the customer chooses.** Floating rates are linked to the **real RBI repo rate (5.25%)**, like
+  the repo-linked (EBLR) loans Indian banks offer: rate = repo rate + a spread per loan type (home 8.50%). Fixed
+  rates cost a small premium (home 9.50%) and never change
+- **Repo rate changes reprice floating loans:** a branch manager records the new repo rate on the staff Loans page;
+  in one transaction every active floating loan gets its new rate, the EMIs not yet paid and due after today are
+  recalculated on the principal still owed, the **end date stays the same**, and the customer is alerted with the old
+  and new EMI. Paid and overdue EMIs never change. Customer and staff both see a **rate change history**. Officers
+  can see the repo rate but only a branch manager can change it
 - **Not a customer yet?** A "request a call back" form takes name, mobile, email, city, loan wanted, income and best
   time to call (every error shown at once, nothing retyped), then says **"our loan expert will call you within 24
   hours"** with an enquiry reference. Staff see these enquiries and mark them contacted or closed
@@ -83,6 +92,18 @@ transfers, row locking under concurrent access, an append-only transaction ledge
   Paying the last EMI **closes the loan**. Disbursal and every EMI appear in the passbook
 - Reducing-balance EMI maths in `BigDecimal`: interest is rounded to the paisa each month and the last EMI absorbs
   the rounding, so the schedule ends at exactly ₹0
+
+**Money tools (no login)**
+- `/tools`, a **Tools** tab in the top menu and a **05 Tools** tab on the home page: EMI calculator, loan
+  eligibility ("how much can I borrow?" with the same 50%-of-income rule the bank applies), SIP, lump sum and FD
+- **Type any value or drag the slider:** every slider has an editable box that accepts exact amounts and Indian
+  shorthand (`25,00,000`, `25L`, `1.2Cr`); out-of-range or unreadable input shows a hint and is corrected when you
+  leave the box. Tenure can be entered in years or months
+- **Fixed or floating?** The EMI calculator compares both side by side with a "what if the repo rate changes by x%
+  from year n" scenario (recalculated exactly the way the bank resets a floating loan), says which option is cheaper,
+  and works out the **break-even rate rise**
+- Checked against known results: ₹10,000/month SIP at 12% for 15 years = ₹50,45,760 (same as Groww); ₹25 lakh at
+  8.5% for 20 years = ₹21,695.58 EMI
 
 **SMS & email alerts (simulated)**
 - Application received / approved / declined, investment confirmed, OTPs, SIP instalment missed, insurance request
@@ -142,7 +163,7 @@ transfers, row locking under concurrent access, an append-only transaction ledge
   else. Managers can reset passwords and disable logins (never their own); officers can't manage staff
 - Approvals and declines record **which staff member** did them, and the customer is alerted
 - Pages: dashboard, accounts (KYC documents, holdings with live P&L, policies, insurance requests, loans, alerts
-  sent), loans (applications, active loans, website enquiries), insurance queue, all investments, transactions, alerts
+  sent), loans (repo rate, applications, active loans, website enquiries), insurance queue, all investments, transactions, alerts
   sent, staff
 - Dashboard: customers, pending/active/frozen accounts, loan applications, overdue EMIs, new loan enquiries,
   transactions, total deposits
@@ -153,7 +174,11 @@ transfers, row locking under concurrent access, an append-only transaction ledge
 
 ## Screenshots
 
-| Loans: EMI calculator (no login) | Customer's loan: EMI dates and schedule |
+| Tools: EMI with fixed vs floating (no login) | Floating loan after a repo rate change |
+|---|---|
+| ![EMI calculator](docs/screenshots/tools-emi.png) | ![Rate change](docs/screenshots/loan-rate-change.png) |
+
+| Loans (no login) | Customer's loan: EMI dates and schedule |
 |---|---|
 | ![Loans page](docs/screenshots/loans.png) | ![Customer loan](docs/screenshots/customer-loan.png) |
 
@@ -229,6 +254,8 @@ src/main/java/com/koustubh/bank
 | Unsafe file uploads | KYC files are accepted only if their first bytes are a real PDF, PNG or JPEG signature, file names are cleaned, and staff downloads are sent with `X-Content-Type-Options: nosniff` |
 | EMI schedule not adding up to the loan | Reducing-balance formula in `BigDecimal`; interest rounded to the paisa each month and the last EMI absorbs the rounding, so the balance ends at exactly ₹0 (tested for tenures up to 30 years) |
 | A loan approved twice, or disbursed without a schedule | The loan row is locked (`FOR UPDATE`) and must still be `APPLIED`; disbursal credit, ledger entry and all instalments are saved in one transaction. A test has two officers approve at the same moment |
+| A loan approved at the same moment as a repo rate change, priced off the old rate | Approvals and repo rate changes both lock the single repo rate row first, then loans in id order, then accounts, so they run one after the other and can't deadlock with EMI collection. A test runs both at the same moment and checks rate = current repo + spread |
+| Repricing a floating loan without breaking its history | Only EMIs that are unpaid and due after today are recalculated, on the balance after the last earlier EMI; paid and overdue EMIs keep their amounts, the end date stays, and each reset is stored in `loan_rate_change` |
 | One failing loan stopping the nightly EMI run | Each loan is collected in its own transaction (`TransactionTemplate`), oldest EMI first; a short balance marks it overdue with a single alert and is retried next day |
 | Paying out cash | `CashDispenser` picks the fewest notes (greedy works for 500/200/100); unit-tested for every amount |
 | Audit trail | The `transactions` table is append-only; each row stores the balance after the operation, and both sides of a transfer share one reference id |
@@ -265,8 +292,8 @@ without signing up. Each one is in a different state. They come from
 
 | Customer | Customer ID | Account no. | Card number | ATM PIN | UPI ID | UPI PIN | Balance | State: what to try |
 |---|---|---|---|---|---|---|---|---|
-| Rahul Sharma | `JB10000001` | `100000000001` | `5040930000000017` | `1234` | `rahul.0001@javabank` | `123456` | ₹42,350 | ✅ Active: everything. 12-month Parag Parikh SIP (real P&L), health policy, open term-life request, **₹6 lakh car loan** (5 of 60 EMIs paid) |
-| Priya Verma | `JB10000002` | `100000000002` | `5040930000000025` | `2345` | `priya.0002@javabank` | `234567` | ₹1,20,950 | ✅ Active current account. 24-month UTI Nifty 50 SIP, motor policy, **₹45 lakh home loan application** waiting for staff |
+| Rahul Sharma | `JB10000001` | `100000000001` | `5040930000000017` | `1234` | `rahul.0001@javabank` | `123456` | ₹42,350 | ✅ Active: everything. 12-month Parag Parikh SIP (real P&L), health policy, open term-life request, **₹6 lakh fixed-rate car loan** (5 of 60 EMIs paid) |
+| Priya Verma | `JB10000002` | `100000000002` | `5040930000000025` | `2345` | `priya.0002@javabank` | `234567` | ₹1,20,950 | ✅ Active current account. 24-month UTI Nifty 50 SIP, motor policy, **₹45 lakh floating-rate home loan application** waiting for staff |
 | Amit Patel | `JB10000003` | `100000000003` | `5040930000000033` | `3456` | — | — | ₹0 | ⏳ **Pending**: dashboard says "under review"; approve or decline him as staff |
 | Sneha Iyer | `JB10000004` | `100000000004` | `5040930000000041` | `4567` | — | — | ₹20,000 | ❄️ **Frozen**: ATM refuses; unfreeze as staff |
 | Vikram Singh | `JB10000005` | `100000000005` | `5040930000000058` | `5678` | — | — | ₹15,000 | 🚫 **Card blocked** (3 wrong PINs): unblock as staff |
@@ -296,17 +323,21 @@ notes like "Dinner" and "Movie tickets"), so mini statements and UPI history are
    start a SIP → confirm KYC (PAN `ABCPS1234A`, Aadhaar `999900000001`, mobile `9876500001`) → **Send OTP** → pay.
 6. **Insure:** open **Insurance** → **Talk to an expert** → request a callback. Then log in as staff, open
    **Insurance**, and issue the policy; back as Rahul, open the new policy from the dashboard.
-7. **Loans:** open **Loans** from the home page and try the EMI calculator, or request a call back. As Rahul open
-   **Loans** to see his car loan's EMI date, end date and schedule, then **apply** for a personal loan (₹2,00,000, 24
-   months, income ₹85,000). As staff open **Loans** → **Review & decide** → approve at 10.99%: the money lands in
-   Rahul's account and both sides show the first EMI and the loan end date. Back as Rahul, **Pay this EMI now**.
-8. **Staff:** log in as `admin` / `admin123`, approve Amit, unblock Vikram's card, unlock Anjali's UPI, unfreeze Sneha.
-9. **New staff:** as `admin` open **Staff**, add an officer, then log in as them with the temporary password: you'll be
+7. **Loans:** open **Tools** from the home page, try the EMI calculator (type `25L` as the amount), switch between
+   fixed and floating and set a repo rate change. As Rahul open **Loans** to see his car loan's EMI date, end date and
+   schedule, then **apply** for a personal loan (₹2,00,000, 24 months, income ₹85,000) and pick **Floating**. As
+   staff open **Loans** → **Review & decide** → approve: the money lands in Rahul's account and both sides show the
+   first EMI and the loan end date. Back as Rahul, **Pay this EMI now**.
+8. **Repo rate change:** as `admin`, on **Loans** enter a new repo rate (e.g. `5.50`) and a note → **Change & reprice
+   loans**. Rahul's floating loan moves up by 0.25%, his EMIs from the next due date change, and his loan page shows
+   the rate change. Set it back to `5.25` afterwards.
+9. **Staff:** log in as `admin` / `admin123`, approve Amit, unblock Vikram's card, unlock Anjali's UPI, unfreeze Sneha.
+10. **New staff:** as `admin` open **Staff**, add an officer, then log in as them with the temporary password: you'll be
    asked to set a new one. Officers can't open the Staff page.
-10. **Sign up with KYC:** open your own account with **Open account** and upload any sample image as the PAN and
+11. **Sign up with KYC:** open your own account with **Open account** and upload any sample image as the PAN and
    Aadhaar card (never real documents). As staff, open the application, view the documents and **decline** it with a
    reason. Then open **Track application** (account number + PAN) to see the reason.
-11. **Home page:** try the SIP / FD calculator in the Investments section.
+12. **Home page:** try the SIP / FD calculator in the Invest tab, or open the **Tools** tab.
 
 Tests check that every login in this table works (`DemoDataSeederTest`), so the table stays correct.
 
@@ -326,7 +357,7 @@ Tests check that every login in this table works (`DemoDataSeederTest`), so the 
 ./mvnw test
 ```
 
-147 tests run against an in-memory H2 database with the real Flyway schema:
+154 tests run against an in-memory H2 database with the real Flyway schema:
 - **Domain unit tests:** balance rules, account states
 - **Service tests:** daily limit, insufficient funds, transfer atomicity, concurrent withdrawals, transfer deadlock
   avoidance, PIN lockout and unblock, PIN change
@@ -349,6 +380,11 @@ Tests check that every login in this table works (`DemoDataSeederTest`), so the 
   disbursal, overdue EMI → one alert → collected after a deposit, paying every EMI closes the loan with the right
   balance, customers can't see or pay other customers' loans; web flow: public enquiry, apply → staff approve → both
   sides show the first EMI and end date, rejection reason shown to the customer
+- **Rate tests:** floating = repo + spread and fixed = floating + premium for every product; the customer's choice sets
+  the quote; floating can't be sanctioned below the repo rate; a repo rise reprices only future unpaid EMIs (paid and
+  overdue ones untouched, same dates, principal repaid exactly, ends at ₹0, customer alerted) and leaves fixed loans
+  alone; all repo-rate errors at once; **an approval and a repo change at the same moment** still give
+  rate = current repo + spread; only a branch manager can change the repo rate; the Tools page is public
 - **Staff tests:** temporary password → forced change, duplicate usernames, officers blocked from staff management,
   disabled logins, admins can't lock themselves out
 - **Security tests:** no-store cache headers, Clear-Site-Data on logout, `/login` redirect while signed in

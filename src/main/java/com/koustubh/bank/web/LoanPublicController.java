@@ -3,6 +3,7 @@ package com.koustubh.bank.web;
 import com.koustubh.bank.domain.LoanEnquiry;
 import com.koustubh.bank.domain.LoanType;
 import com.koustubh.bank.exception.BankException;
+import com.koustubh.bank.service.LendingRateService;
 import com.koustubh.bank.service.LoanService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -18,14 +19,18 @@ import java.util.List;
 public class LoanPublicController {
 
     private final LoanService loans;
+    private final LendingRateService rates;
 
-    public LoanPublicController(LoanService loans) {
+    public LoanPublicController(LoanService loans, LendingRateService rates) {
         this.loans = loans;
+        this.rates = rates;
     }
 
     @GetMapping
     public String loans(@RequestParam(required = false) LoanType type, Model model) {
         model.addAttribute("types", LoanType.values());
+        model.addAttribute("offers", rates.offers());
+        model.addAttribute("repo", rates.current());
         model.addAttribute("selected", type == null ? LoanType.HOME : type);
         model.addAttribute("employment", LoanService.EMPLOYMENT);
         model.addAttribute("times", LoanService.CALL_TIMES);

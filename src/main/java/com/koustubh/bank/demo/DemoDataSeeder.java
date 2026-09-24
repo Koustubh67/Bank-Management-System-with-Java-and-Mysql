@@ -9,6 +9,7 @@ import com.koustubh.bank.domain.AdminUser;
 import com.koustubh.bank.domain.StaffRole;
 import com.koustubh.bank.domain.InsurancePlan;
 import com.koustubh.bank.domain.LoanType;
+import com.koustubh.bank.domain.RateType;
 import com.koustubh.bank.domain.UpiHandle;
 import com.koustubh.bank.exception.WrongUpiPinException;
 import com.koustubh.bank.repository.AccountRepository;
@@ -258,9 +259,10 @@ public class DemoDataSeeder implements ApplicationRunner {
         if (!loans.loansOf(RAHUL.customerId()).isEmpty()) {
             return;
         }
-        loans.importExistingLoan(RAHUL.customerId(), LoanType.CAR, rs(600_000), 60, 5, "Hyundai Creta", rs(85_000));
-        loans.importApplication(PRIYA.customerId(), new LoanService.Application(LoanType.HOME, rs(4_500_000), 240,
-                "2BHK flat in Indore", "Business owner", rs(180_000)));
+        loans.importExistingLoan(RAHUL.customerId(), LoanType.CAR, RateType.FIXED, rs(600_000), 60, 5, "Hyundai Creta",
+                rs(85_000));
+        loans.importApplication(PRIYA.customerId(), new LoanService.Application(LoanType.HOME, RateType.FLOATING,
+                rs(4_500_000), 240, "2BHK flat in Indore", "Business owner", rs(180_000)));
         loans.enquire(new LoanService.Enquiry("Arjun Mehta", "9811122233", "arjun.mehta@example.com", "Pune",
                 LoanType.PERSONAL, rs(300_000), "Salaried", rs(60_000), LoanService.CALL_TIMES.get(1)));
     }

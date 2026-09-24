@@ -33,13 +33,14 @@ class LoanServiceTest {
     @Autowired CustomerService customers;
     @Autowired NotificationService notifications;
     @Autowired PlatformTransactionManager txManager;
+    @Autowired LendingRateService rates;
 
     private static BigDecimal rs(long v) {
         return BigDecimal.valueOf(v);
     }
 
     private LoanService.Application car(long amount, int months, long income) {
-        return new LoanService.Application(LoanType.CAR, rs(amount), months, "New car", "Salaried", rs(income));
+        return new LoanService.Application(LoanType.CAR, RateType.FIXED, rs(amount), months, "New car", "Salaried", rs(income));
     }
 
     /** Moves an EMI's due date, e.g. into the past so the collection job picks it up. */
@@ -54,11 +55,12 @@ class LoanServiceTest {
     @Test
     void applicationProblemsAreReportedTogether() {
         OpenedAccount a = accounts.active(0);
-        LoanService.Application bad = new LoanService.Application(LoanType.CAR, rs(10), 3, " ", "Astronaut", rs(500));
+        LoanService.Application bad = new LoanService.Application(LoanType.CAR, null, rs(10), 3, " ", "Astronaut", rs(500));
         assertThatThrownBy(() -> loans.apply(a.customerId(), bad))
                 .isInstanceOf(InvalidRequestException.class)
                 .hasMessageContaining("amount must be between").hasMessageContaining("tenure must be between")
-                .hasMessageContaining("employment").hasMessageContaining("income").hasMessageContaining("what the loan is for");
+                .hasMessageContaining("employment").hasMessageContaining("income").hasMessageContaining("what the loan is for")
+                .hasMessageContaining("fixed or floating");
     }
 
     @Test
@@ -98,6 +100,31 @@ class LoanServiceTest {
         assertThatThrownBy(() -> loans.approve(applied.getId(), "neha", rs(500_000), new BigDecimal("8.50"), 48))
                 .hasMessageContaining("already been active");
         assertThatThrownBy(() -> loans.reject(applied.getId(), "neha", "late")).isInstanceOf(InvalidRequestException.class);
+    }
+
+    @Test
+    void theCustomersRateChoiceSetsTheQuoteAndFloatingLoansKeepTheirSpread() {
+        OpenedAccount a = accounts.active(0);
+        Loan floating = loans.apply(a.customerId(), new LoanService.Application(LoanType.HOME, RateType.FLOATING,
+                rs(3_000_000), 240, "Flat", "Salaried", rs(150_000)));
+        Loan fixed = loans.apply(a.customerId(), new LoanService.Application(LoanType.PERSONAL, RateType.FIXED,
+                rs(200_000), 24, "Wedding", "Salaried", rs(150_000)));
+        BigDecimal repo = rates.current().getRatePercent();
+
+        LoanService.LoanView fv = loans.loanOf(a.customerId(), floating.getId());
+        assertThat(fv.quotedRate()).isEqualByComparingTo(repo.add(LoanType.HOME.getSpread()));
+        assertThat(fv.requestedQuote().emi()).isEqualByComparingTo(EmiCalculator.emi(rs(3_000_000), fv.quotedRate(), 240));
+        LoanService.LoanView xv = loans.loanOf(a.customerId(), fixed.getId());
+        assertThat(xv.quotedRate()).isEqualByComparingTo(repo.add(LoanType.PERSONAL.getSpread()).add(LoanType.PERSONAL.getFixedPremium()));
+
+        // A floating rate can't be sanctioned below the repo rate; otherwise the spread is remembered for life
+        assertThatThrownBy(() -> loans.approve(floating.getId(), "neha", rs(3_000_000), repo.subtract(BigDecimal.ONE), 240))
+                .hasMessageContaining("below the repo rate");
+        Loan approved = loans.approve(floating.getId(), "neha", rs(3_000_000), repo.add(new BigDecimal("3.10")), 240);
+        assertThat(approved.getRateType()).isEqualTo(RateType.FLOATING);
+        assertThat(approved.getSpreadPercent()).isEqualByComparingTo("3.10");
+        Loan approvedFixed = loans.approve(fixed.getId(), "neha", rs(200_000), new BigDecimal("11.49"), 24);
+        assertThat(approvedFixed.getSpreadPercent()).isNull();
     }
 
     @Test
@@ -162,7 +189,7 @@ class LoanServiceTest {
     @Test
     void payingEveryEmiEarlyClosesTheLoan() {
         OpenedAccount a = accounts.active(5_000);
-        Loan loan = loans.approve(loans.apply(a.customerId(), new LoanService.Application(LoanType.GOLD, rs(60_000), 6,
+        Loan loan = loans.approve(loans.apply(a.customerId(), new LoanService.Application(LoanType.GOLD, RateType.FIXED, rs(60_000), 6,
                 "Business stock", "Business owner", rs(40_000))).getId(), "neha", rs(60_000), new BigDecimal("9"), 6);
         for (int n = 1; n <= 6; n++) {
             assertThat(loans.payNext(a.customerId(), loan.getId()).getNumber()).isEqualTo(n);

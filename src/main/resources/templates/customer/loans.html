@@ -26,25 +26,25 @@
                     <div><span>EMI</span><b th:text="${@money.format(l.emi)}"></b></div>
                 </div>
                 <div class="lc-progress"><i th:style="'width:' + ${v.progressPercent} + '%'"></i></div>
-                <p class="lc-meta" th:text="${v.paid + ' of ' + l.tenureMonths + ' EMIs paid · ends ' + #temporals.format(l.endDate, 'dd MMM yyyy')}"></p>
+                <p class="lc-meta" th:text="${v.paid + ' of ' + l.tenureMonths + ' EMIs paid · ends ' + #temporals.format(l.endDate, 'dd MMM yyyy') + ' · ' + l.ratePercent + '% ' + #strings.toLowerCase(l.rateType.label)}"></p>
                 <p class="lc-next" th:if="${v.next != null}" th:classappend="${v.overdue > 0} ? 'overdue'">
                     <span th:text="${v.overdue > 0} ? '⚠ EMI overdue' : 'Next EMI'"></span>
                     <b th:text="${@money.format(v.next.emi) + ' on ' + #temporals.format(v.next.dueDate, 'dd MMM yyyy')}"></b></p>
             </th:block>
             <th:block th:if="${st == 'APPLIED'}">
                 <p class="lc-meta" th:text="${'Requested ' + @money.whole(l.amountRequested) + ' for ' + l.tenureLabel + ' · applied ' + #temporals.format(l.createdAt, 'dd MMM yyyy')}"></p>
-                <p class="lc-next"><span>Estimated EMI</span><b th:text="${@money.format(v.requestedQuote.emi)}"></b></p>
+                <p class="lc-next"><span>Estimated EMI</span><b th:text="${@money.format(v.requestedQuote.emi) + ' at ' + v.quotedRate + '% ' + #strings.toLowerCase(l.rateType.label)}"></b></p>
                 <p class="muted small">A loan officer is reviewing it. We'll SMS and email you the decision within 24–48 hours.</p>
             </th:block>
             <p class="lc-meta" th:if="${st == 'REJECTED'}" th:text="${'Not approved: ' + l.rejectReason}"></p>
         </a>
     </div>
 
-    <div class="panel-head section-gap"><h2>Loan products</h2><a th:href="@{/loans}">EMI calculator →</a></div>
+    <div class="panel-head section-gap"><h2>Loan products</h2><a th:href="@{/tools#emi}">EMI calculator →</a></div>
     <div class="loan-products inline">
-        <a class="lp" th:each="t : ${types}" th:href="@{/customer/loans/apply(type=${t})}">
-            <span class="lp-ic" th:text="${t.icon}"></span><b th:text="${t.label}"></b>
-            <small th:text="${'from ' + t.rate + '% p.a.'}"></small></a>
+        <a class="lp" th:each="o : ${offers}" th:href="@{/customer/loans/apply(type=${o.type})}">
+            <span class="lp-ic" th:text="${o.type.icon}"></span><b th:text="${o.type.label}"></b>
+            <small th:text="${'from ' + o.floating + '% p.a.'}"></small><em th:text="${'Fixed ' + o.fixed + '%'}"></em></a>
     </div>
 </main>
 </body>

@@ -162,7 +162,8 @@
                 <thead><tr><th>Loan</th><th>Status</th><th class="num">Amount</th><th class="num">EMI</th><th>Next EMI</th><th>Ends</th><th>Paid</th></tr></thead>
                 <tbody>
                 <tr th:each="v : ${details.loans}" th:with="l=${v.loan}">
-                    <td><a th:href="@{/admin/loans/{id}(id=${l.id})}" th:text="${l.type.label + ' · ' + l.reference}"></a></td>
+                    <td><a th:href="@{/admin/loans/{id}(id=${l.id})}" th:text="${l.type.label + ' · ' + l.reference}"></a>
+                        <small class="muted remark" th:text="${l.rateType.label + (l.ratePercent != null ? ' · ' + l.ratePercent + '%' : '')}"></small></td>
                     <td th:text="${l.status}"></td>
                     <td class="num" th:text="${@money.whole(l.principal != null ? l.principal : l.amountRequested)}"></td>
                     <td class="num" th:text="${l.emi != null ? @money.format(l.emi) : '—'}"></td>

@@ -3,8 +3,10 @@ package com.koustubh.bank.web;
 import com.koustubh.bank.domain.Loan;
 import com.koustubh.bank.domain.LoanInstalment;
 import com.koustubh.bank.domain.LoanType;
+import com.koustubh.bank.domain.RateType;
 import com.koustubh.bank.exception.BankException;
 import com.koustubh.bank.service.CustomerService;
+import com.koustubh.bank.service.LendingRateService;
 import com.koustubh.bank.service.LoanService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -25,40 +27,46 @@ public class CustomerLoanController {
 
     private final LoanService loans;
     private final CustomerService customers;
+    private final LendingRateService rates;
 
-    public CustomerLoanController(LoanService loans, CustomerService customers) {
+    public CustomerLoanController(LoanService loans, CustomerService customers, LendingRateService rates) {
         this.loans = loans;
         this.customers = customers;
+        this.rates = rates;
     }
 
     @GetMapping
     public String list(Principal principal, Model model) {
         model.addAttribute("o", customers.overview(principal.getName()));
         model.addAttribute("loans", loans.loansOf(principal.getName()));
-        model.addAttribute("types", LoanType.values());
+        model.addAttribute("offers", rates.offers());
         return "customer/loans";
     }
 
     @GetMapping("/apply")
     public String applyForm(@RequestParam(required = false) LoanType type, Principal principal, Model model) {
         model.addAttribute("o", customers.overview(principal.getName()));
-        model.addAttribute("types", LoanType.values());
+        model.addAttribute("offers", rates.offers());
+        model.addAttribute("repo", rates.current());
+        model.addAttribute("rateTypes", RateType.values());
         model.addAttribute("employment", LoanService.EMPLOYMENT);
         if (!model.containsAttribute("form")) {
             LoanType t = type == null ? LoanType.PERSONAL : type;
-            model.addAttribute("form", new LoanService.Application(t, t.getMinAmount().multiply(BigDecimal.valueOf(4)),
+            model.addAttribute("form", new LoanService.Application(t, RateType.FLOATING, t.getMinAmount().multiply(BigDecimal.valueOf(4)),
                     Math.min(t.getMaxMonths(), Math.max(t.getMinMonths(), 36)), "", "Salaried", null));
         }
         return "customer/loan-apply";
     }
 
     @PostMapping("/apply")
-    public String apply(@RequestParam(required = false) LoanType type, @RequestParam(required = false) BigDecimal amount,
+    public String apply(@RequestParam(required = false) LoanType type, @RequestParam(required = false) RateType rateType,
+                        @RequestParam(required = false) BigDecimal amount,
                         @RequestParam(required = false) Integer months, @RequestParam(required = false) String purpose,
                         @RequestParam(required = false) String employment,
                         @RequestParam(required = false) BigDecimal monthlyIncome,
                         @RequestParam(required = false) boolean declaration, Principal principal, RedirectAttributes redirect) {
-        LoanService.Application form = new LoanService.Application(type, amount, months, purpose, employment, monthlyIncome);
+        LoanService.Application form = new LoanService.Application(type, rateType, amount, months, purpose, employment,
+                monthlyIncome);
         try {
             if (!declaration) {
                 throw new BankException("Please confirm the declaration");

@@ -29,9 +29,11 @@ import java.util.UUID;
 /**
  * Loans from application to closure.
  * <ul>
- *   <li>Apply: validated (every problem reported at once) and checked for affordability (EMI ≤ 50% of income).</li>
- *   <li>Approve: in one transaction the loan and account are locked, the EMI schedule is generated, and the money is
- *       credited to the customer's account through the ledger. An application can be decided only once.</li>
+ *   <li>Apply: the customer chooses a fixed or floating rate. Validated (every problem reported at once) and checked
+ *       for affordability (EMI ≤ 50% of income) at today's rate for that choice.</li>
+ *   <li>Approve: in one transaction the repo rate, loan and account are locked (always in that order), the EMI
+ *       schedule is generated, and the money is credited to the customer's account through the ledger. An
+ *       application can be decided only once. Floating loans keep their spread over the repo rate for life.</li>
  *   <li>Repay: a daily job debits every EMI that has fallen due, oldest first. If the balance is too low the EMI is
  *       marked overdue (the customer is alerted once) and retried the next day. Customers can also pay the next EMI
  *       early. The loan closes itself when the last EMI is paid.</li>
@@ -49,8 +51,8 @@ public class LoanService {
     /** Banks usually cap all EMIs at about half of monthly income (FOIR). */
     public static final BigDecimal MAX_FOIR = BigDecimal.valueOf(50);
 
-    public record Application(LoanType type, BigDecimal amount, Integer months, String purpose, String employment,
-                              BigDecimal monthlyIncome) {
+    public record Application(LoanType type, RateType rateType, BigDecimal amount, Integer months, String purpose,
+                              String employment, BigDecimal monthlyIncome) {
     }
 
     public record Enquiry(String name, String mobile, String email, String city, LoanType type, BigDecimal amount,
@@ -62,9 +64,10 @@ public class LoanService {
                         boolean affordable) {
     }
 
-    /** A loan with its schedule, as the customer and staff see it. */
+    /** A loan with its schedule and rate resets, as the customer and staff see it. */
     public record LoanView(Loan loan, List<LoanInstalment> schedule, LoanInstalment next, int paid, int overdue,
-                           BigDecimal totalInterest, BigDecimal interestPaid, Quote requestedQuote) {
+                           BigDecimal totalInterest, BigDecimal interestPaid, Quote requestedQuote, BigDecimal quotedRate,
+                           List<LoanRateChange> rateChanges) {
 
         public int getProgressPercent() {
             return schedule.isEmpty() ? 0 : paid * 100 / schedule.size();
@@ -78,12 +81,14 @@ public class LoanService {
     private final TransactionRepository transactions;
     private final NumberGenerator numbers;
     private final NotificationService notifications;
+    private final LendingRateService rates;
     private final Clock clock;
     private final TransactionTemplate tx;
 
     public LoanService(LoanRepository loans, LoanInstalmentRepository instalments, LoanEnquiryRepository enquiries,
                        AccountRepository accounts, TransactionRepository transactions, NumberGenerator numbers,
-                       NotificationService notifications, Clock clock, PlatformTransactionManager txManager) {
+                       NotificationService notifications, LendingRateService rates, Clock clock,
+                       PlatformTransactionManager txManager) {
         this.loans = loans;
         this.instalments = instalments;
         this.enquiries = enquiries;
@@ -91,6 +96,7 @@ public class LoanService {
         this.transactions = transactions;
         this.numbers = numbers;
         this.notifications = notifications;
+        this.rates = rates;
         this.clock = clock;
         this.tx = new TransactionTemplate(txManager);
     }
@@ -111,6 +117,9 @@ public class LoanService {
     @Transactional
     public Loan apply(String customerId, Application a) {
         List<String> errors = validate(a.type(), a.amount(), a.months(), a.employment(), a.monthlyIncome());
+        if (a.rateType() == null) {
+            errors.add("Choose a fixed or floating interest rate");
+        }
         if (a.purpose() == null || a.purpose().isBlank() || a.purpose().trim().length() > 200) {
             errors.add("Tell us what the loan is for");
         }
@@ -122,9 +131,10 @@ public class LoanService {
             errors.add("You already have a " + a.type().getLabel().toLowerCase() + " application under review");
         }
         if (errors.isEmpty()) {
-            Quote q = quote(a.amount(), a.type().getRate(), a.months(), a.monthlyIncome());
+            BigDecimal rate = rates.rate(a.type(), a.rateType());
+            Quote q = quote(a.amount(), rate, a.months(), a.monthlyIncome());
             if (!q.affordable()) {
-                errors.add("The EMI of Rs " + q.emi().toPlainString() + " would be " + q.foir()
+                errors.add("The EMI of Rs " + q.emi().toPlainString() + " at " + rate + "% would be " + q.foir()
                         + "% of your monthly income. Banks allow up to 50%: try a smaller amount or a longer tenure");
             }
         }
@@ -135,11 +145,11 @@ public class LoanService {
         do {
             ref = numbers.newReference("JBL");
         } while (loans.existsByReference(ref));
-        Loan loan = loans.save(new Loan(account, a.type(), ref, a.amount().setScale(2, RoundingMode.HALF_UP), a.months(),
+        Loan loan = loans.save(new Loan(account, a.type(), a.rateType(), ref, a.amount().setScale(2, RoundingMode.HALF_UP), a.months(),
                 a.purpose().trim(), a.employment(), a.monthlyIncome().setScale(2, RoundingMode.HALF_UP), LocalDateTime.now(clock)));
         notifications.notify(account.getCustomer(), "Loan application received",
                 "We've received your " + a.type().getLabel().toLowerCase() + " application " + ref + " for Rs "
-                        + a.amount().toPlainString() + ". A loan officer will review it within 24–48 hours; we'll SMS and email you the decision.");
+                        + a.amount().toPlainString() + " at a " + a.rateType().getLabel().toLowerCase() + " rate. A loan officer will review it within 24–48 hours; we'll SMS and email you the decision.");
         return loan;
     }
 
@@ -186,17 +196,25 @@ public class LoanService {
         BigDecimal totalInterest = schedule.stream().map(LoanInstalment::getInterestPart).reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal interestPaid = schedule.stream().filter(LoanInstalment::isPaid).map(LoanInstalment::getInterestPart)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-        Quote requested = loan.getStatus() == LoanStatus.APPLIED
-                ? quote(loan.getAmountRequested(), loan.getType().getRate(), loan.getMonthsRequested(), loan.getMonthlyIncome())
-                : null;
-        return new LoanView(loan, schedule, next, paid, overdue, totalInterest, interestPaid, requested);
+        BigDecimal quotedRate = null;
+        Quote requested = null;
+        if (loan.getStatus() == LoanStatus.APPLIED) {
+            quotedRate = rates.rate(loan.getType(), loan.getRateType());
+            requested = quote(loan.getAmountRequested(), quotedRate, loan.getMonthsRequested(), loan.getMonthlyIncome());
+        }
+        return new LoanView(loan, schedule, next, paid, overdue, totalInterest, interestPaid, requested, quotedRate,
+                rates.changesOf(loan.getId()));
     }
 
     // ---------------------------------------------------------------- staff: decide
 
-    /** Approves and disburses in one transaction: schedule saved, money credited, customer alerted. */
+    /**
+     * Approves and disburses in one transaction: schedule saved, money credited, customer alerted. The repo rate is
+     * locked first, so a floating loan's spread is measured against the rate that is really in force.
+     */
     @Transactional
     public Loan approve(Long loanId, String staff, BigDecimal principal, BigDecimal rate, Integer months) {
+        BigDecimal repo = rates.lockRepoRate().getRatePercent();
         Loan loan = loans.findByIdForUpdate(loanId).orElseThrow(() -> new NotFoundException("Loan not found"));
         if (loan.getStatus() != LoanStatus.APPLIED) {
             throw new InvalidRequestException("This application has already been " + loan.getStatus().name().toLowerCase());
@@ -207,6 +225,10 @@ public class LoanService {
         }
         if (rate == null || rate.compareTo(BigDecimal.ONE) < 0 || rate.compareTo(BigDecimal.valueOf(30)) > 0) {
             errors.add("Interest rate must be between 1% and 30% a year");
+        } else if (rate.stripTrailingZeros().scale() > 2) {
+            errors.add("Use at most 2 decimal places for the interest rate");
+        } else if (loan.getRateType() == RateType.FLOATING && rate.compareTo(repo) < 0) {
+            errors.add("A floating rate can't be below the repo rate (" + repo + "%)");
         }
         if (!errors.isEmpty()) {
             throw new InvalidRequestException(String.join(" · ", errors));
@@ -215,10 +237,13 @@ public class LoanService {
         LocalDate today = LocalDate.now(clock);
         LocalDate firstEmi = EmiCalculator.firstEmiDate(today);
         BigDecimal amount = principal.setScale(2, RoundingMode.HALF_UP);
-        List<EmiCalculator.Row> rows = EmiCalculator.schedule(amount, rate, months, firstEmi);
+        BigDecimal sanctioned = rate.setScale(2, RoundingMode.HALF_UP);
+        BigDecimal spread = loan.getRateType() == RateType.FLOATING ? sanctioned.subtract(repo) : null;
+        List<EmiCalculator.Row> rows = EmiCalculator.schedule(amount, sanctioned, months, firstEmi);
         LocalDateTime now = LocalDateTime.now(clock);
 
-        loan.approve(amount, rate, months, rows.get(0).emi(), today, firstEmi, rows.get(rows.size() - 1).dueDate(), staff, now);
+        loan.approve(amount, sanctioned, spread, months, rows.get(0).emi(), today, firstEmi,
+                rows.get(rows.size() - 1).dueDate(), staff, now);
         for (EmiCalculator.Row r : rows) {
             instalments.save(new LoanInstalment(loan, r.number(), r.dueDate(), r.emi(), r.principal(), r.interest(), r.balance()));
         }
@@ -227,7 +252,9 @@ public class LoanService {
                 null, "LOAN/" + loan.getReference() + "/" + loan.getType().getLabel() + " disbursed", now));
         notifications.notify(account.getCustomer(), "Your loan is approved",
                 "Your " + loan.getType().getLabel().toLowerCase() + " " + loan.getReference() + " of Rs " + amount.toPlainString()
-                        + " is approved and credited to your account. EMI Rs " + loan.getEmi().toPlainString() + " on the "
+                        + " is approved and credited to your account at " + sanctioned + "% p.a. "
+                        + (spread == null ? "fixed" : "floating (repo rate " + repo + "% + " + spread + "%)")
+                        + ". EMI Rs " + loan.getEmi().toPlainString() + " on the "
                         + firstEmi.getDayOfMonth() + ordinal(firstEmi.getDayOfMonth()) + " of every month, first on "
                         + firstEmi.format(DATE) + ", last on " + loan.getEndDate().format(DATE) + ".");
         return loan;
@@ -379,16 +406,17 @@ public class LoanService {
      * up to today marked paid. The account balance and ledger are not touched.
      */
     @Transactional
-    public Loan importExistingLoan(String customerId, LoanType type, BigDecimal principal, int months, int monthsAgo,
-                                   String purpose, BigDecimal monthlyIncome) {
+    public Loan importExistingLoan(String customerId, LoanType type, RateType rateType, BigDecimal principal, int months,
+                                   int monthsAgo, String purpose, BigDecimal monthlyIncome) {
         Account account = account(customerId);
         LocalDate disbursed = LocalDate.now(clock).minusMonths(monthsAgo);
         LocalDate firstEmi = EmiCalculator.firstEmiDate(disbursed);
-        List<EmiCalculator.Row> rows = EmiCalculator.schedule(principal, type.getRate(), months, firstEmi);
-        Loan loan = new Loan(account, type, numbers.newReference("JBL"), principal, months, purpose, "Salaried",
+        BigDecimal rate = rates.rate(type, rateType);
+        List<EmiCalculator.Row> rows = EmiCalculator.schedule(principal, rate, months, firstEmi);
+        Loan loan = new Loan(account, type, rateType, numbers.newReference("JBL"), principal, months, purpose, "Salaried",
                 monthlyIncome, disbursed.atStartOfDay());
-        loan.approve(principal, type.getRate(), months, rows.get(0).emi(), disbursed, firstEmi,
-                rows.get(rows.size() - 1).dueDate(), "admin", disbursed.atStartOfDay());
+        loan.approve(principal, rate, rateType == RateType.FLOATING ? type.getSpread() : null, months, rows.get(0).emi(),
+                disbursed, firstEmi, rows.get(rows.size() - 1).dueDate(), "admin", disbursed.atStartOfDay());
         loans.save(loan);
         LocalDate today = LocalDate.now(clock);
         for (EmiCalculator.Row r : rows) {
@@ -406,7 +434,7 @@ public class LoanService {
     @Transactional
     public Loan importApplication(String customerId, Application a) {
         Account account = account(customerId);
-        return loans.save(new Loan(account, a.type(), numbers.newReference("JBL"), a.amount(), a.months(), a.purpose(),
+        return loans.save(new Loan(account, a.type(), a.rateType(), numbers.newReference("JBL"), a.amount(), a.months(), a.purpose(),
                 a.employment(), a.monthlyIncome(), LocalDateTime.now(clock)));
     }
 

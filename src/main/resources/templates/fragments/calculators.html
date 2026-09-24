@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<!-- Calculators shared by the home, Invest, Loans and Tools pages. The maths and limits live in /js/calc.js. -->
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- A slider with a box you can type an exact value into. kind: money | rate | percent | delta | years | tenure | count -->
+<div th:fragment="field(id, name, label, kind)" class="range" th:attr="data-field=${name},data-kind=${kind}">
+    <div class="range-head">
+        <label th:for="${id}" th:text="${label}" data-label>Value</label>
+        <span class="rv">
+            <span class="rv-pre" th:if="${kind == 'money'}">₹</span>
+            <input class="rv-in" th:id="${id}" type="text" inputmode="decimal" autocomplete="off" spellcheck="false">
+            <span class="rv-post" th:if="${kind == 'rate' or kind == 'percent' or kind == 'delta'}">%</span>
+            <span class="rv-post" th:if="${kind == 'years'}" data-unit-label>yrs</span>
+            <span class="rv-units" th:if="${kind == 'tenure'}" role="group" aria-label="Tenure unit">
+                <button type="button" data-unit="y" aria-pressed="true" title="Years">Yr</button><button type="button" data-unit="m" aria-pressed="false" title="Months">Mo</button>
+            </span>
+        </span>
+    </div>
+    <input type="range" tabindex="-1" aria-hidden="true">
+    <small class="rv-hint" aria-live="polite"></small>
+</div>
+
+<!-- EMI calculator with fixed vs floating comparison. Needs ${offers}, ${selected} and ${repo}. -->
+<section th:fragment="emi" class="mk-card emi-calc" id="calculator" data-emi-calc th:attr="data-repo=${repo.ratePercent}">
+    <div class="emi-tabs" role="tablist" aria-label="Loan type">
+        <button type="button" th:each="o : ${offers}" role="tab" th:classappend="${o.type == selected} ? 'on'"
+                th:attr="data-loan-type=${o.type},data-floating=${o.floating},data-fixed=${o.fixed},data-spread=${o.type.spread},data-min=${o.type.minAmount},data-max=${o.type.maxAmount},data-minm=${o.type.minMonths},data-maxm=${o.type.maxMonths}"
+                th:text="${o.type.icon + ' ' + o.type.label}"></button>
+    </div>
+    <div class="emi-grid">
+        <div>
+            <fieldset class="rate-pick">
+                <legend>Interest rate type</legend>
+                <div class="seg two">
+                    <label><input type="radio" name="emi-rate-type" value="FLOATING" checked><span><b>Floating</b><small data-rate-of="FLOATING">—</small></span></label>
+                    <label><input type="radio" name="emi-rate-type" value="FIXED"><span><b>Fixed</b><small data-rate-of="FIXED">—</small></span></label>
+                </div>
+                <p class="rate-note" data-rate-note></p>
+            </fieldset>
+            <div th:replace="~{fragments/calculators :: field('emi-amount', 'amount', 'Loan amount', 'money')}"></div>
+            <div th:replace="~{fragments/calculators :: field('emi-rate', 'rate', 'Interest rate (p.a.)', 'rate')}"></div>
+            <div th:replace="~{fragments/calculators :: field('emi-tenure', 'tenure', 'Tenure', 'tenure')}"></div>
+        </div>
+        <div class="emi-result">
+            <span>Your monthly EMI</span>
+            <strong data-out="emi">—</strong>
+            <p class="emi-after" data-out="emi-after"></p>
+            <div class="emi-split" aria-hidden="true"><i data-bar></i></div>
+            <dl class="calc-out">
+                <div><dt><i class="sw inv"></i>Principal</dt><dd data-out="principal"></dd></div>
+                <div><dt><i class="sw ret"></i>Total interest</dt><dd data-out="interest"></dd></div>
+                <div class="total"><dt>Total payable</dt><dd data-out="total"></dd></div>
+            </dl>
+        </div>
+    </div>
+
+    <div class="ff" data-compare>
+        <div class="ff-head">
+            <h3>Fixed or floating?</h3>
+            <p class="muted small">Floating loans follow the RBI repo rate, now <b th:text="${repo.ratePercent + '%'}">5.25%</b>
+                (since <span th:text="${#temporals.format(repo.effectiveFrom, 'dd MMM yyyy')}"></span>). Try a rate change to see how both options compare.</p>
+        </div>
+        <div class="ff-scenario">
+            <div th:replace="~{fragments/calculators :: field('emi-delta', 'delta', 'If the repo rate changes by', 'delta')}"></div>
+            <div th:replace="~{fragments/calculators :: field('emi-from', 'from', 'starting in year', 'count')}"></div>
+        </div>
+        <div class="ff-cards">
+            <div class="ff-card" data-ff="FLOATING">
+                <span>Floating · <b data-out="ff-float-rate"></b></span>
+                <strong data-out="ff-float-emi"></strong>
+                <small data-out="ff-float-note"></small>
+                <p>Total interest <b data-out="ff-float-interest"></b></p>
+            </div>
+            <div class="ff-card" data-ff="FIXED">
+                <span>Fixed · <b data-out="ff-fixed-rate"></b></span>
+                <strong data-out="ff-fixed-emi"></strong>
+                <small>Same EMI for the whole loan</small>
+                <p>Total interest <b data-out="ff-fixed-interest"></b></p>
+            </div>
+        </div>
+        <p class="ff-verdict" data-out="ff-verdict"></p>
+        <p class="muted small" data-out="ff-breakeven"></p>
+    </div>
+
+    <details class="emi-years">
+        <summary>Year-by-year repayment</summary>
+        <div class="table-wrap plain">
+            <table class="table"><thead><tr><th>Year</th><th class="num">Principal paid</th><th class="num">Interest paid</th><th class="num">Balance at year end</th></tr></thead>
+                <tbody data-emi-years></tbody></table>
+        </div>
+    </details>
+</section>
+
+<!-- SIP, lump sum and FD calculator. modes: comma-separated, e.g. 'sip,fd'; tabs appear when there is more than one. -->
+<div th:fragment="compact(id, modes)" class="calc compact" data-calc th:attr="data-modes=${modes}">
+    <div class="calc-tabs" role="tablist" th:if="${#strings.contains(modes, ',')}">
+        <button type="button" role="tab" th:each="m, it : ${#strings.arraySplit(modes, ',')}" th:classappend="${it.first} ? 'on'"
+                th:attr="data-mode=${m},aria-selected=${it.first}"
+                th:text="${m == 'sip' ? 'SIP' : (m == 'fd' ? 'Fixed deposit' : 'Lump sum')}"></button>
+    </div>
+    <div th:replace="~{fragments/calculators :: field(${id + '-amount'}, 'amount', 'Monthly investment', 'money')}"></div>
+    <div th:replace="~{fragments/calculators :: field(${id + '-years'}, 'years', 'Time period', 'years')}"></div>
+    <div th:replace="~{fragments/calculators :: field(${id + '-rate'}, 'rate', 'Expected return (p.a.)', 'percent')}"></div>
+    <div class="calc-bar" aria-hidden="true"><i data-bar></i></div>
+    <dl class="calc-out">
+        <div><dt><i class="sw inv"></i><span data-out-label="invested">Invested</span></dt><dd data-out="invested"></dd></div>
+        <div><dt><i class="sw ret"></i><span data-out-label="returns">Est. returns</span></dt><dd data-out="returns"></dd></div>
+        <div class="total"><dt data-out-label="total">Total value</dt><dd data-out="total"></dd></div>
+    </dl>
+    <p class="calc-note" data-out="note">For illustration only. Returns are not guaranteed.</p>
+</div>
+
+<!-- How much can I borrow? Needs ${offers}. Uses the bank's own rule: all EMIs within 50% of monthly income. -->
+<div th:fragment="eligibility" class="mk-card elig" data-eligibility>
+    <div class="emi-tabs" role="tablist" aria-label="Loan type">
+        <button type="button" th:each="o, it : ${offers}" role="tab" th:classappend="${it.first} ? 'on'"
+                th:attr="data-loan-type=${o.type},data-label=${o.type.label},data-floating=${o.floating},data-max=${o.type.maxAmount},data-minm=${o.type.minMonths},data-maxm=${o.type.maxMonths}"
+                th:text="${o.type.icon + ' ' + o.type.label}"></button>
+    </div>
+    <div class="emi-grid">
+        <div>
+            <div th:replace="~{fragments/calculators :: field('el-income', 'income', 'Monthly take-home income', 'money')}"></div>
+            <div th:replace="~{fragments/calculators :: field('el-emis', 'emis', 'EMIs you already pay each month', 'money')}"></div>
+            <div th:replace="~{fragments/calculators :: field('el-rate', 'rate', 'Interest rate (p.a.)', 'rate')}"></div>
+            <div th:replace="~{fragments/calculators :: field('el-tenure', 'tenure', 'Tenure', 'tenure')}"></div>
+        </div>
+        <div class="emi-result">
+            <span>You could borrow up to</span>
+            <strong data-out="max">—</strong>
+            <p class="emi-after" data-out="cap"></p>
+            <dl class="calc-out">
+                <div><dt>EMI you can afford</dt><dd data-out="emi"></dd></div>
+                <div><dt>Half of your income</dt><dd data-out="half"></dd></div>
+                <div><dt>Minus EMIs you pay</dt><dd data-out="existing"></dd></div>
+            </dl>
+            <p class="small muted">Banks keep all your EMIs within about half of your monthly income. JavaBank uses the same
+                rule when it checks your application.</p>
+            <div class="hero-actions">
+                <a class="btn dark" href="/customer/loans/apply" data-apply-link>Apply online</a>
+                <a class="btn soft" href="/loans#enquire" data-callback-link>Get a call back</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

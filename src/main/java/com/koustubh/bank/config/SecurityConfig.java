@@ -49,7 +49,7 @@ public class SecurityConfig {
                 .authenticationManager(new ProviderManager(provider))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/admin/login").permitAll()
-                        .requestMatchers("/admin/staff/**").hasRole("ADMIN")
+                        .requestMatchers("/admin/staff/**", "/admin/loans/repo-rate").hasRole("ADMIN")
                         .anyRequest().hasRole("STAFF"))
                 .formLogin(form -> form
                         .loginPage("/login?as=staff")

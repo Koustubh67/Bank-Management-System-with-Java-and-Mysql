@@ -379,6 +379,7 @@ a.policy:hover { transform: translateY(-3px); box-shadow: 0 16px 30px rgba(15, 2
 .lp:hover, .lp.on { border-color: var(--ink); transform: translateY(-2px); box-shadow: 0 12px 26px rgba(15, 23, 42, .08); }
 .lp-ic { font-size: 1.6rem; }
 .lp small { color: var(--em-dark); font-weight: 700; }
+.lp em { color: var(--muted); font-style: normal; font-size: .78rem; font-weight: 600; }
 .emi-calc { margin-top: 26px; scroll-margin-top: 90px; }
 .emi-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 20px; }
 .emi-tabs button { border: 1.5px solid var(--line); background: #fff; border-radius: 99px; padding: 8px 14px; font: inherit; font-weight: 600; font-size: .88rem; cursor: pointer; }
@@ -387,6 +388,32 @@ a.policy:hover { transform: translateY(-3px); box-shadow: 0 16px 30px rgba(15, 2
 .emi-result { padding: 22px; border-radius: 20px; background: var(--bg); }
 .emi-result > span { color: var(--muted); font-weight: 600; }
 .emi-result > strong { display: block; font-size: 2.4rem; letter-spacing: -.03em; margin: 2px 0 12px; }
+.emi-after { margin: -6px 0 12px; color: #b45309; font-weight: 600; font-size: .9rem; }
+.emi-after:empty { display: none; }
+.rate-pick { border: 0; padding: 0; margin: 0 0 18px; }
+.rate-pick legend { font-weight: 600; font-size: .92rem; margin-bottom: 8px; }
+.rate-pick .seg { margin-bottom: 8px; }
+.rate-note { margin: 0; color: var(--muted); font-size: .82rem; }
+.rate-choice span { text-align: left; padding: 12px 14px; }
+.rate-choice em { font-style: normal; font-size: .78rem; color: var(--muted); font-weight: 500; }
+.rate-choice input:checked + span em { color: #cbd5e1; }
+/* Fixed vs floating */
+.ff { margin-top: 24px; padding-top: 22px; border-top: 1px solid var(--line); }
+.ff-head h3 { margin: 0 0 4px; font-size: 1.15rem; }
+.ff-head p { margin: 0 0 14px; }
+.ff-scenario { display: grid; grid-template-columns: 1.4fr 1fr; gap: 0 24px; }
+.ff-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.ff-card { display: grid; gap: 2px; padding: 16px 18px; border-radius: 18px; border: 1.5px solid var(--line); background: #fff; transition: border-color .2s, background .2s; }
+.ff-card > span { color: var(--muted); font-weight: 600; font-size: .88rem; }
+.ff-card > strong { font-size: 1.5rem; letter-spacing: -.02em; }
+.ff-card > small { color: var(--muted); }
+.ff-card p { margin: 8px 0 0; padding-top: 8px; border-top: 1px dashed var(--line); display: flex; justify-content: space-between; color: var(--muted); font-size: .88rem; }
+.ff-card p b { color: var(--ink); }
+.ff-card.picked { border-color: var(--ink); }
+.ff-card.cheaper { background: #ecfdf5; }
+.ff-card.cheaper > span::after { content: " · cheaper"; color: var(--em-dark); }
+.ff-verdict { margin: 14px 0 4px; font-weight: 700; }
+.elig .emi-result .hero-actions { margin-top: 14px; }
 .emi-split { height: 12px; border-radius: 99px; background: #c7d2fe; overflow: hidden; margin-bottom: 14px; }
 .emi-split i { display: block; height: 100%; background: var(--em); transition: width .3s; }
 .emi-years { margin-top: 16px; }
@@ -422,6 +449,7 @@ a.policy:hover { transform: translateY(-3px); box-shadow: 0 16px 30px rgba(15, 2
 .loan-figs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
 .loan-figs div { padding: 12px 14px; border-radius: 14px; background: var(--bg); }
 .loan-figs span { display: block; color: var(--muted); font-size: .78rem; }
+.loan-figs small { display: block; color: var(--muted); font-size: .75rem; margin-top: 2px; }
 .schedule { max-height: 520px; overflow-y: auto; }
 .schedule thead th { position: sticky; top: 0; z-index: 1; }
 .next-row { background: #fffbeb; }
@@ -432,7 +460,7 @@ a.policy:hover { transform: translateY(-3px); box-shadow: 0 16px 30px rgba(15, 2
 .loan-live strong { font-size: 1.5rem; letter-spacing: -.02em; }
 .loan-live p { grid-column: 1 / -1; margin: 0; font-weight: 600; }
 @media (max-width: 900px) {
-    .emi-grid, .loan-enquire { grid-template-columns: 1fr; }
+    .emi-grid, .loan-enquire, .ff-scenario, .ff-cards { grid-template-columns: 1fr; }
     .loan-figs { grid-template-columns: 1fr 1fr; }
     .loan-products, .type-seg, .loan-live { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .lh-emi { justify-items: start; text-align: left; }

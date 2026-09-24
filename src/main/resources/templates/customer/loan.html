@@ -26,7 +26,7 @@
         <dl class="details">
             <dt>Amount requested</dt><dd th:text="${@money.format(l.amountRequested)}"></dd>
             <dt>Tenure</dt><dd th:text="${l.tenureLabel}"></dd>
-            <dt>Indicative rate</dt><dd th:text="${l.type.rate + '% p.a.'}"></dd>
+            <dt>Interest rate</dt><dd th:text="${v.quotedRate + '% p.a. ' + #strings.toLowerCase(l.rateType.label) + ', at current rates'}"></dd>
             <dt>Estimated EMI</dt><dd th:text="${@money.format(v.requestedQuote.emi)}"></dd>
             <dt>Applied on</dt><dd th:text="${#temporals.format(l.createdAt, 'dd MMM yyyy, hh:mm a')}"></dd>
         </dl>
@@ -43,7 +43,8 @@
         <section class="panel">
             <div class="loan-figs">
                 <div><span>Loan amount</span><b th:text="${@money.format(l.principal)}"></b></div>
-                <div><span>Interest rate</span><b th:text="${l.ratePercent + '% p.a.'}"></b></div>
+                <div><span>Interest rate</span><b th:text="${l.ratePercent + '% p.a.'}"></b>
+                    <small th:text="${l.rateType.name() == 'FLOATING' ? 'Floating · repo + ' + l.spreadPercent + '%' : 'Fixed for the whole loan'}"></small></div>
                 <div><span>Monthly EMI</span><b th:text="${@money.format(l.emi)}"></b></div>
                 <div><span>Principal still owed</span><b th:text="${@money.format(l.outstanding)}"></b></div>
                 <div><span>Disbursed on</span><b th:text="${#temporals.format(l.disbursedOn, 'dd MMM yyyy')}"></b></div>
@@ -55,6 +56,25 @@
             <p class="lc-meta" th:text="${v.paid + ' of ' + l.tenureMonths + ' EMIs paid · interest paid ' + @money.whole(v.interestPaid) + ' of ' + @money.whole(v.totalInterest)}"></p>
             <p class="status-banner declined" th:if="${v.overdue > 0}">⚠ You have <b th:text="${v.overdue}"></b> overdue EMI(s). Add money to your
                 account; we retry the auto-debit every day, or tap "Pay overdue EMI now".</p>
+        </section>
+
+        <section class="panel" th:if="${l.rateType.name() == 'FLOATING'}">
+            <div class="panel-head"><h2>Rate changes</h2><span class="muted small">Your rate follows the RBI repo rate</span></div>
+            <p class="muted" th:if="${v.rateChanges.isEmpty()}" th:text="${'No changes yet. Your rate is the repo rate plus ' + l.spreadPercent + '%. If the repo rate changes, we recalculate the EMIs still to come, tell you by SMS and email, and your loan still ends on ' + #temporals.format(l.endDate, 'dd MMM yyyy') + '.'}"></p>
+            <div class="table-wrap plain" th:unless="${v.rateChanges.isEmpty()}">
+                <table class="table">
+                    <thead><tr><th>Changed on</th><th>Repo rate</th><th>Your rate</th><th class="num">EMI</th><th>From</th></tr></thead>
+                    <tbody>
+                    <tr th:each="c : ${v.rateChanges}">
+                        <td th:text="${#temporals.format(c.createdAt, 'dd MMM yyyy')}"></td>
+                        <td th:text="${c.repoRate + '%'}"></td>
+                        <td th:classappend="${c.increase} ? 'dr' : 'cr'" th:text="${c.oldRate + '% → ' + c.newRate + '%'}"></td>
+                        <td class="num" th:classappend="${c.increase} ? 'dr' : 'cr'" th:text="${@money.format(c.oldEmi) + ' → ' + @money.format(c.newEmi)}"></td>
+                        <td th:text="${'EMI ' + c.fromInstalment + ' (' + #temporals.format(c.effectiveFrom, 'dd MMM yyyy') + ')'}"></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
         </section>
 
         <section class="panel">

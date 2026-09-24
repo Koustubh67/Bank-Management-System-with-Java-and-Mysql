@@ -8,8 +8,8 @@
             <div>
                 <span class="eyebrow">JavaBank Loans</span>
                 <h1>Loans for every dream,<br><span class="grad-text">EMIs you can plan.</span></h1>
-                <p class="lead">Home, car, personal, education, two-wheeler and gold loans. Check your EMI in seconds, then
-                    apply online (customers) or ask our loan expert to call you back.</p>
+                <p class="lead">Home, car, personal, education, two-wheeler and gold loans at a fixed or floating rate. Check
+                    your EMI in seconds, then apply online (customers) or ask our loan expert to call you back.</p>
                 <div class="hero-actions">
                     <a class="btn dark lg" href="#calculator">EMI calculator</a>
                     <a class="btn soft lg" href="#enquire">Get a call back</a>
@@ -17,52 +17,20 @@
                 </div>
             </div>
             <div class="loan-products">
-                <a class="lp" th:each="t : ${types}" th:href="@{/loans(type=${t})} + '#calculator'" th:classappend="${t == selected} ? 'on'">
-                    <span class="lp-ic" th:text="${t.icon}"></span>
-                    <b th:text="${t.label}"></b>
-                    <small th:text="${'from ' + t.rate + '% p.a.'}"></small>
+                <a class="lp" th:each="o : ${offers}" th:href="@{/loans(type=${o.type})} + '#calculator'" th:classappend="${o.type == selected} ? 'on'">
+                    <span class="lp-ic" th:text="${o.type.icon}"></span>
+                    <b th:text="${o.type.label}"></b>
+                    <small th:text="${'from ' + o.floating + '% p.a.'}"></small>
+                    <em th:text="${'Fixed ' + o.fixed + '%'}"></em>
                 </a>
             </div>
         </div>
     </section>
 
     <div class="container">
-        <!-- EMI calculator -->
-        <section class="mk-card emi-calc" id="calculator" data-emi-calc>
-            <div class="emi-tabs" role="tablist" aria-label="Loan type">
-                <button type="button" th:each="t : ${types}" role="tab" th:classappend="${t == selected} ? 'on'"
-                        th:attr="data-loan-type=${t},data-rate=${t.rate},data-min=${t.minAmount},data-max=${t.maxAmount},data-minm=${t.minMonths},data-maxm=${t.maxMonths}"
-                        th:text="${t.icon + ' ' + t.label}"></button>
-            </div>
-            <div class="emi-grid">
-                <div>
-                    <label class="range"><span>Loan amount<b data-out="amount"></b></span>
-                        <input type="range" data-in="amount" step="10000"></label>
-                    <label class="range"><span>Interest rate (p.a.)<b data-out="rate"></b></span>
-                        <input type="range" data-in="rate" min="5" max="20" step="0.05"></label>
-                    <label class="range"><span>Tenure<b data-out="months"></b></span>
-                        <input type="range" data-in="months" step="1"></label>
-                    <p class="muted small">Rates shown are indicative. Your final rate depends on your credit profile.</p>
-                </div>
-                <div class="emi-result">
-                    <span>Your monthly EMI</span>
-                    <strong data-out="emi">—</strong>
-                    <div class="emi-split" aria-hidden="true"><i data-bar></i></div>
-                    <dl class="calc-out">
-                        <div><dt><i class="sw inv"></i>Principal</dt><dd data-out="principal"></dd></div>
-                        <div><dt><i class="sw ret"></i>Total interest</dt><dd data-out="interest"></dd></div>
-                        <div class="total"><dt>Total payable</dt><dd data-out="total"></dd></div>
-                    </dl>
-                </div>
-            </div>
-            <details class="emi-years">
-                <summary>Year-by-year repayment</summary>
-                <div class="table-wrap plain">
-                    <table class="table"><thead><tr><th>Year</th><th class="num">Principal paid</th><th class="num">Interest paid</th><th class="num">Balance at year end</th></tr></thead>
-                        <tbody data-emi-years></tbody></table>
-                </div>
-            </details>
-        </section>
+        <!-- EMI calculator: fixed or floating -->
+        <section th:replace="~{fragments/calculators :: emi}"></section>
+        <p class="more-link-row"><a class="more-link" th:href="@{/tools#eligibility}">How much can I borrow? Check your eligibility →</a></p>
 
         <!-- Enquiry -->
         <section class="loan-enquire" id="enquire">
@@ -103,10 +71,11 @@
             </form>
         </section>
 
-        <p class="note mk-disclaimer">Loans are subject to eligibility and credit approval. Interest rates are indicative and can
-            change. EMI is calculated on a reducing balance. JavaBank is a demo project: no real loan is given.</p>
+        <p class="note mk-disclaimer">Loans are subject to eligibility and credit approval. Floating rates are linked to the RBI
+            repo rate (<span th:text="${repo.ratePercent + '%'}"></span> since <span th:text="${#temporals.format(repo.effectiveFrom, 'dd MMM yyyy')}"></span>)
+            and change when it changes; fixed rates stay the same for the whole loan. EMI is calculated on a reducing
+            balance. JavaBank is a demo project: no real loan is given.</p>
     </div>
-    <script th:src="@{/js/loans.js}"></script>
 </main>
 </body>
 </html>

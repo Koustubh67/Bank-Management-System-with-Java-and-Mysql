@@ -6,7 +6,10 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-/** One row of a loan's repayment schedule. The amounts are fixed at approval; only the status changes. */
+/**
+ * One row of a loan's repayment schedule. The amounts are set at approval. For floating-rate loans the EMIs not yet
+ * paid are recalculated when the repo rate changes; paid ones never change.
+ */
 @Entity
 public class LoanInstalment {
 
@@ -56,6 +59,17 @@ public class LoanInstalment {
             return true;
         }
         return false;
+    }
+
+    /** New amounts after a rate reset. Paid EMIs are history and can't be changed. */
+    public void reschedule(BigDecimal emi, BigDecimal principalPart, BigDecimal interestPart, BigDecimal balanceAfter) {
+        if (isPaid()) {
+            throw new IllegalStateException("EMI " + number + " is already paid");
+        }
+        this.emi = emi;
+        this.principalPart = principalPart;
+        this.interestPart = interestPart;
+        this.balanceAfter = balanceAfter;
     }
 
     public boolean isPaid() {
