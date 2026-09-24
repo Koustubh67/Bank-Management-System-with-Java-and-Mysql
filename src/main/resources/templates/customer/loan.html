@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/customer :: page(~{::title}, ~{::main})}">
+<head><title>Loan · JavaBank</title></head>
+<body>
+<main class="container cust-main" th:with="l=${v.loan}, st=${v.loan.status.name()}">
+    <p><a th:href="@{/customer/loans}">← Loans</a></p>
+    <section class="loan-hero" th:classappend="${#strings.toLowerCase(st)}">
+        <div>
+            <span class="badge" th:text="${st == 'APPLIED'} ? 'UNDER REVIEW' : ${st}"></span>
+            <h1 th:text="${l.type.icon + ' ' + l.type.label}"></h1>
+            <p class="mono" th:text="${l.reference + ' · ' + l.purpose}"></p>
+        </div>
+        <div class="lh-emi" th:if="${v.next != null}">
+            <span th:text="${v.overdue > 0} ? 'EMI overdue' : 'Next EMI'"></span>
+            <strong th:text="${@money.format(v.next.emi)}"></strong>
+            <small th:text="${'due ' + #temporals.format(v.next.dueDate, 'EEE, dd MMM yyyy')}"></small>
+            <form th:action="@{/customer/loans/{id}/pay(id=${l.id})}" method="post">
+                <button type="submit" class="btn light" th:text="${v.overdue > 0} ? 'Pay overdue EMI now' : 'Pay this EMI now'">Pay now</button>
+            </form>
+        </div>
+    </section>
+
+    <!-- Under review -->
+    <section class="panel" th:if="${st == 'APPLIED'}">
+        <h2>Your application</h2>
+        <dl class="details">
+            <dt>Amount requested</dt><dd th:text="${@money.format(l.amountRequested)}"></dd>
+            <dt>Tenure</dt><dd th:text="${l.tenureLabel}"></dd>
+            <dt>Indicative rate</dt><dd th:text="${l.type.rate + '% p.a.'}"></dd>
+            <dt>Estimated EMI</dt><dd th:text="${@money.format(v.requestedQuote.emi)}"></dd>
+            <dt>Applied on</dt><dd th:text="${#temporals.format(l.createdAt, 'dd MMM yyyy, hh:mm a')}"></dd>
+        </dl>
+        <p class="note">A loan officer is reviewing your application. We'll notify you by SMS and email within 24–48 hours.</p>
+    </section>
+    <section class="panel" th:if="${st == 'REJECTED'}">
+        <h2>Application not approved</h2>
+        <p th:text="${l.rejectReason}"></p>
+        <p class="muted">You can apply again with a different amount or tenure. <a th:href="@{/customer/loans/apply(type=${l.type})}">Apply again</a></p>
+    </section>
+
+    <!-- Active / closed -->
+    <th:block th:if="${st == 'ACTIVE' or st == 'CLOSED'}">
+        <section class="panel">
+            <div class="loan-figs">
+                <div><span>Loan amount</span><b th:text="${@money.format(l.principal)}"></b></div>
+                <div><span>Interest rate</span><b th:text="${l.ratePercent + '% p.a.'}"></b></div>
+                <div><span>Monthly EMI</span><b th:text="${@money.format(l.emi)}"></b></div>
+                <div><span>Principal still owed</span><b th:text="${@money.format(l.outstanding)}"></b></div>
+                <div><span>Disbursed on</span><b th:text="${#temporals.format(l.disbursedOn, 'dd MMM yyyy')}"></b></div>
+                <div><span>EMI date</span><b th:text="${'Every month on the ' + #temporals.format(l.firstEmiDate, 'd')}"></b></div>
+                <div><span>First EMI</span><b th:text="${#temporals.format(l.firstEmiDate, 'dd MMM yyyy')}"></b></div>
+                <div><span>Loan ends</span><b th:text="${#temporals.format(l.endDate, 'dd MMM yyyy')}"></b></div>
+            </div>
+            <div class="lc-progress big"><i th:style="'width:' + ${v.progressPercent} + '%'"></i></div>
+            <p class="lc-meta" th:text="${v.paid + ' of ' + l.tenureMonths + ' EMIs paid · interest paid ' + @money.whole(v.interestPaid) + ' of ' + @money.whole(v.totalInterest)}"></p>
+            <p class="status-banner declined" th:if="${v.overdue > 0}">⚠ You have <b th:text="${v.overdue}"></b> overdue EMI(s). Add money to your
+                account; we retry the auto-debit every day, or tap "Pay overdue EMI now".</p>
+        </section>
+
+        <section class="panel">
+            <div class="panel-head"><h2>EMI schedule</h2><span class="muted small">Auto-debited from your savings account on each due date</span></div>
+            <div class="table-wrap plain schedule">
+                <table class="table">
+                    <thead><tr><th>#</th><th>Due date</th><th class="num">EMI</th><th class="num">Principal</th><th class="num">Interest</th><th class="num">Balance after</th><th>Status</th></tr></thead>
+                    <tbody>
+                    <tr th:each="i : ${v.schedule}" th:classappend="${v.next != null and i.id == v.next.id} ? 'next-row'">
+                        <td th:text="${i.number}"></td>
+                        <td th:text="${#temporals.format(i.dueDate, 'dd MMM yyyy')}"></td>
+                        <td class="num" th:text="${@money.format(i.emi)}"></td>
+                        <td class="num" th:text="${@money.format(i.principalPart)}"></td>
+                        <td class="num" th:text="${@money.format(i.interestPart)}"></td>
+                        <td class="num" th:text="${@money.format(i.balanceAfter)}"></td>
+                        <td><span class="badge" th:classappend="${i.status.name() == 'PAID'} ? 'active' : (${i.status.name() == 'OVERDUE'} ? 'declined' : 'pending')"
+                                  th:text="${i.status.name() == 'PAID'} ? ${'PAID ' + #temporals.format(i.paidOn, 'dd MMM')} : ${i.status}"></span></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </th:block>
+</main>
+</body>
+</html>

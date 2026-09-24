@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/admin :: page(~{::title}, ~{::main})}">
+<head><title>Loans · JavaBank Staff</title></head>
+<body>
+<main class="container">
+    <div class="actions-bar spread">
+        <div><h1>Loans</h1><p class="muted">Review applications, follow active loans and EMIs, and call back enquiries.</p></div>
+        <form th:action="@{/admin/loans/collect}" method="post"><button type="submit" class="btn primary">Collect due EMIs now</button></form>
+    </div>
+
+    <h2>Applications to review <span class="badge pending" th:text="${applications.size()}"></span></h2>
+    <p class="muted" th:if="${applications.isEmpty()}">No applications waiting. 🎉</p>
+    <div class="req-cards">
+        <article class="card req-card" th:each="v : ${applications}" th:with="l=${v.loan}, c=${v.loan.account.customer}, q=${v.requestedQuote}">
+            <div class="rc-head">
+                <div><b th:text="${l.type.icon + ' ' + l.type.label + ' · ' + @money.whole(l.amountRequested)}"></b>
+                    <small class="muted mono" th:text="${l.reference}"></small></div>
+                <span class="badge" th:classappend="${q.affordable} ? 'active' : 'declined'" th:text="${'FOIR ' + q.foir + '%'}"></span>
+            </div>
+            <dl class="details">
+                <dt>Customer</dt><dd><a th:href="@{/admin/accounts/{id}(id=${l.account.id})}" th:text="${c.fullName + ' (' + c.customerId + ')'}"></a></dd>
+                <dt>Tenure</dt><dd th:text="${l.tenureLabel}"></dd>
+                <dt>Purpose</dt><dd th:text="${l.purpose}"></dd>
+                <dt>Income</dt><dd th:text="${@money.whole(l.monthlyIncome) + '/month · ' + l.employment}"></dd>
+                <dt>EMI at list rate</dt><dd th:text="${@money.format(q.emi) + ' at ' + l.type.rate + '%'}"></dd>
+                <dt>Account balance</dt><dd th:text="${@money.format(l.account.balance)}"></dd>
+                <dt>Applied</dt><dd th:text="${#temporals.format(l.createdAt, 'dd MMM yyyy, hh:mm a')}"></dd>
+            </dl>
+            <a class="btn primary small" th:href="@{/admin/loans/{id}(id=${l.id})}">Review &amp; decide →</a>
+        </article>
+    </div>
+
+    <h2>Active loans</h2>
+    <p class="muted" th:if="${active.isEmpty()}">No active loans.</p>
+    <div class="table-wrap" th:unless="${active.isEmpty()}">
+        <table class="table">
+            <thead><tr><th>Loan</th><th>Customer</th><th class="num">Principal</th><th class="num">Outstanding</th><th class="num">EMI</th><th>Next EMI</th><th>Ends</th><th>Paid</th></tr></thead>
+            <tbody>
+            <tr th:each="v : ${active}" th:with="l=${v.loan}">
+                <td><a th:href="@{/admin/loans/{id}(id=${l.id})}" th:text="${l.type.label}"></a><small class="muted remark mono" th:text="${l.reference}"></small></td>
+                <td><a th:href="@{/admin/accounts/{id}(id=${l.account.id})}" th:text="${l.account.customer.fullName}"></a></td>
+                <td class="num" th:text="${@money.whole(l.principal)}"></td>
+                <td class="num" th:text="${@money.format(l.outstanding)}"></td>
+                <td class="num" th:text="${@money.format(l.emi)}"></td>
+                <td th:classappend="${v.overdue > 0} ? 'dr'" th:text="${v.next != null ? #temporals.format(v.next.dueDate, 'dd MMM yyyy') + (v.overdue > 0 ? ' (' + v.overdue + ' overdue)' : '') : '—'}"></td>
+                <td th:text="${#temporals.format(l.endDate, 'dd MMM yyyy')}"></td>
+                <td th:text="${v.paid + '/' + l.tenureMonths}"></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <h2>Closed &amp; rejected</h2>
+    <p class="muted" th:if="${decided.isEmpty()}">None yet.</p>
+    <div class="table-wrap" th:unless="${decided.isEmpty()}">
+        <table class="table">
+            <thead><tr><th>Loan</th><th>Customer</th><th>Status</th><th>Decided by</th><th>Note</th></tr></thead>
+            <tbody>
+            <tr th:each="v : ${decided}" th:with="l=${v.loan}">
+                <td><a th:href="@{/admin/loans/{id}(id=${l.id})}" th:text="${l.type.label + ' · ' + l.reference}"></a></td>
+                <td th:text="${l.account.customer.fullName}"></td>
+                <td th:text="${l.status}"></td><td th:text="${l.reviewedBy ?: '—'}"></td><td th:text="${l.rejectReason ?: '—'}"></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <h2 id="enquiries">Enquiries from the website</h2>
+    <p class="muted">People who asked for a call back on the public Loans page. They may not be customers yet.</p>
+    <p class="muted" th:if="${enquiries.isEmpty()}">No enquiries yet.</p>
+    <div class="table-wrap" th:unless="${enquiries.isEmpty()}">
+        <table class="table">
+            <thead><tr><th>Received</th><th>Name &amp; contact</th><th>Loan wanted</th><th>Status</th><th>Action</th></tr></thead>
+            <tbody>
+            <tr th:each="e : ${enquiries}">
+                <td th:text="${#temporals.format(e.createdAt, 'dd MMM HH:mm')}"></td>
+                <td><b th:text="${e.name}"></b><small class="muted remark" th:text="${'+91 ' + e.mobile + ' · ' + e.city}"></small>
+                    <small class="muted remark" th:text="${e.email}"></small></td>
+                <td><span th:text="${e.type.label + ' · ' + @money.whole(e.amount)}"></span>
+                    <small class="muted remark" th:text="${e.employment + ' · ' + @money.whole(e.monthlyIncome) + '/mo'}"></small>
+                    <small class="muted remark" th:text="${'Call: ' + e.preferredTime}"></small></td>
+                <td class="wrap enq-status"><span class="badge" th:classappend="${e.status.name() == 'NEW'} ? 'pending' : (${e.status.name() == 'CONTACTED'} ? 'active' : 'frozen')" th:text="${e.status}"></span>
+                    <small class="muted remark" th:if="${e.staffNote}" th:text="${e.staffNote + ' (' + e.handledBy + ')'}"></small></td>
+                <td>
+                    <form th:action="@{/admin/loans/enquiries/{id}(id=${e.id})}" method="post" class="enq-form" th:unless="${e.status.name() == 'CLOSED'}">
+                        <input type="text" name="note" maxlength="300" placeholder="Call note (needed to close)" aria-label="Call note">
+                        <div>
+                            <button type="submit" name="status" value="CONTACTED" class="btn small primary" th:if="${e.status.name() == 'NEW'}">Contacted</button>
+                            <button type="submit" name="status" value="CLOSED" class="btn small ghost">Close</button>
+                        </div>
+                    </form>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+</body>
+</html>

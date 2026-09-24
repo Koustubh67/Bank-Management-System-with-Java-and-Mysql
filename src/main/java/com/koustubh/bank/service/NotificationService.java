@@ -53,6 +53,12 @@ public class NotificationService {
         log.info("[SMS OTP to customer {}] {}", customer.getCustomerId(), message);
     }
 
+    /** Alert to someone who isn't a customer yet (a public enquiry): logged only, as there is no customer record. */
+    public void lead(String mobile, String email, String subject, String message) {
+        log.info("[SMS to +91******{}] {}", mobile.substring(Math.max(0, mobile.length() - 4)), message);
+        log.info("[Email to {}] {}: {}", email, subject, message);
+    }
+
     @Transactional(readOnly = true)
     public List<Notification> recentFor(Customer customer) {
         return notifications.findTop10ByCustomerIdAndChannelOrderByIdDesc(customer.getId(), Notification.Channel.EMAIL);

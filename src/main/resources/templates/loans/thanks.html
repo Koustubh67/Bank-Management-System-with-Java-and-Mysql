@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/portal :: page(~{::title}, ~{::main})}">
+<head><title>We'll call you · JavaBank Loans</title></head>
+<body>
+<main id="main" class="container narrow page-pad">
+    <section class="card done-card">
+        <div class="done-tick">✓</div>
+        <h1 th:text="${'Thank you, ' + enquiry.name + '!'}">Thank you!</h1>
+        <p class="lead-dark">Our loan expert will call you on <b th:text="${'+91 ' + enquiry.mobile}"></b>
+            <span th:text="${#strings.toLowerCase(enquiry.preferredTime)}"></span> <b>within 24 hours</b> about your
+            <span th:text="${#strings.toLowerCase(enquiry.type.label)}"></span> of <b th:text="${@money.whole(enquiry.amount)}"></b>.</p>
+        <p class="muted">We've also sent a confirmation to <span th:text="${enquiry.email}"></span>. To get the loan faster,
+            open a JavaBank account now; the expert can then approve it online.</p>
+        <dl class="details"><dt>Enquiry reference</dt><dd class="mono" th:text="${enquiry.reference}"></dd></dl>
+        <div class="form-actions center-row">
+            <a class="btn primary" th:href="@{/signup}">Open a free account</a>
+            <a class="btn ghost" th:href="@{/loans}">Back to loans</a>
+        </div>
+    </section>
+</main>
+</body>
+</html>

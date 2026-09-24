@@ -12,6 +12,9 @@
         <a class="stat" th:href="@{/admin/accounts(status=DECLINED)}"><span>Declined</span><strong th:text="${stats.declined}">0</strong></a>
         <div class="stat"><span>UPI users</span><strong th:text="${stats.upiUsers}">0</strong></div>
         <a class="stat hot" th:href="@{/admin/insurance}"><span>Insurance callbacks due</span><strong th:text="${stats.insuranceRequests}">0</strong></a>
+        <a class="stat hot" th:href="@{/admin/loans}"><span>Loan applications to review</span><strong th:text="${stats.loanApplications}">0</strong></a>
+        <a class="stat" th:href="@{/admin/loans}" th:classappend="${stats.overdueEmis > 0} ? 'hot'"><span>Overdue EMIs</span><strong th:text="${stats.overdueEmis}">0</strong></a>
+        <a class="stat" th:href="@{/admin/loans} + '#enquiries'"><span>New loan enquiries</span><strong th:text="${stats.loanEnquiries}">0</strong></a>
         <a class="stat" th:href="@{/admin/transactions}"><span>Transactions</span><strong th:text="${stats.transactions}">0</strong></a>
         <div class="stat"><span>Total deposits held</span><strong th:text="${@money.format(stats.totalDeposits)}">₹0</strong></div>
     </div>

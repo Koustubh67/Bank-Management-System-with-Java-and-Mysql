@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/admin :: page(~{::title}, ~{::main})}">
+<head><title>Loan · JavaBank Staff</title></head>
+<body>
+<main class="container" th:with="l=${v.loan}, c=${v.loan.account.customer}, st=${v.loan.status.name()}">
+    <p><a th:href="@{/admin/loans}">← Loans</a></p>
+    <h1><span th:text="${l.type.icon + ' ' + l.type.label + ' · ' + l.reference}"></span>
+        <span class="badge" th:classappend="${st == 'ACTIVE'} ? 'active' : (${st == 'APPLIED'} ? 'pending' : (${st == 'CLOSED'} ? 'frozen' : 'declined'))" th:text="${st}"></span></h1>
+
+    <div class="columns">
+        <section class="card">
+            <h2>Applicant</h2>
+            <dl class="details">
+                <dt>Customer</dt><dd><a th:href="@{/admin/accounts/{id}(id=${l.account.id})}" th:text="${c.fullName + ' (' + c.customerId + ')'}"></a></dd>
+                <dt>Account</dt><dd class="mono" th:text="${l.account.accountNumber + ' · ' + l.account.status}"></dd>
+                <dt>Balance</dt><dd th:text="${@money.format(l.account.balance)}"></dd>
+                <dt>Employment</dt><dd th:text="${l.employment}"></dd>
+                <dt>Monthly income</dt><dd th:text="${@money.format(l.monthlyIncome)}"></dd>
+                <dt>PAN</dt><dd class="mono" th:text="${c.pan}"></dd>
+            </dl>
+        </section>
+        <section class="card">
+            <h2>Request</h2>
+            <dl class="details">
+                <dt>Amount</dt><dd th:text="${@money.format(l.amountRequested)}"></dd>
+                <dt>Tenure</dt><dd th:text="${l.monthsRequested + ' months'}"></dd>
+                <dt>Purpose</dt><dd th:text="${l.purpose}"></dd>
+                <dt>Applied</dt><dd th:text="${#temporals.format(l.createdAt, 'dd MMM yyyy, hh:mm a')}"></dd>
+                <th:block th:if="${v.requestedQuote}">
+                    <dt>EMI at list rate</dt><dd th:text="${@money.format(v.requestedQuote.emi) + ' at ' + l.type.rate + '%'}"></dd>
+                    <dt>FOIR</dt><dd th:classappend="${v.requestedQuote.affordable} ? 'cr' : 'dr'" th:text="${v.requestedQuote.foir + '% of income (limit 50%)'}"></dd>
+                </th:block>
+                <th:block th:if="${l.reviewedBy}"><dt>Decided by</dt><dd th:text="${l.reviewedBy + ' on ' + #temporals.format(l.reviewedAt, 'dd MMM yyyy HH:mm')}"></dd></th:block>
+                <th:block th:if="${l.rejectReason}"><dt>Reason</dt><dd th:text="${l.rejectReason}"></dd></th:block>
+            </dl>
+        </section>
+    </div>
+
+    <!-- Decision -->
+    <div class="columns" th:if="${st == 'APPLIED'}">
+        <section class="card">
+            <h2>Approve &amp; disburse</h2>
+            <p class="muted">You can lower the amount, change the rate or tenure. On approval the amount is credited to the
+                customer's account, the EMI schedule is created and the customer is notified.</p>
+            <form th:action="@{/admin/loans/{id}/approve(id=${l.id})}" method="post" class="form" data-approve-form>
+                <div class="grid">
+                    <label class="field"><span>Sanctioned amount (₹)</span><input type="number" name="principal" th:value="${l.amountRequested.toBigInteger()}" min="1" step="1000" required></label>
+                    <label class="field"><span>Interest rate (% p.a.)</span><input type="number" name="rate" th:value="${l.type.rate}" min="1" max="30" step="0.05" required></label>
+                    <label class="field"><span>Tenure (months)</span><input type="number" name="months" th:value="${l.monthsRequested}" th:attr="min=${l.type.minMonths},max=${l.type.maxMonths}" required></label>
+                </div>
+                <p class="note">EMI will be <b data-approve-emi>—</b>, first on <b th:text="${#temporals.format(firstEmi, 'dd MMM yyyy')}">next month</b>,
+                    loan ends <b data-approve-end th:data-first="${firstEmi}" th:text="${#temporals.format(firstEmi.plusMonths(l.monthsRequested - 1), 'dd MMM yyyy')}">—</b>.</p>
+                <button type="submit" class="btn primary">Approve &amp; disburse</button>
+            </form>
+        </section>
+        <section class="card decline-card">
+            <h2>Reject</h2>
+            <form th:action="@{/admin/loans/{id}/reject(id=${l.id})}" method="post" class="form">
+                <label class="field"><span>Reason (sent to the customer)</span>
+                    <input type="text" name="reason" maxlength="200" required placeholder="e.g. EMI would exceed 50% of monthly income"></label>
+                <button type="submit" class="btn danger">Reject application</button>
+            </form>
+        </section>
+    </div>
+
+    <!-- Active / closed: schedule -->
+    <th:block th:if="${st == 'ACTIVE' or st == 'CLOSED'}">
+        <section class="card">
+            <h2>Loan terms</h2>
+            <dl class="details">
+                <dt>Principal</dt><dd th:text="${@money.format(l.principal)}"></dd>
+                <dt>Rate</dt><dd th:text="${l.ratePercent + '% p.a.'}"></dd>
+                <dt>EMI</dt><dd th:text="${@money.format(l.emi) + ' × ' + l.tenureMonths}"></dd>
+                <dt>Disbursed</dt><dd th:text="${#temporals.format(l.disbursedOn, 'dd MMM yyyy')}"></dd>
+                <dt>First EMI</dt><dd th:text="${#temporals.format(l.firstEmiDate, 'dd MMM yyyy')}"></dd>
+                <dt>Loan ends</dt><dd th:text="${#temporals.format(l.endDate, 'dd MMM yyyy')}"></dd>
+                <dt>Outstanding</dt><dd th:text="${@money.format(l.outstanding)}"></dd>
+                <dt>Progress</dt><dd th:text="${v.paid + ' of ' + l.tenureMonths + ' paid' + (v.overdue > 0 ? ', ' + v.overdue + ' overdue' : '')}"></dd>
+                <dt>Total interest</dt><dd th:text="${@money.format(v.totalInterest) + ' (paid ' + @money.format(v.interestPaid) + ')'}"></dd>
+            </dl>
+        </section>
+        <div class="table-wrap">
+            <table class="table">
+                <thead><tr><th>#</th><th>Due date</th><th class="num">EMI</th><th class="num">Principal</th><th class="num">Interest</th><th class="num">Balance after</th><th>Status</th></tr></thead>
+                <tbody>
+                <tr th:each="i : ${v.schedule}">
+                    <td th:text="${i.number}"></td><td th:text="${#temporals.format(i.dueDate, 'dd MMM yyyy')}"></td>
+                    <td class="num" th:text="${@money.format(i.emi)}"></td><td class="num" th:text="${@money.format(i.principalPart)}"></td>
+                    <td class="num" th:text="${@money.format(i.interestPart)}"></td><td class="num" th:text="${@money.format(i.balanceAfter)}"></td>
+                    <td><span class="badge" th:classappend="${i.status.name() == 'PAID'} ? 'active' : (${i.status.name() == 'OVERDUE'} ? 'declined' : 'pending')" th:text="${i.status}"></span></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </th:block>
+    <script>
+        // Live EMI preview for the approve form (the server recalculates it exactly)
+        (function () {
+            var f = document.querySelector('[data-approve-form]');
+            if (!f) return;
+            var out = f.querySelector('[data-approve-emi]');
+            var end = f.querySelector('[data-approve-end]');
+            var first = end.dataset.first.split('-').map(Number);
+            var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            var inr = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 2 });
+            function upd() {
+                var p = +f.principal.value, r = +f.rate.value / 1200, n = Math.round(+f.months.value);
+                if (!p || !n || n < 1) { out.textContent = end.textContent = '—'; return; }
+                var emi = r ? p * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1) : p / n;
+                out.textContent = inr.format(emi);
+                // Last EMI = first EMI + (n - 1) months; the first EMI day is never after the 28th
+                var m = first[0] * 12 + first[1] - 1 + n - 1;
+                end.textContent = String(first[2]).padStart(2, '0') + ' ' + MONTHS[m % 12] + ' ' + Math.floor(m / 12);
+            }
+            f.addEventListener('input', upd); upd();
+        })();
+    </script>
+</main>
+</body>
+</html>

@@ -27,9 +27,9 @@
         <input type="checkbox" id="navToggle" class="nav-toggle" aria-label="Open menu">
         <label for="navToggle" class="nav-burger" aria-hidden="true"><span></span><span></span><span></span></label>
         <nav class="main-nav" aria-label="Main">
-            <a th:href="@{/#products}" data-tab-link="t-accounts">Accounts</a>
             <a th:href="@{/#products}" data-tab-link="t-upi">UPI</a>
             <a th:href="@{/invest}">Invest</a>
+            <a th:href="@{/loans}">Loans</a>
             <a th:href="@{/#products}" data-tab-link="t-insure">Insurance</a>
             <a th:href="@{/signup/status}">Track application</a>
             <a class="btn ghost-dark small" th:href="@{/login}">Login</a>
@@ -53,6 +53,7 @@
         <div>
             <h4>Explore</h4>
             <a th:href="@{/invest}">Mutual funds &amp; FDs</a>
+            <a th:href="@{/loans}">Loans &amp; EMI calculator</a>
             <a th:href="@{/#products}">Insurance</a>
             <a th:href="@{/#security}">How we keep you safe</a>
             <a th:href="@{/#engineering}">Under the hood</a>

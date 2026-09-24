@@ -8,6 +8,7 @@ import com.koustubh.bank.service.CustomerService;
 import com.koustubh.bank.service.CustomerService.PassbookFilter;
 import com.koustubh.bank.service.InsuranceService;
 import com.koustubh.bank.service.InvestmentService;
+import com.koustubh.bank.service.LoanService;
 import com.koustubh.bank.service.NotificationService;
 import org.springframework.data.domain.Page;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -38,10 +39,12 @@ public class CustomerController {
     private final InvestmentService investments;
     private final InsuranceService insurance;
     private final NotificationService notifications;
+    private final LoanService loans;
 
     public CustomerController(CustomerService customers, CustomerLoginService customerLogin, Clock clock,
                               InvestmentService investments, InsuranceService insurance,
-                              NotificationService notifications) {
+                              NotificationService notifications, LoanService loans) {
+        this.loans = loans;
         this.investments = investments;
         this.insurance = insurance;
         this.notifications = notifications;
@@ -57,6 +60,7 @@ public class CustomerController {
         model.addAttribute("policies", insurance.policiesOf(principal.getName()));
         model.addAttribute("insuranceRequests", insurance.requestsOf(principal.getName()).stream().filter(r -> r.isOpen()).toList());
         model.addAttribute("alerts", notifications.recentFor(customers.overview(principal.getName()).customer()));
+        model.addAttribute("loans", loans.loansOf(principal.getName()));
         return "customer/dashboard";
     }
 

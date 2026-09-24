@@ -2,8 +2,8 @@
 
 A banking web application built with **Java 17, Spring Boot and MySQL**. Customers open an account online, withdraw
 cash at a realistic web **ATM** (card insert, notes coming out of the cash slot, printed receipt), and pay each other
-with **JavaPay UPI**, a phone-style UPI app with QR codes and a 6-digit UPI PIN. Bank staff approve and manage accounts
-in an **admin panel**.
+with **JavaPay UPI**, a phone-style UPI app with QR codes and a 6-digit UPI PIN. They invest in real mutual funds, take
+**loans with a full EMI schedule**, and request insurance. Bank staff approve accounts and loans in an **admin panel**.
 
 The project focuses on the correctness rules real banking software needs: exact money arithmetic, all-or-nothing
 transfers, row locking under concurrent access, an append-only transaction ledger, and secure PIN handling.
@@ -64,9 +64,29 @@ transfers, row locking under concurrent access, an append-only transaction ledge
   **issued policy** on its own page
 - No premiums are made up: prices come from the insurer through the expert, as in a real bank
 
+**Loans with EMI calculator, approval and auto-debited EMIs**
+- Public `/loans` page (no login): home, car, personal, education, two-wheeler and gold loans with an **EMI
+  calculator** for each (amount, rate and tenure sliders, principal vs interest split, year-by-year repayment table)
+- **Not a customer yet?** A "request a call back" form takes name, mobile, email, city, loan wanted, income and best
+  time to call (every error shown at once, nothing retyped), then says **"our loan expert will call you within 24
+  hours"** with an enquiry reference. Staff see these enquiries and mark them contacted or closed
+- **Existing customers apply online** from their dashboard: live EMI and affordability check while typing. The bank's
+  **FOIR** rule (EMI ≤ 50% of monthly income) is enforced on the server too; one open application per loan type
+- **Staff approve or reject:** the officer sees the customer, balance, income, FOIR and EMI at the list rate, then
+  sanctions the amount (≤ requested), rate and tenure with a live EMI preview. On approval the money is **disbursed to
+  the savings account** in the same database transaction and the full **EMI schedule** is created. Rejection needs a
+  reason, shown to the customer. Two officers clicking approve at once can't disburse twice (row lock + status check)
+- **Both sides see the dates:** EMI amount, **EMI date** (same day every month), **first EMI** (one month after
+  disbursal) and **loan end date**, plus progress, interest paid and each instalment's principal/interest split
+- **EMIs are auto-debited** every morning at 09:40 (staff can run it on demand). If the balance is short the EMI turns
+  **overdue**, the customer gets one alert, and it is retried daily. Customers can also **pay the next EMI early**.
+  Paying the last EMI **closes the loan**. Disbursal and every EMI appear in the passbook
+- Reducing-balance EMI maths in `BigDecimal`: interest is rounded to the paisa each month and the last EMI absorbs
+  the rounding, so the schedule ends at exactly ₹0
+
 **SMS & email alerts (simulated)**
 - Application received / approved / declined, investment confirmed, OTPs, SIP instalment missed, insurance request
-  received, policy issued. Stored in an outbox shown on the customer dashboard and to staff, and written to the log
+  received, policy issued, loan approved / rejected, EMI paid / overdue, loan closed. Stored in an outbox shown on the customer dashboard and to staff, and written to the log
   (plug in any SMS/email provider in `NotificationService`)
 
 **Account opening and KYC**
@@ -121,9 +141,11 @@ transfers, row locking under concurrent access, an append-only transaction ledge
   one-time temporary password, logs in on the Bank staff tab, and **must set their own password** before anything
   else. Managers can reset passwords and disable logins (never their own); officers can't manage staff
 - Approvals and declines record **which staff member** did them, and the customer is alerted
-- Pages: dashboard, accounts (KYC documents, holdings with live P&L, policies, insurance requests, alerts sent),
-  insurance queue, all investments, transactions, alerts sent, staff
-- Dashboard: customers, pending/active/frozen accounts, transactions, total deposits
+- Pages: dashboard, accounts (KYC documents, holdings with live P&L, policies, insurance requests, loans, alerts
+  sent), loans (applications, active loans, website enquiries), insurance queue, all investments, transactions, alerts
+  sent, staff
+- Dashboard: customers, pending/active/frozen accounts, loan applications, overdue EMIs, new loan enquiries,
+  transactions, total deposits
 - Review the uploaded PAN and Aadhaar documents next to the customer's details
 - **Approve or decline** applications (decline needs a reason, shown to the customer); freeze and unfreeze accounts;
   unblock cards; unlock UPI
@@ -131,13 +153,21 @@ transfers, row locking under concurrent access, an append-only transaction ledge
 
 ## Screenshots
 
+| Loans: EMI calculator (no login) | Customer's loan: EMI dates and schedule |
+|---|---|
+| ![Loans page](docs/screenshots/loans.png) | ![Customer loan](docs/screenshots/customer-loan.png) |
+
+| Staff: loan applications and enquiries | Staff: approve with live EMI |
+|---|---|
+| ![Staff loans](docs/screenshots/admin-loans.png) | ![Approve loan](docs/screenshots/admin-loan-approve.png) |
+
 | Public fund page (no login) | Holding with live value chart |
 |---|---|
 | ![Public fund page](docs/screenshots/market-fund.png) | ![Holding chart](docs/screenshots/holding-chart.png) |
 
-| Fund NAV chart (real data) | Holding with live value chart |
-|---|---|
-| ![Holding chart](docs/screenshots/holding-chart.png) | ![Fund chart](docs/screenshots/fund-chart.png) |
+| Fund NAV chart (real data) |
+|---|
+| ![Fund chart](docs/screenshots/fund-chart.png) |
 
 | Customer dashboard | Invest |
 |---|---|
@@ -197,6 +227,9 @@ src/main/java/com/koustubh/bank
 | Losing the wrong-PIN count when login fails | `@Transactional(noRollbackFor = …)` keeps the failed-attempt update for both ATM and UPI PINs |
 | One transfer engine for ATM and UPI | `TransferService.moveMoney` does the locking, debit/credit and both ledger legs; UPI adds its own PIN check and limits on top |
 | Unsafe file uploads | KYC files are accepted only if their first bytes are a real PDF, PNG or JPEG signature, file names are cleaned, and staff downloads are sent with `X-Content-Type-Options: nosniff` |
+| EMI schedule not adding up to the loan | Reducing-balance formula in `BigDecimal`; interest rounded to the paisa each month and the last EMI absorbs the rounding, so the balance ends at exactly ₹0 (tested for tenures up to 30 years) |
+| A loan approved twice, or disbursed without a schedule | The loan row is locked (`FOR UPDATE`) and must still be `APPLIED`; disbursal credit, ledger entry and all instalments are saved in one transaction. A test has two officers approve at the same moment |
+| One failing loan stopping the nightly EMI run | Each loan is collected in its own transaction (`TransactionTemplate`), oldest EMI first; a short balance marks it overdue with a single alert and is retried next day |
 | Paying out cash | `CashDispenser` picks the fewest notes (greedy works for 500/200/100); unit-tested for every amount |
 | Audit trail | The `transactions` table is append-only; each row stores the balance after the operation, and both sides of a transfer share one reference id |
 | Stolen database leaking PINs | PINs are BCrypt-hashed; Aadhaar is masked on screens |
@@ -232,8 +265,8 @@ without signing up. Each one is in a different state. They come from
 
 | Customer | Customer ID | Account no. | Card number | ATM PIN | UPI ID | UPI PIN | Balance | State: what to try |
 |---|---|---|---|---|---|---|---|---|
-| Rahul Sharma | `JB10000001` | `100000000001` | `5040930000000017` | `1234` | `rahul.0001@javabank` | `123456` | ₹42,350 | ✅ Active: everything. 12-month Parag Parikh SIP (real P&L), health policy, open term-life request |
-| Priya Verma | `JB10000002` | `100000000002` | `5040930000000025` | `2345` | `priya.0002@javabank` | `234567` | ₹1,20,950 | ✅ Active current account. 24-month UTI Nifty 50 SIP, motor policy |
+| Rahul Sharma | `JB10000001` | `100000000001` | `5040930000000017` | `1234` | `rahul.0001@javabank` | `123456` | ₹42,350 | ✅ Active: everything. 12-month Parag Parikh SIP (real P&L), health policy, open term-life request, **₹6 lakh car loan** (5 of 60 EMIs paid) |
+| Priya Verma | `JB10000002` | `100000000002` | `5040930000000025` | `2345` | `priya.0002@javabank` | `234567` | ₹1,20,950 | ✅ Active current account. 24-month UTI Nifty 50 SIP, motor policy, **₹45 lakh home loan application** waiting for staff |
 | Amit Patel | `JB10000003` | `100000000003` | `5040930000000033` | `3456` | — | — | ₹0 | ⏳ **Pending**: dashboard says "under review"; approve or decline him as staff |
 | Sneha Iyer | `JB10000004` | `100000000004` | `5040930000000041` | `4567` | — | — | ₹20,000 | ❄️ **Frozen**: ATM refuses; unfreeze as staff |
 | Vikram Singh | `JB10000005` | `100000000005` | `5040930000000058` | `5678` | — | — | ₹15,000 | 🚫 **Card blocked** (3 wrong PINs): unblock as staff |
@@ -242,6 +275,9 @@ without signing up. Each one is in a different state. They come from
 Demo mobile numbers are `98765000` + the last two digits of the account number (Rahul: `9876500001`), used for
 KYC confirmation at investment checkout. Balances are for a fresh database; on a database created by an older
 version of the app they can differ.
+
+There is also a public loan enquiry from **Arjun Mehta** (not a customer) waiting for a call back on the staff
+**Loans** page.
 
 The demo data also includes real transaction history (deposits, withdrawals, an ATM transfer and UPI payments with
 notes like "Dinner" and "Movie tickets"), so mini statements and UPI history aren't empty.
@@ -260,13 +296,17 @@ notes like "Dinner" and "Movie tickets"), so mini statements and UPI history are
    start a SIP → confirm KYC (PAN `ABCPS1234A`, Aadhaar `999900000001`, mobile `9876500001`) → **Send OTP** → pay.
 6. **Insure:** open **Insurance** → **Talk to an expert** → request a callback. Then log in as staff, open
    **Insurance**, and issue the policy; back as Rahul, open the new policy from the dashboard.
-7. **Staff:** log in as `admin` / `admin123`, approve Amit, unblock Vikram's card, unlock Anjali's UPI, unfreeze Sneha.
-8. **New staff:** as `admin` open **Staff**, add an officer, then log in as them with the temporary password: you'll be
+7. **Loans:** open **Loans** from the home page and try the EMI calculator, or request a call back. As Rahul open
+   **Loans** to see his car loan's EMI date, end date and schedule, then **apply** for a personal loan (₹2,00,000, 24
+   months, income ₹85,000). As staff open **Loans** → **Review & decide** → approve at 10.99%: the money lands in
+   Rahul's account and both sides show the first EMI and the loan end date. Back as Rahul, **Pay this EMI now**.
+8. **Staff:** log in as `admin` / `admin123`, approve Amit, unblock Vikram's card, unlock Anjali's UPI, unfreeze Sneha.
+9. **New staff:** as `admin` open **Staff**, add an officer, then log in as them with the temporary password: you'll be
    asked to set a new one. Officers can't open the Staff page.
-9. **Sign up with KYC:** open your own account with **Open account** and upload any sample image as the PAN and
+10. **Sign up with KYC:** open your own account with **Open account** and upload any sample image as the PAN and
    Aadhaar card (never real documents). As staff, open the application, view the documents and **decline** it with a
    reason. Then open **Track application** (account number + PAN) to see the reason.
-10. **Home page:** try the SIP / FD calculator in the Investments section.
+11. **Home page:** try the SIP / FD calculator in the Investments section.
 
 Tests check that every login in this table works (`DemoDataSeederTest`), so the table stays correct.
 
@@ -286,7 +326,7 @@ Tests check that every login in this table works (`DemoDataSeederTest`), so the 
 ./mvnw test
 ```
 
-126 tests run against an in-memory H2 database with the real Flyway schema:
+147 tests run against an in-memory H2 database with the real Flyway schema:
 - **Domain unit tests:** balance rules, account states
 - **Service tests:** daily limit, insufficient funds, transfer atomicity, concurrent withdrawals, transfer deadlock
   avoidance, PIN lockout and unblock, PIN change
@@ -303,6 +343,12 @@ Tests check that every login in this table works (`DemoDataSeederTest`), so the 
   portfolio series across funds and FDs, charts only for the owner, JSON endpoints and live feed
 - **Insurance tests:** all form errors at once, callback → contacted → policy issued with premium debit, close with
   reason, policy privacy between customers
+- **Loan tests:** EMI formula against the textbook value (₹1 lakh, 10%, 12 months → ₹8,791.59), schedules that end at
+  exactly ₹0 for many amounts/rates/tenures, first-EMI date on month ends; every application error at once, FOIR
+  limit, one open application per type, approve once only, **two officers approving at the same time** → one
+  disbursal, overdue EMI → one alert → collected after a deposit, paying every EMI closes the loan with the right
+  balance, customers can't see or pay other customers' loans; web flow: public enquiry, apply → staff approve → both
+  sides show the first EMI and end date, rejection reason shown to the customer
 - **Staff tests:** temporary password → forced change, duplicate usernames, officers blocked from staff management,
   disabled logins, admins can't lock themselves out
 - **Security tests:** no-store cache headers, Clear-Site-Data on logout, `/login` redirect while signed in

@@ -8,6 +8,8 @@ import com.koustubh.bank.service.AdminService;
 import com.koustubh.bank.service.AtmService;
 import com.koustubh.bank.service.OpenedAccount;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -33,7 +35,11 @@ public class TestAccounts {
     private final AtmService atm;
     private final AccountRepository accounts;
 
-    public TestAccounts(AccountOpeningService opening, AdminService admin, AtmService atm, AccountRepository accounts) {
+    private final TransactionTemplate tx;
+
+    public TestAccounts(AccountOpeningService opening, AdminService admin, AtmService atm, AccountRepository accounts,
+                        PlatformTransactionManager txManager) {
+        this.tx = new TransactionTemplate(txManager);
         this.opening = opening;
         this.admin = admin;
         this.atm = atm;
@@ -88,6 +94,18 @@ public class TestAccounts {
 
     public Long idOf(OpenedAccount opened) {
         return accounts.findIdByAccountNumber(opened.accountNumber()).orElseThrow();
+    }
+
+    /** Takes money out of the account so only {@code keep} is left (for testing low-balance cases). */
+    public void spendAllBut(OpenedAccount opened, BigDecimal keep) {
+        tx.executeWithoutResult(s -> {
+            var account = accounts.findByIdForUpdate(idOf(opened)).orElseThrow();
+            account.debit(account.getBalance().subtract(keep));
+        });
+    }
+
+    public void deposit(OpenedAccount opened, BigDecimal amount) {
+        tx.executeWithoutResult(s -> accounts.findByIdForUpdate(idOf(opened)).orElseThrow().credit(amount));
     }
 
     public BigDecimal balanceOf(OpenedAccount opened) {

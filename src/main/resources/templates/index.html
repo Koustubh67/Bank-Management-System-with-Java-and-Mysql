@@ -63,7 +63,7 @@
             <th:block th:each="round : ${ {1, 2} }">
                 <span>Zero-balance savings</span><i>✦</i><span>UPI in seconds</span><i>✦</i><span>FDs up to 7.25% p.a.</span><i>✦</i>
                 <span>SIPs from ₹500</span><i>✦</i><span>Term life cover</span><i>✦</i><span>Paperless KYC</span><i>✦</i>
-                <span>24×7 ATM</span><i>✦</i>
+                <span>24×7 ATM</span><i>✦</i><span>Home &amp; car loans</span><i>✦</i>
             </th:block>
         </div>
     </div>
@@ -180,7 +180,7 @@
                 <div class="why-tile reveal"><svg class="ic big"><use href="#i-swap"/></svg><h3>All-or-nothing</h3><p>Transfers commit together, or not at all.</p></div>
                 <div class="why-tile reveal"><svg class="ic big"><use href="#i-gauge"/></svg><h3>Daily limits</h3><p>₹25k ATM · ₹1L UPI per day.</p></div>
                 <div class="why-tile reveal"><svg class="ic big"><use href="#i-ledger"/></svg><h3>Tamper-proof ledger</h3><p>Every rupee recorded, never edited.</p></div>
-                <div class="why-tile code reveal"><code>BigDecimal · SELECT … FOR UPDATE · @Transactional · Flyway · 126 tests</code>
+                <div class="why-tile code reveal"><code>BigDecimal · SELECT … FOR UPDATE · @Transactional · Flyway · 147 tests</code>
                     <p>Built with Java 17 &amp; Spring Boot, engineered like core banking software.</p></div>
             </div>
         </div>
@@ -196,6 +196,7 @@
                 </div>
                 <div class="cta2-actions">
                     <a class="btn light lg magnetic" th:href="@{/signup}">Open free account →</a>
+                    <a class="btn glass" th:href="@{/loans}">Loans &amp; EMI calculator</a>
                     <a class="btn glass" th:href="@{/signup/status}">Track an application</a>
                 </div>
             </div>

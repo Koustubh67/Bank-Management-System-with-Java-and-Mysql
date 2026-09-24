@@ -10,7 +10,9 @@ public enum TransactionType {
     FD_BOOKING("Fixed Deposit", false),
     SIP_INSTALMENT("SIP Instalment", false),
     MF_PURCHASE("Mutual Fund Purchase", false),
-    INSURANCE_PREMIUM("Insurance Premium", false);
+    INSURANCE_PREMIUM("Insurance Premium", false),
+    LOAN_DISBURSAL("Loan Disbursal", true),
+    LOAN_EMI("Loan EMI", false);
 
     private final String label;
     private final boolean credit;

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/customer :: page(~{::title}, ~{::main})}">
+<head><title>Loans · JavaBank</title></head>
+<body>
+<main class="container cust-main">
+    <div class="cust-hello">
+        <div><h1>Loans</h1><p class="muted">Apply online, track the decision and your EMIs in one place.</p></div>
+        <a class="btn dark" th:href="@{/customer/loans/apply}">Apply for a loan</a>
+    </div>
+
+    <p class="muted empty-state panel" th:if="${loans.isEmpty()}">You don't have any loans or applications yet.</p>
+
+    <div class="loan-cards">
+        <a class="loan-card" th:each="v : ${loans}" th:with="l=${v.loan}, st=${v.loan.status.name()}"
+           th:href="@{/customer/loans/{id}(id=${l.id})}" th:classappend="${#strings.toLowerCase(st)}">
+            <div class="lc-head">
+                <span class="lc-ic" th:text="${l.type.icon}"></span>
+                <div><b th:text="${l.type.label}"></b><small class="mono" th:text="${l.reference}"></small></div>
+                <span class="badge" th:classappend="${st == 'ACTIVE'} ? 'active' : (${st == 'APPLIED'} ? 'pending' : (${st == 'CLOSED'} ? 'frozen' : 'declined'))"
+                      th:text="${st == 'APPLIED'} ? 'UNDER REVIEW' : ${st}"></span>
+            </div>
+            <th:block th:if="${st == 'ACTIVE' or st == 'CLOSED'}">
+                <div class="lc-figs">
+                    <div><span>Loan amount</span><b th:text="${@money.whole(l.principal)}"></b></div>
+                    <div><span>Still owed</span><b th:text="${@money.format(l.outstanding)}"></b></div>
+                    <div><span>EMI</span><b th:text="${@money.format(l.emi)}"></b></div>
+                </div>
+                <div class="lc-progress"><i th:style="'width:' + ${v.progressPercent} + '%'"></i></div>
+                <p class="lc-meta" th:text="${v.paid + ' of ' + l.tenureMonths + ' EMIs paid · ends ' + #temporals.format(l.endDate, 'dd MMM yyyy')}"></p>
+                <p class="lc-next" th:if="${v.next != null}" th:classappend="${v.overdue > 0} ? 'overdue'">
+                    <span th:text="${v.overdue > 0} ? '⚠ EMI overdue' : 'Next EMI'"></span>
+                    <b th:text="${@money.format(v.next.emi) + ' on ' + #temporals.format(v.next.dueDate, 'dd MMM yyyy')}"></b></p>
+            </th:block>
+            <th:block th:if="${st == 'APPLIED'}">
+                <p class="lc-meta" th:text="${'Requested ' + @money.whole(l.amountRequested) + ' for ' + l.tenureLabel + ' · applied ' + #temporals.format(l.createdAt, 'dd MMM yyyy')}"></p>
+                <p class="lc-next"><span>Estimated EMI</span><b th:text="${@money.format(v.requestedQuote.emi)}"></b></p>
+                <p class="muted small">A loan officer is reviewing it. We'll SMS and email you the decision within 24–48 hours.</p>
+            </th:block>
+            <p class="lc-meta" th:if="${st == 'REJECTED'}" th:text="${'Not approved: ' + l.rejectReason}"></p>
+        </a>
+    </div>
+
+    <div class="panel-head section-gap"><h2>Loan products</h2><a th:href="@{/loans}">EMI calculator →</a></div>
+    <div class="loan-products inline">
+        <a class="lp" th:each="t : ${types}" th:href="@{/customer/loans/apply(type=${t})}">
+            <span class="lp-ic" th:text="${t.icon}"></span><b th:text="${t.label}"></b>
+            <small th:text="${'from ' + t.rate + '% p.a.'}"></small></a>
+    </div>
+</main>
+</body>
+</html>

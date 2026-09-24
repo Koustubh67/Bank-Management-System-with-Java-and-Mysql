@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/customer :: page(~{::title}, ~{::main})}">
+<head><title>Application received · JavaBank</title></head>
+<body>
+<main class="container cust-main narrow-main">
+    <section class="panel done-card">
+        <div class="done-tick">✓</div>
+        <h1>Application submitted</h1>
+        <p class="lead-dark">Your <b th:text="${#strings.toLowerCase(appliedType)}"></b> application is with our loan officer.</p>
+        <p class="muted">We'll review it within 24–48 hours and let you know by SMS and email. Once approved, the money is
+            credited to your account and your EMI schedule appears in Loans.</p>
+        <dl class="details"><dt>Application reference</dt><dd class="mono" th:text="${applied}"></dd></dl>
+        <div class="form-actions center-row">
+            <a class="btn soft" th:href="@{/customer/loans}">Track application</a>
+            <a class="btn dark" th:href="@{/customer}">Go to dashboard</a>
+        </div>
+    </section>
+</main>
+</body>
+</html>

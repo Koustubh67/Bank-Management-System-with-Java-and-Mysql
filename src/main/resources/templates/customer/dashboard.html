@@ -122,6 +122,21 @@
         </div>
     </section>
 
+    <section class="panel" th:unless="${loans.isEmpty()}">
+        <div class="panel-head"><h2>My loans</h2><a th:href="@{/customer/loans}">All loans →</a></div>
+        <div class="holdings">
+            <a class="holding" th:each="v : ${loans}" th:with="l=${v.loan}" th:href="@{/customer/loans/{id}(id=${l.id})}">
+                <span class="h-ic req" th:text="${l.type.icon}"></span>
+                <span class="h-body"><b th:text="${l.type.label + ' · ' + l.reference}"></b>
+                    <small th:if="${v.next != null}" th:text="${(v.overdue > 0 ? '⚠ Overdue: ' : 'Next EMI ') + @money.format(v.next.emi) + ' on ' + #temporals.format(v.next.dueDate, 'dd MMM yyyy')}"></small>
+                    <small th:if="${l.status.name() == 'APPLIED'}">Under review · we'll notify you</small>
+                    <small th:if="${l.status.name() == 'REJECTED'}" th:text="${'Not approved: ' + l.rejectReason}"></small>
+                    <small th:if="${l.status.name() == 'CLOSED'}">Closed · all EMIs paid</small></span>
+                <span class="h-val" th:if="${l.endDate != null}"><b th:text="${@money.whole(l.outstanding)}"></b><small th:text="${'ends ' + #temporals.format(l.endDate, 'MMM yyyy')}"></small></span>
+            </a>
+        </div>
+    </section>
+
     <section class="panel" th:unless="${alerts.isEmpty()}">
         <div class="panel-head"><h2>Messages</h2><span class="muted small">Also sent to you by SMS and email</span></div>
         <ul class="alerts">

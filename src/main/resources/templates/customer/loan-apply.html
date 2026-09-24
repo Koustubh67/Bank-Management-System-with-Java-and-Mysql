@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/customer :: page(~{::title}, ~{::main})}">
+<head><title>Apply for a loan · JavaBank</title></head>
+<body>
+<main class="container cust-main narrow-main" th:with="f=${form}, active=${o.account.status.name() == 'ACTIVE'}">
+    <p><a th:href="@{/customer/loans}">← Loans</a></p>
+    <h1>Apply for a loan</h1>
+    <div class="status-banner pending" th:unless="${active}">Loan applications open once your account is approved.</div>
+
+    <form class="panel form" th:action="@{/customer/loans/apply}" method="post" data-loan-apply>
+        <div class="error-summary" th:if="${errors}"><strong th:text="${errors.size() == 1} ? 'Please fix this problem:' : 'Please fix these ' + ${errors.size()} + ' problems:'"></strong>
+            <ul><li th:each="e : ${errors}" th:text="${e}"></li></ul></div>
+
+        <fieldset class="field"><legend>Loan type</legend>
+            <div class="seg type-seg">
+                <label th:each="t : ${types}"><input type="radio" name="type" th:value="${t}" th:checked="${f.type == t}"
+                        th:attr="data-rate=${t.rate},data-min=${t.minAmount},data-max=${t.maxAmount},data-minm=${t.minMonths},data-maxm=${t.maxMonths}">
+                    <span><b th:text="${t.icon + ' ' + t.label}"></b><small th:text="${t.rate + '% p.a.'}"></small></span></label>
+            </div>
+        </fieldset>
+        <div class="grid">
+            <label class="field"><span>Loan amount (₹) <small class="muted" data-limits></small></span>
+                <input type="number" name="amount" th:value="${f.amount != null ? f.amount.toBigInteger() : ''}" step="1000" required></label>
+            <label class="field"><span>Tenure (months) <small class="muted" data-tenure-limits></small></span>
+                <input type="number" name="months" th:value="${f.months}" step="1" required></label>
+            <label class="field"><span>Employment</span>
+                <select name="employment" required>
+                    <option th:each="e : ${employment}" th:value="${e}" th:text="${e}" th:selected="${f.employment == e}"></option>
+                </select></label>
+            <label class="field"><span>Monthly income (₹)</span>
+                <input type="number" name="monthlyIncome" th:value="${f.monthlyIncome != null ? f.monthlyIncome.toBigInteger() : ''}" min="10000" step="1000" required></label>
+        </div>
+        <label class="field"><span>Purpose of the loan</span>
+            <input type="text" name="purpose" th:value="${f.purpose}" maxlength="200" required placeholder="e.g. Buying a new car (Hyundai Creta)"></label>
+
+        <div class="loan-live">
+            <div><span>Estimated EMI</span><strong data-live-emi>—</strong></div>
+            <div><span>Total interest</span><b data-live-interest>—</b></div>
+            <div><span>EMI as % of income</span><b data-live-foir>—</b></div>
+            <p class="small" data-live-verdict></p>
+        </div>
+
+        <label class="declaration"><input type="checkbox" name="declaration" value="true">
+            I confirm the details are correct and authorise JavaBank to check my credit report and auto-debit EMIs from my account.</label>
+        <button type="submit" class="btn dark lg full" th:disabled="${!active}">Submit application</button>
+        <p class="note">The loan officer may change the amount, rate or tenure. On approval the money is credited to your
+            savings account and EMIs are auto-debited every month.</p>
+    </form>
+    <script th:src="@{/js/loans.js}"></script>
+</main>
+</body>
+</html>

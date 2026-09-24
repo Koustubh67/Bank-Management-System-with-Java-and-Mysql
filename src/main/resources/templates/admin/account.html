@@ -154,6 +154,27 @@
         <p><a th:href="@{/admin/insurance}">Open the insurance request queue →</a></p>
     </section>
 
+    <section class="card">
+        <h2>Loans</h2>
+        <p class="muted" th:if="${details.loans.isEmpty()}">No loans or applications.</p>
+        <div class="table-wrap" th:unless="${details.loans.isEmpty()}">
+            <table class="table">
+                <thead><tr><th>Loan</th><th>Status</th><th class="num">Amount</th><th class="num">EMI</th><th>Next EMI</th><th>Ends</th><th>Paid</th></tr></thead>
+                <tbody>
+                <tr th:each="v : ${details.loans}" th:with="l=${v.loan}">
+                    <td><a th:href="@{/admin/loans/{id}(id=${l.id})}" th:text="${l.type.label + ' · ' + l.reference}"></a></td>
+                    <td th:text="${l.status}"></td>
+                    <td class="num" th:text="${@money.whole(l.principal != null ? l.principal : l.amountRequested)}"></td>
+                    <td class="num" th:text="${l.emi != null ? @money.format(l.emi) : '—'}"></td>
+                    <td th:classappend="${v.overdue > 0} ? 'dr'" th:text="${v.next != null ? #temporals.format(v.next.dueDate, 'dd MMM yyyy') : '—'}"></td>
+                    <td th:text="${l.endDate != null ? #temporals.format(l.endDate, 'dd MMM yyyy') : '—'}"></td>
+                    <td th:text="${l.tenureMonths != null ? v.paid + '/' + l.tenureMonths : '—'}"></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
     <section class="card" th:unless="${details.notifications.isEmpty()}">
         <h2>Alerts sent to this customer</h2>
         <ul class="plain-list">

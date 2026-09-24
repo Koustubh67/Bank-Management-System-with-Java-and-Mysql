@@ -8,6 +8,7 @@ import com.koustubh.bank.domain.Customer;
 import com.koustubh.bank.domain.AdminUser;
 import com.koustubh.bank.domain.StaffRole;
 import com.koustubh.bank.domain.InsurancePlan;
+import com.koustubh.bank.domain.LoanType;
 import com.koustubh.bank.domain.UpiHandle;
 import com.koustubh.bank.exception.WrongUpiPinException;
 import com.koustubh.bank.repository.AccountRepository;
@@ -22,6 +23,7 @@ import com.koustubh.bank.service.TransferService;
 import com.koustubh.bank.service.UpiService;
 import com.koustubh.bank.service.InsuranceService;
 import com.koustubh.bank.service.InvestmentService;
+import com.koustubh.bank.service.LoanService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
@@ -103,6 +105,7 @@ public class DemoDataSeeder implements ApplicationRunner {
     private final UpiService upi;
     private final InvestmentService investments;
     private final InsuranceService insurance;
+    private final LoanService loans;
     private final AdminUserRepository adminUsers;
     private final AdminService admin;
     private final CardSecurityService cardSecurity;
@@ -115,7 +118,8 @@ public class DemoDataSeeder implements ApplicationRunner {
                           TransferService transfers, UpiService upi, AdminService admin,
                           CardSecurityService cardSecurity, PasswordEncoder passwordEncoder, Clock clock,
                           PlatformTransactionManager transactionManager, InvestmentService investments,
-                          InsuranceService insurance, AdminUserRepository adminUsers) {
+                          InsuranceService insurance, AdminUserRepository adminUsers, LoanService loans) {
+        this.loans = loans;
         this.investments = investments;
         this.insurance = insurance;
         this.adminUsers = adminUsers;
@@ -144,6 +148,7 @@ public class DemoDataSeeder implements ApplicationRunner {
             tx.executeWithoutResult(status -> ALL.forEach(this::ensureLogin));
             investments.backfillMissingUnits();
             seedWealth();
+            seedLoans();
             ensureOfficer();
             return;
         }
@@ -177,6 +182,7 @@ public class DemoDataSeeder implements ApplicationRunner {
             }
         }
         seedWealth();
+        seedLoans();
         ensureOfficer();
         log.info("Loaded {} demo customers (see README for card numbers and PINs)", ALL.size());
     }
@@ -245,6 +251,18 @@ public class DemoDataSeeder implements ApplicationRunner {
             insurance.request(RAHUL.customerId(), new InsuranceService.Request(InsurancePlan.TERM_LIFE, 10_000_000L,
                     RAHUL.name(), RAHUL.mobile(), RAHUL.city(), 28, "Neha Sharma, wife", InsuranceService.CALL_TIMES.get(2)));
         }
+    }
+
+    /** An active car loan for Rahul (5 EMIs already paid), a home loan application from Priya, one public enquiry. */
+    private void seedLoans() {
+        if (!loans.loansOf(RAHUL.customerId()).isEmpty()) {
+            return;
+        }
+        loans.importExistingLoan(RAHUL.customerId(), LoanType.CAR, rs(600_000), 60, 5, "Hyundai Creta", rs(85_000));
+        loans.importApplication(PRIYA.customerId(), new LoanService.Application(LoanType.HOME, rs(4_500_000), 240,
+                "2BHK flat in Indore", "Business owner", rs(180_000)));
+        loans.enquire(new LoanService.Enquiry("Arjun Mehta", "9811122233", "arjun.mehta@example.com", "Pune",
+                LoanType.PERSONAL, rs(300_000), "Salaried", rs(60_000), LoanService.CALL_TIMES.get(1)));
     }
 
     private void ensureOfficer() {

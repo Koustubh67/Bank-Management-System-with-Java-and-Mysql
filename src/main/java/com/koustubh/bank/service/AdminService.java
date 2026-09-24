@@ -34,12 +34,14 @@ import java.util.List;
 public class AdminService {
 
     public record Dashboard(long customers, long pending, long active, long frozen, long declined, long transactions,
-                            long upiUsers, BigDecimal totalDeposits, long insuranceRequests) {
+                            long upiUsers, BigDecimal totalDeposits, long insuranceRequests, long loanApplications,
+                            long overdueEmis, long loanEnquiries) {
     }
 
     public record AccountDetails(Account account, Card card, UpiHandle upi, List<DocumentInfo> documents,
                                  List<InvestmentService.Holding> holdings, List<InsurancePolicy> policies,
-                                 List<InsuranceRequest> insuranceRequests, List<Notification> notifications,
+                                 List<InsuranceRequest> insuranceRequests, List<LoanService.LoanView> loans,
+                                 List<Notification> notifications,
                                  List<Transaction> transactions) {
     }
 
@@ -64,13 +66,16 @@ public class AdminService {
     private final InvestmentService investmentService;
     private final InsuranceService insurance;
     private final NotificationService notifications;
+    private final LoanService loanService;
     private final Clock clock;
 
     public AdminService(CustomerRepository customers, AccountRepository accounts, CardRepository cards,
                         TransactionRepository transactions, UpiHandleRepository upiHandles,
                         KycDocumentRepository documents, InsurancePolicyRepository policies,
                         InsuranceRequestRepository insuranceRequests, InvestmentService investmentService,
-                        InsuranceService insurance, NotificationService notifications, Clock clock) {
+                        InsuranceService insurance, NotificationService notifications, Clock clock,
+                        LoanService loanService) {
+        this.loanService = loanService;
         this.documents = documents;
         this.policies = policies;
         this.insuranceRequests = insuranceRequests;
@@ -90,7 +95,8 @@ public class AdminService {
         return new Dashboard(customers.count(), accounts.countByStatus(AccountStatus.PENDING),
                 accounts.countByStatus(AccountStatus.ACTIVE), accounts.countByStatus(AccountStatus.FROZEN),
                 accounts.countByStatus(AccountStatus.DECLINED), transactions.count(), upiHandles.count(),
-                accounts.totalBalance(), insurance.openRequestCount());
+                accounts.totalBalance(), insurance.openRequestCount(), loanService.pendingApplications(),
+                loanService.overdueEmis(), loanService.newEnquiries());
     }
 
     @Transactional(readOnly = true)
@@ -109,6 +115,7 @@ public class AdminService {
                 documents.findInfoByCustomerId(account.getCustomer().getId()),
                 investmentService.portfolio(account.getCustomer().getCustomerId()).holdings(),
                 policies.findByAccountIdOrderByIdDesc(accountId), insuranceRequests.findByAccountIdOrderByIdDesc(accountId),
+                loanService.loansOf(account.getCustomer().getCustomerId()),
                 notifications.recentFor(account.getCustomer()),
                 transactions.findByAccountIdOrderByIdDesc(accountId, PageRequest.of(0, 50)));
     }

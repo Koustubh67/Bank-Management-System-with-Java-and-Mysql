@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/portal :: page(~{::title}, ~{::main})}">
+<head><title>Loans &amp; EMI calculator · JavaBank</title></head>
+<body>
+<main id="main" class="mk loans-page">
+    <section class="mk-hero">
+        <div class="container mk-hero-grid">
+            <div>
+                <span class="eyebrow">JavaBank Loans</span>
+                <h1>Loans for every dream,<br><span class="grad-text">EMIs you can plan.</span></h1>
+                <p class="lead">Home, car, personal, education, two-wheeler and gold loans. Check your EMI in seconds, then
+                    apply online (customers) or ask our loan expert to call you back.</p>
+                <div class="hero-actions">
+                    <a class="btn dark lg" href="#calculator">EMI calculator</a>
+                    <a class="btn soft lg" href="#enquire">Get a call back</a>
+                    <a class="btn soft lg" th:href="@{/customer/loans/apply}">Customer? Apply online</a>
+                </div>
+            </div>
+            <div class="loan-products">
+                <a class="lp" th:each="t : ${types}" th:href="@{/loans(type=${t})} + '#calculator'" th:classappend="${t == selected} ? 'on'">
+                    <span class="lp-ic" th:text="${t.icon}"></span>
+                    <b th:text="${t.label}"></b>
+                    <small th:text="${'from ' + t.rate + '% p.a.'}"></small>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <div class="container">
+        <!-- EMI calculator -->
+        <section class="mk-card emi-calc" id="calculator" data-emi-calc>
+            <div class="emi-tabs" role="tablist" aria-label="Loan type">
+                <button type="button" th:each="t : ${types}" role="tab" th:classappend="${t == selected} ? 'on'"
+                        th:attr="data-loan-type=${t},data-rate=${t.rate},data-min=${t.minAmount},data-max=${t.maxAmount},data-minm=${t.minMonths},data-maxm=${t.maxMonths}"
+                        th:text="${t.icon + ' ' + t.label}"></button>
+            </div>
+            <div class="emi-grid">
+                <div>
+                    <label class="range"><span>Loan amount<b data-out="amount"></b></span>
+                        <input type="range" data-in="amount" step="10000"></label>
+                    <label class="range"><span>Interest rate (p.a.)<b data-out="rate"></b></span>
+                        <input type="range" data-in="rate" min="5" max="20" step="0.05"></label>
+                    <label class="range"><span>Tenure<b data-out="months"></b></span>
+                        <input type="range" data-in="months" step="1"></label>
+                    <p class="muted small">Rates shown are indicative. Your final rate depends on your credit profile.</p>
+                </div>
+                <div class="emi-result">
+                    <span>Your monthly EMI</span>
+                    <strong data-out="emi">—</strong>
+                    <div class="emi-split" aria-hidden="true"><i data-bar></i></div>
+                    <dl class="calc-out">
+                        <div><dt><i class="sw inv"></i>Principal</dt><dd data-out="principal"></dd></div>
+                        <div><dt><i class="sw ret"></i>Total interest</dt><dd data-out="interest"></dd></div>
+                        <div class="total"><dt>Total payable</dt><dd data-out="total"></dd></div>
+                    </dl>
+                </div>
+            </div>
+            <details class="emi-years">
+                <summary>Year-by-year repayment</summary>
+                <div class="table-wrap plain">
+                    <table class="table"><thead><tr><th>Year</th><th class="num">Principal paid</th><th class="num">Interest paid</th><th class="num">Balance at year end</th></tr></thead>
+                        <tbody data-emi-years></tbody></table>
+                </div>
+            </details>
+        </section>
+
+        <!-- Enquiry -->
+        <section class="loan-enquire" id="enquire">
+            <div class="le-copy">
+                <h2>Not a JavaBank customer yet?</h2>
+                <p>Leave your details and our loan expert will call you back <b>within 24 hours</b> to check eligibility,
+                    compare offers and help with the paperwork.</p>
+                <ul class="ticks"><li>No charges for the call</li><li>Doorstep document pickup</li><li>Quick in-principle approval</li></ul>
+                <p class="muted small">Already a customer? <a th:href="@{/customer/loans/apply}">Log in and apply online</a>. It's faster.</p>
+            </div>
+            <form class="mk-card form" th:action="@{/loans/enquiry}" method="post"
+                  th:with="f=${enquiryForm}">
+                <h3>Request a call back</h3>
+                <div class="error-summary" th:if="${enquiryErrors}"><strong th:text="${enquiryErrors.size() == 1} ? 'Please fix this problem:' : 'Please fix these ' + ${enquiryErrors.size()} + ' problems:'"></strong>
+                    <ul><li th:each="e : ${enquiryErrors}" th:text="${e}"></li></ul></div>
+                <div class="grid">
+                    <label class="field"><span>Full name</span><input type="text" name="name" th:value="${f?.name}" maxlength="80" required></label>
+                    <label class="field"><span>Mobile</span><input type="tel" name="mobile" th:value="${f?.mobile}" maxlength="10" required placeholder="10 digits"></label>
+                    <label class="field"><span>Email</span><input type="email" name="email" th:value="${f?.email}" maxlength="100" required></label>
+                    <label class="field"><span>City</span><input type="text" name="city" th:value="${f?.city}" maxlength="50" required></label>
+                    <label class="field"><span>Loan type</span>
+                        <select name="type" required>
+                            <option th:each="t : ${types}" th:value="${t}" th:text="${t.label}"
+                                    th:selected="${f != null ? f.type == t : t == selected}"></option>
+                        </select></label>
+                    <label class="field"><span>Loan amount (₹)</span><input type="number" name="amount" th:value="${f?.amount}" min="10000" step="1000" required></label>
+                    <label class="field"><span>Employment</span>
+                        <select name="employment" required>
+                            <option th:each="e : ${employment}" th:value="${e}" th:text="${e}" th:selected="${f != null and f.employment == e}"></option>
+                        </select></label>
+                    <label class="field"><span>Monthly income (₹)</span><input type="number" name="monthlyIncome" th:value="${f?.monthlyIncome}" min="10000" step="1000" required></label>
+                </div>
+                <fieldset class="field"><legend>Best time to call</legend>
+                    <div class="seg"><label th:each="t, it : ${times}"><input type="radio" name="preferredTime" th:value="${t}" th:checked="${f != null ? f.preferredTime == t : it.first}"><span><b th:text="${t}"></b></span></label></div>
+                </fieldset>
+                <button type="submit" class="btn dark lg full">Request a call back</button>
+                <p class="note">By submitting you agree to be contacted about this enquiry.</p>
+            </form>
+        </section>
+
+        <p class="note mk-disclaimer">Loans are subject to eligibility and credit approval. Interest rates are indicative and can
+            change. EMI is calculated on a reducing balance. JavaBank is a demo project: no real loan is given.</p>
+    </div>
+    <script th:src="@{/js/loans.js}"></script>
+</main>
+</body>
+</html>
