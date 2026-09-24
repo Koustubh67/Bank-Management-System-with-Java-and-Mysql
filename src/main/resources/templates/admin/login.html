@@ -10,6 +10,7 @@
         <label class="field"><span>Username</span><input type="text" name="username" required autofocus></label>
         <label class="field"><span>Password</span><input type="password" name="password" required></label>
         <div class="form-actions"><button type="submit" class="btn primary">Log in</button></div>
+        <p class="note" th:if="${demoEnabled}">Demo staff login: <b>admin</b> / <b>admin123</b></p>
     </form>
 </main>
 </body>

@@ -29,6 +29,9 @@ bank:
     per-transaction-limit: 100000
     daily-limit: 100000
     max-pin-attempts: 3
+  demo:
+    # Fixed demo customers with known card numbers and PINs (see README). Set DEMO_DATA=false to turn off.
+    enabled: ${DEMO_DATA:true}
   admin:
     username: ${ADMIN_USERNAME:admin}
     password: ${ADMIN_PASSWORD:admin123}

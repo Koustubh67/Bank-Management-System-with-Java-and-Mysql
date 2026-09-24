@@ -113,12 +113,41 @@ downloads it.
 
 Open <http://localhost:8080>. The `bankdb` database and its tables are created automatically on first start.
 
-**Try it out**
-1. Click **Open an account**, fill in the 3 pages and note the card number and PIN.
-2. Go to **Staff** and log in with `admin` / `admin123`, then approve the account.
-3. Go to **ATM**, log in with the card number and PIN, and deposit, withdraw or transfer money.
-4. Go to **Login → JavaPay UPI → Activate**, enter the card number and ATM PIN and pick a 6-digit UPI PIN.
-   Open a second account the same way and send it money by UPI ID.
+## Demo accounts (test data)
+
+On first start the app loads 6 demo customers with **fixed** card numbers and PINs, so you can try every feature
+without signing up. Each one is in a different state. They come from
+[`DemoDataSeeder`](src/main/java/com/koustubh/bank/demo/DemoDataSeeder.java) and are loaded only once; set
+`DEMO_DATA=false` to turn this off.
+
+> These are fake test numbers for this demo only. Never use real card numbers, PINs or Aadhaar numbers.
+
+**Bank staff (admin panel):** open <http://localhost:8080/admin/login> and log in as `admin` / `admin123`
+
+**ATM** (<http://localhost:8080/atm/login>) and **JavaPay UPI** (<http://localhost:8080/upi/login>):
+
+| Customer | Account no. | Card number | ATM PIN | UPI ID | UPI PIN | Balance | State: what to try |
+|---|---|---|---|---|---|---|---|
+| Rahul Sharma | `100000000001` | `5040930000000017` | `1234` | `rahul.0001@javabank` | `123456` | ₹42,350 | ✅ Active: ATM, UPI, everything |
+| Priya Verma | `100000000002` | `5040930000000025` | `2345` | `priya.0002@javabank` | `234567` | ₹1,20,950 | ✅ Active current account: pay Rahul by UPI |
+| Amit Patel | `100000000003` | `5040930000000033` | `3456` | — | — | ₹0 | ⏳ **Pending**: ATM refuses; approve him in the admin panel |
+| Sneha Iyer | `100000000004` | `5040930000000041` | `4567` | — | — | ₹20,000 | ❄️ **Frozen**: ATM refuses; unfreeze in the admin panel |
+| Vikram Singh | `100000000005` | `5040930000000058` | `5678` | — | — | ₹15,000 | 🚫 **Card blocked** (3 wrong PINs): unblock in the admin panel |
+| Anjali Gupta | `100000000006` | `5040930000000066` | `6789` | `anjali.0006@javabank` | `345678` | ₹7,700 | 🔒 **UPI locked**: unlock in the admin panel, or reset the UPI PIN with her card |
+
+The demo data also includes real transaction history (deposits, withdrawals, an ATM transfer and UPI payments with
+notes like "Dinner" and "Movie tickets"), so mini statements and UPI history aren't empty.
+
+**Quick tour (5 minutes)**
+1. **ATM:** log in as Rahul (`5040930000000017` / `1234`) → **Cash Withdrawal** → `1800`, and watch 3 × ₹500 + ₹200 + ₹100 come
+   out of the cash slot. Then check **Mini Statement**.
+2. **UPI:** log in to JavaPay as `rahul.0001@javabank` / `123456` → **Pay** → `priya.0002@javabank`, ₹500 → enter the UPI
+   PIN. Open **Receive** to see Rahul's QR code.
+3. **Security:** try Vikram's card: it's blocked. Try Amit's: it's waiting for approval.
+4. **Staff:** log in as `admin` / `admin123`, approve Amit, unblock Vikram's card, unlock Anjali's UPI, unfreeze Sneha.
+5. **Sign up:** open your own account with **Open account** and repeat the steps above with it.
+
+Tests check that every login in this table works (`DemoDataSeederTest`), so the table stays correct.
 
 **Configuration** (environment variables)
 
@@ -127,6 +156,7 @@ Open <http://localhost:8080>. The `bankdb` database and its tables are created a
 | `DB_URL` | `jdbc:mysql://localhost:3306/bankdb?createDatabaseIfNotExist=true` | Database connection |
 | `DB_USER` / `DB_PASSWORD` | `root` / *(empty)* | Database login |
 | `ADMIN_USERNAME` / `ADMIN_PASSWORD` | `admin` / `admin123` | First staff login, created on startup. **Change this when deploying.** |
+| `DEMO_DATA` | `true` | Load the demo customers above on first start |
 | `PORT` | `8080` | HTTP port |
 
 ## Tests
@@ -135,12 +165,13 @@ Open <http://localhost:8080>. The `bankdb` database and its tables are created a
 ./mvnw test
 ```
 
-86 tests run against an in-memory H2 database with the real Flyway schema:
+90 tests run against an in-memory H2 database with the real Flyway schema:
 - **Domain unit tests:** balance rules, account states
 - **Service tests:** daily limit, insufficient funds, transfer atomicity, concurrent withdrawals, transfer deadlock
   avoidance, PIN lockout and unblock, PIN change
 - **UPI tests:** activation, UPI ID format, payment and narration, daily and per-transaction limits, wrong-PIN lock and
   reset, staff unlock
+- **Demo data tests:** every demo login, balance and account state in the table above
 - **Web tests (MockMvc):** full 3-page signup, ATM login with a wrong PIN, withdrawal, staff approval, access control,
   UPI activate → login → pay → QR → balance → history
 

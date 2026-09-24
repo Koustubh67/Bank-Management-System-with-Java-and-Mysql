@@ -18,6 +18,7 @@
         </label>
         <button type="submit" class="screen-btn primary">Insert card &amp; continue ▸</button>
     </form>
+    <p class="screen-hint demo-hint" th:if="${demoEnabled}">Demo card: <b>5040930000000017</b> · PIN <b>1234</b></p>
     <p class="screen-hint">Shield the keypad while entering your PIN · New customer? <a th:href="@{/signup}">Open an account</a></p>
 </main>
 </body>
