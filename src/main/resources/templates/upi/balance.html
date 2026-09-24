@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/phone :: page(~{::title}, ~{::div.app}, true)}">
+<head><title>Balance · JavaPay UPI</title></head>
+<body>
+<div class="app">
+    <header class="app-bar"><a th:href="@{/upi}" class="back">←</a><h2>Check balance</h2></header>
+    <div class="app-body" th:if="${balance != null}">
+        <div class="balance-card">
+            <small th:text="${profile.bankName + ' · ' + profile.maskedAccountNumber}"></small>
+            <span>Available balance</span>
+            <strong class="count-money" th:attr="data-value=${balance}" th:text="${@money.format(balance)}">₹0</strong>
+        </div>
+        <a class="ubtn" th:href="@{/upi}">Done</a>
+    </div>
+    <form th:if="${balance == null}" th:action="@{/upi/balance}" method="post" class="app-pin-form">
+        <div class="toast error inset" th:if="${error}" th:text="${error}"></div>
+        <div th:replace="~{fragments/upi :: pinpad('ENTER UPI PIN TO VIEW BALANCE')}"></div>
+    </form>
+</div>
+</body>
+</html>

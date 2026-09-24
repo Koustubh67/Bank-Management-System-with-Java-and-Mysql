@@ -66,6 +66,11 @@ public class AdminController {
         return act(id, admin::unblockCard, "Card unblocked", redirect);
     }
 
+    @PostMapping("/accounts/{id}/unblock-upi")
+    public String unblockUpi(@PathVariable Long id, RedirectAttributes redirect) {
+        return act(id, admin::unblockUpi, "UPI unlocked", redirect);
+    }
+
     @GetMapping("/transactions")
     public String transactions(Model model) {
         model.addAttribute("transactions", admin.recentTransactions());

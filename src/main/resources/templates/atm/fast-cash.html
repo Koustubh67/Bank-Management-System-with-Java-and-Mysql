@@ -6,7 +6,7 @@
     <h1 class="screen-title">Fast Cash</h1>
     <p class="screen-sub">Select an amount</p>
     <div class="alert error" th:if="${error}" th:text="${error}"></div>
-    <form th:action="@{/atm/fast-cash}" method="post" class="menu-grid">
+    <form data-processing th:action="@{/atm/fast-cash}" method="post" class="menu-grid">
         <button type="submit" name="amount" th:each="a, i : ${amounts}" th:value="${a}"
                 th:class="${i.even} ? 'menu-opt left' : 'menu-opt right'"
                 th:text="${'₹' + #numbers.formatInteger(a, 1, 'COMMA')}">₹500</button>

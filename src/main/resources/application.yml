@@ -25,6 +25,10 @@ bank:
     daily-withdrawal-limit: 25000
     max-pin-attempts: 3
     max-deposit: 200000
+  upi:
+    per-transaction-limit: 100000
+    daily-limit: 100000
+    max-pin-attempts: 3
   admin:
     username: ${ADMIN_USERNAME:admin}
     password: ${ADMIN_PASSWORD:admin123}

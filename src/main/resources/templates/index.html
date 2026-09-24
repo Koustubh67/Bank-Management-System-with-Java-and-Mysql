@@ -1,34 +1,242 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/portal :: page(~{::title}, ~{::main})}">
-<head><title>JavaBank</title></head>
+<head><title>JavaBank · Banking, simplified</title></head>
 <body>
-<main>
+<main id="main">
+
+    <!-- ===== Hero ===== -->
     <section class="hero">
-        <div class="container">
-            <h1>Banking, simplified.</h1>
-            <p>Open a savings or current account in three steps, then use your card at the JavaBank ATM to deposit,
-                withdraw and transfer money.</p>
-            <div class="hero-actions">
-                <a class="btn primary" th:href="@{/signup}">Open an account</a>
-                <a class="btn ghost" th:href="@{/atm/login}">Go to ATM</a>
+        <div class="hero-glow" aria-hidden="true"></div>
+        <div class="container hero-grid">
+            <div class="hero-copy">
+                <span class="eyebrow reveal">Savings · ATM · UPI</span>
+                <h1 class="reveal">Banking that feels <span class="grad-text">effortless</span>.</h1>
+                <p class="lead reveal">Open an account in three steps, withdraw cash at the JavaBank ATM and pay anyone
+                    instantly with JavaPay UPI, all protected by bank-grade security.</p>
+                <div class="hero-actions reveal">
+                    <a class="btn primary lg" th:href="@{/signup}">Open an account <span aria-hidden="true">→</span></a>
+                    <a class="btn glass lg" th:href="@{/atm/login}">Try the ATM</a>
+                </div>
+                <ul class="trust reveal">
+                    <li>🔒 BCrypt-encrypted PINs</li>
+                    <li>⚡ Instant UPI transfers</li>
+                    <li>🧾 Every rupee on the ledger</li>
+                </ul>
+            </div>
+
+            <div class="hero-visual" aria-hidden="true">
+                <div class="debit-card tilt">
+                    <div class="dc-top"><span class="dc-bank">JavaBank</span><span class="dc-type">DEBIT</span></div>
+                    <div class="dc-chip"></div>
+                    <div class="dc-contactless">)))</div>
+                    <div class="dc-number">5040 93•• •••• 4821</div>
+                    <div class="dc-bottom">
+                        <div><small>CARD HOLDER</small><span>YOUR NAME</span></div>
+                        <div><small>VALID THRU</small><span>09/31</span></div>
+                        <div class="dc-network"><i></i><i></i></div>
+                    </div>
+                    <div class="dc-shine"></div>
+                </div>
+                <div class="float-note n1"><span class="fn-icon cr">↓</span><div><strong>₹2,500 received</strong><small>UPI from priya.3311@javabank</small></div></div>
+                <div class="float-note n2"><span class="fn-icon">✓</span><div><strong>Cash withdrawn</strong><small>3 × ₹500 · ATM BPL-042</small></div></div>
+                <div class="float-note n3"><span class="fn-icon lock">🔒</span><div><strong>Card secured</strong><small>Locked after 3 wrong PINs</small></div></div>
             </div>
         </div>
     </section>
-    <section class="container features">
-        <article class="card">
-            <h2>Open an account</h2>
-            <p>Fill in a 3-page application. You get a 16-digit card number and a PIN straight away; bank staff approve
-                the account before first use.</p>
-        </article>
-        <article class="card">
-            <h2>ATM services</h2>
-            <p>Deposit, cash withdrawal, fast cash, balance enquiry, mini statement, fund transfer and PIN change.</p>
-        </article>
-        <article class="card">
-            <h2>Built-in safety</h2>
-            <p>PINs stored as BCrypt hashes, card blocked after 3 wrong PINs, ₹25,000 daily withdrawal limit, and
-                all-or-nothing transfers.</p>
-        </article>
+
+    <!-- ===== Live stats ===== -->
+    <section class="stats-strip">
+        <div class="container stats-grid">
+            <div class="reveal"><strong data-count th:attr="data-count=${stats.customers}">0</strong><span>Customers onboarded</span></div>
+            <div class="reveal"><strong data-count th:attr="data-count=${stats.active}">0</strong><span>Active accounts</span></div>
+            <div class="reveal"><strong data-count th:attr="data-count=${stats.transactions}">0</strong><span>Transactions processed</span></div>
+            <div class="reveal"><strong data-count data-prefix="₹" th:attr="data-count=${stats.totalDeposits.longValue()}">0</strong><span>Deposits held</span></div>
+            <p class="stats-note">Live numbers from this app's MySQL database</p>
+        </div>
+    </section>
+
+    <!-- ===== Accounts ===== -->
+    <section class="section" id="accounts">
+        <div class="container">
+            <div class="section-head reveal">
+                <span class="eyebrow dark">Accounts</span>
+                <h2>An account for every goal</h2>
+                <p>Every account comes with a debit card, ATM access and JavaPay UPI.</p>
+            </div>
+            <div class="product-grid">
+                <article class="product reveal">
+                    <div class="p-icon" style="--c:#1f8a70">🏦</div>
+                    <h3>Savings Account</h3>
+                    <p>Everyday banking with a debit card, UPI and a mini statement at any ATM.</p>
+                    <ul><li>Zero-balance opening</li><li>Debit card + UPI</li><li>₹25,000 daily ATM limit</li></ul>
+                </article>
+                <article class="product reveal">
+                    <div class="p-icon" style="--c:#2563eb">💼</div>
+                    <h3>Current Account</h3>
+                    <p>For businesses and freelancers who move money often.</p>
+                    <ul><li>Unlimited transfers</li><li>Instant UPI collections</li><li>Cheque book on request</li></ul>
+                </article>
+                <article class="product reveal">
+                    <div class="p-icon" style="--c:#b45309">📈</div>
+                    <h3>Fixed Deposit</h3>
+                    <p>Park a lump sum for a fixed period and let it grow.</p>
+                    <ul><li>Choose your tenure</li><li>Senior citizen friendly</li><li>E-statements</li></ul>
+                </article>
+                <article class="product reveal">
+                    <div class="p-icon" style="--c:#7c3aed">🗓️</div>
+                    <h3>Recurring Deposit</h3>
+                    <p>Save a little every month, automatically.</p>
+                    <ul><li>Monthly saving habit</li><li>Email &amp; SMS alerts</li><li>Track it anytime</li></ul>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== How it works ===== -->
+    <section class="section alt">
+        <div class="container">
+            <div class="section-head reveal">
+                <span class="eyebrow dark">Get started</span>
+                <h2>From sign-up to first payment in minutes</h2>
+            </div>
+            <ol class="timeline">
+                <li class="reveal"><span class="t-num">1</span><h3>Apply online</h3><p>Fill in a 3-page form with your personal and KYC details. PAN and Aadhaar are validated instantly.</p></li>
+                <li class="reveal"><span class="t-num">2</span><h3>Get your card</h3><p>A 16-digit card number (with a real Luhn check digit) and a PIN are issued straight away.</p></li>
+                <li class="reveal"><span class="t-num">3</span><h3>Bank approval</h3><p>Our staff review the application in the admin panel and activate the account.</p></li>
+                <li class="reveal"><span class="t-num">4</span><h3>Bank anywhere</h3><p>Withdraw cash at the ATM, or activate UPI with your card and pay anyone instantly.</p></li>
+            </ol>
+            <div class="center reveal"><a class="btn primary lg" th:href="@{/signup}">Start your application</a></div>
+        </div>
+    </section>
+
+    <!-- ===== UPI ===== -->
+    <section class="section" id="upi">
+        <div class="container split">
+            <div class="split-copy reveal">
+                <span class="eyebrow dark">JavaPay UPI</span>
+                <h2>Pay anyone. Instantly. 24×7.</h2>
+                <p>Get your own UPI ID like <code>name.1234@javabank</code>. Send money, receive with a QR code and
+                    check your balance, secured by a 6-digit UPI PIN.</p>
+                <ul class="checks">
+                    <li>Activate with your debit card and ATM PIN, just like real UPI apps</li>
+                    <li>See the receiver's registered name before you pay</li>
+                    <li>Scannable <code>upi://pay</code> QR code to receive money</li>
+                    <li>₹1,00,000 daily limit; UPI locks after 3 wrong PINs</li>
+                </ul>
+                <div class="hero-actions">
+                    <a class="btn primary" th:href="@{/upi/register}">Activate UPI</a>
+                    <a class="btn outline" th:href="@{/upi/login}">Open JavaPay</a>
+                </div>
+            </div>
+            <div class="phone-demo reveal" aria-hidden="true">
+                <div class="mini-phone">
+                    <div class="mp-notch"></div>
+                    <div class="mp-screen">
+                        <div class="mp-head">JavaPay</div>
+                        <div class="mp-amount">₹1,250</div>
+                        <div class="mp-to">Paying <strong>PRIYA SHARMA</strong><br><small>priya.3311@javabank</small></div>
+                        <div class="mp-pin"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                        <div class="mp-success"><span>✓</span>Payment successful</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== ATM ===== -->
+    <section class="section dark" id="atm">
+        <div class="container split reverse">
+            <div class="split-copy reveal">
+                <span class="eyebrow">JavaBank ATM</span>
+                <h2>An ATM that feels real</h2>
+                <p>Insert your card, type your PIN on the keypad and watch the notes come out of the cash slot.</p>
+                <ul class="checks light">
+                    <li>Deposit, withdrawal, fast cash, mini statement, fund transfer and PIN change</li>
+                    <li>Notes counted as ₹500, ₹200 and ₹100, the fewest notes possible</li>
+                    <li>Printed receipt with a transaction reference</li>
+                    <li>Two withdrawals at the same moment can never overdraw an account</li>
+                </ul>
+                <a class="btn primary" th:href="@{/atm/login}">Walk up to the ATM</a>
+            </div>
+            <div class="atm-teaser reveal" aria-hidden="true">
+                <div class="at-screen"><span>Please collect your cash</span></div>
+                <div class="at-slot"></div>
+                <div class="at-notes">
+                    <span class="note n500">₹500</span><span class="note n500">₹500</span><span class="note n200">₹200</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== Security ===== -->
+    <section class="section" id="security">
+        <div class="container">
+            <div class="section-head reveal">
+                <span class="eyebrow dark">Security</span>
+                <h2>Your money, protected at every step</h2>
+            </div>
+            <div class="feature-grid">
+                <div class="feature reveal"><span class="f-icon">🔐</span><h3>Encrypted PINs</h3><p>ATM PINs, UPI PINs and staff passwords are stored as BCrypt hashes. Nobody can read them, not even staff.</p></div>
+                <div class="feature reveal"><span class="f-icon">🚫</span><h3>Auto card lock</h3><p>Three wrong PINs lock the card or UPI. Staff can unblock it, or you can reset your UPI PIN with your card.</p></div>
+                <div class="feature reveal"><span class="f-icon">📏</span><h3>Daily limits</h3><p>₹25,000 per day at the ATM and ₹1,00,000 per day on UPI limit the damage if a PIN is stolen.</p></div>
+                <div class="feature reveal"><span class="f-icon">⚖️</span><h3>All-or-nothing transfers</h3><p>Money leaves one account and arrives in the other in a single database transaction, or not at all.</p></div>
+                <div class="feature reveal"><span class="f-icon">🧾</span><h3>Tamper-proof ledger</h3><p>Every transaction is written once and never edited, with the balance after each entry.</p></div>
+                <div class="feature reveal"><span class="f-icon">🛡️</span><h3>Web protection</h3><p>CSRF tokens on every form, separate sessions for ATM, UPI and staff, and masked Aadhaar numbers.</p></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== Engineering ===== -->
+    <section class="section alt" id="engineering">
+        <div class="container">
+            <div class="section-head reveal">
+                <span class="eyebrow dark">Under the hood</span>
+                <h2>Engineered like core banking software</h2>
+                <p>Built to show how production banking systems handle money correctly.</p>
+            </div>
+            <div class="eng-grid">
+                <div class="eng reveal"><code>BigDecimal</code><p>Exact money arithmetic in Java and <code>DECIMAL(15,2)</code> in MySQL. No floating-point rounding.</p></div>
+                <div class="eng reveal"><code>SELECT … FOR UPDATE</code><p>Pessimistic row locks stop concurrent withdrawals from overdrawing an account.</p></div>
+                <div class="eng reveal"><code>Ordered locking</code><p>Accounts are always locked in id order, so A→B and B→A transfers can't deadlock.</p></div>
+                <div class="eng reveal"><code>@Transactional</code><p>Debit, credit and both ledger entries commit together or roll back together.</p></div>
+                <div class="eng reveal"><code>Flyway</code><p>Versioned database migrations; Hibernate only validates the schema.</p></div>
+                <div class="eng reveal"><code>80+ tests</code><p>JUnit, MockMvc and concurrency tests run on every push with GitHub Actions.</p></div>
+            </div>
+            <div class="tech-row reveal">
+                <span>Java 17</span><span>Spring Boot 4</span><span>Spring Security</span><span>Spring Data JPA</span>
+                <span>MySQL</span><span>Flyway</span><span>Thymeleaf</span><span>JUnit 5</span><span>Docker</span><span>GitHub Actions</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== FAQ ===== -->
+    <section class="section" id="faq">
+        <div class="container narrow">
+            <div class="section-head reveal">
+                <span class="eyebrow dark">FAQ</span>
+                <h2>Questions, answered</h2>
+            </div>
+            <div class="faq">
+                <details class="reveal"><summary>How do I open an account?</summary><p>Click <a th:href="@{/signup}">Open account</a> and fill in the 3 pages. You'll get your account number, card number and PIN at the end. Write them down: the PIN is shown only once.</p></details>
+                <details class="reveal"><summary>Why can't I use my card straight away?</summary><p>New accounts wait for approval by bank staff, like KYC checks at a real bank. A staff member approves it in the admin panel.</p></details>
+                <details class="reveal"><summary>How do I get a UPI ID?</summary><p>Go to <a th:href="@{/upi/register}">Activate UPI</a>, enter your debit card number and ATM PIN, and choose a 6-digit UPI PIN. Your UPI ID is created instantly.</p></details>
+                <details class="reveal"><summary>I forgot my UPI PIN or it's locked. What now?</summary><p>Activate UPI again with your debit card and ATM PIN. This sets a new UPI PIN and unlocks UPI, the same way real UPI apps work.</p></details>
+                <details class="reveal"><summary>What happens if I enter a wrong ATM PIN?</summary><p>After 3 wrong attempts the card is blocked to protect you. Bank staff can unblock it from the admin panel.</p></details>
+                <details class="reveal"><summary>Is this a real bank?</summary><p>No. JavaBank is a portfolio project that demonstrates banking software engineering. No real money moves, so never enter real card numbers or PINs.</p></details>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== CTA ===== -->
+    <section class="cta">
+        <div class="container cta-inner reveal">
+            <h2>Ready to start banking?</h2>
+            <p>Open your JavaBank account in under 2 minutes.</p>
+            <div class="hero-actions center-row">
+                <a class="btn light lg" th:href="@{/signup}">Open an account</a>
+                <a class="btn glass lg" th:href="@{/upi/login}">Open JavaPay UPI</a>
+            </div>
+        </div>
     </section>
 </main>
 </body>

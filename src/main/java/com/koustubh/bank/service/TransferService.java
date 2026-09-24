@@ -47,7 +47,16 @@ public class TransferService {
         if (fromId.equals(toId)) {
             throw new InvalidRequestException("You cannot transfer money to your own account");
         }
+        return moveMoney(fromId, toId, amount, TransactionType.TRANSFER_OUT, TransactionType.TRANSFER_IN, null, null);
+    }
 
+    /**
+     * The money movement shared by ATM transfers and UPI payments. Both legs are saved in the caller's
+     * transaction, so either both happen or neither does. Returns the debit leg.
+     */
+    @Transactional
+    public Transaction moveMoney(Long fromId, Long toId, BigDecimal amount, TransactionType outType,
+                                 TransactionType inType, String outRemarks, String inRemarks) {
         // Always lock the lower id first. If two customers send money to each other at the same time,
         // both lock in the same order, so they can never wait on each other forever (deadlock).
         Account first = lock(Math.min(fromId, toId));
@@ -63,10 +72,10 @@ public class TransferService {
 
         String reference = UUID.randomUUID().toString();
         LocalDateTime now = LocalDateTime.now(clock);
-        Transaction out = transactions.save(new Transaction(from, TransactionType.TRANSFER_OUT, amount, reference,
-                to.getAccountNumber(), now));
-        transactions.save(new Transaction(to, TransactionType.TRANSFER_IN, amount, reference,
-                from.getAccountNumber(), now));
+        Transaction out = transactions.save(new Transaction(from, outType, amount, reference,
+                to.getAccountNumber(), outRemarks, now));
+        transactions.save(new Transaction(to, inType, amount, reference,
+                from.getAccountNumber(), inRemarks, now));
         return out;
     }
 

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/phone :: page(~{::title}, ~{::div.app}, false)}">
+<head><title>Enter UPI PIN · JavaPay</title></head>
+<body>
+<div class="app app-pin">
+    <header class="app-bar dark"><a th:href="@{/upi/pay(pa=${payeeVpa})}" class="back">←</a><h2>JavaBank · UPI</h2></header>
+    <div class="pin-summary">
+        <small>Paying</small>
+        <strong th:text="${payee.name}">PAYEE</strong>
+        <span class="verified" th:text="${payee.vpa}"></span>
+        <div class="pin-amount" th:text="${@money.format(amountValue)}">₹0</div>
+        <small th:if="${note != null and !#strings.isEmpty(note)}" th:text="'“' + ${note} + '”'"></small>
+    </div>
+    <div class="toast error inset" th:if="${error}" th:text="${error}"></div>
+    <form th:action="@{/upi/pay/confirm}" method="post" data-upi-pay>
+        <input type="hidden" name="payeeVpa" th:value="${payee.vpa}">
+        <input type="hidden" name="amount" th:value="${amountValue}">
+        <input type="hidden" name="note" th:value="${note}">
+        <div th:replace="~{fragments/upi :: pinpad('ENTER 6-DIGIT UPI PIN')}"></div>
+    </form>
+    <div class="paying" id="paying" hidden><div class="ring"></div><p>Paying securely…</p></div>
+</div>
+</body>
+</html>

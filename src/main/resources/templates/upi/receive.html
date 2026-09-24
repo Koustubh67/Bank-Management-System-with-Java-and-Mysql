@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/phone :: page(~{::title}, ~{::div.app}, true)}">
+<head><title>Receive · JavaPay UPI</title></head>
+<body>
+<div class="app">
+    <header class="app-bar"><a th:href="@{/upi}" class="back">←</a><h2>Receive money</h2></header>
+    <div class="app-body center">
+        <div class="qr-card">
+            <strong th:text="${profile.name}">Name</strong>
+            <div class="qr" th:utext="${qr}"></div>
+            <div class="vpa-chip light">
+                <span th:text="${profile.vpa}" id="qrVpa"></span>
+                <button type="button" data-copy="#qrVpa" class="copy">Copy</button>
+            </div>
+            <small>Scan with any UPI app to pay · <span th:text="${profile.bankName}"></span></small>
+        </div>
+        <p class="hint">This is a standard <code>upi://pay</code> QR. Other JavaBank users can pay you with your UPI ID.</p>
+    </div>
+</div>
+</body>
+</html>

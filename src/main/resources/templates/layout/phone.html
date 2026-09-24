@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:fragment="page(title, content, nav)">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#0b2545">
+    <title th:replace="${title}">JavaPay UPI</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <link rel="stylesheet" th:href="@{/css/upi.css}">
+</head>
+<body class="upi-body">
+<div class="upi-stage">
+    <aside class="upi-side">
+        <a class="upi-back" th:href="@{/}">← JavaBank home</a>
+        <h1>JavaPay <span>UPI</span></h1>
+        <p>Pay any JavaBank customer instantly using their UPI ID, or receive money with your QR code.</p>
+        <ul>
+            <li>Activate with your debit card + ATM PIN</li>
+            <li>6-digit UPI PIN for every payment</li>
+            <li>See the payee's name before you pay</li>
+            <li>₹1,00,000 per day limit</li>
+        </ul>
+    </aside>
+    <div class="phone">
+        <div class="phone-notch" aria-hidden="true"></div>
+        <div class="phone-screen">
+            <div class="status-bar" aria-hidden="true">
+                <span id="phoneClock">9:41</span>
+                <span class="status-icons"><i class="sig"></i><i class="wifi"></i><i class="bat"></i></span>
+            </div>
+            <div class="app" th:replace="${content}"></div>
+            <nav class="tabbar" th:if="${nav}" aria-label="JavaPay">
+                <a th:href="@{/upi}"><span>⌂</span>Home</a>
+                <a th:href="@{/upi/pay}"><span>↗</span>Pay</a>
+                <a th:href="@{/upi/receive}"><span>▦</span>Receive</a>
+                <a th:href="@{/upi/history}"><span>☰</span>History</a>
+            </nav>
+        </div>
+    </div>
+</div>
+<script th:src="@{/js/upi.js}"></script>
+</body>
+</html>

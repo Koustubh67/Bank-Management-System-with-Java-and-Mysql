@@ -4,7 +4,9 @@ public enum TransactionType {
     DEPOSIT("Deposit", true),
     WITHDRAWAL("Withdrawal", false),
     TRANSFER_IN("Transfer In", true),
-    TRANSFER_OUT("Transfer Out", false);
+    TRANSFER_OUT("Transfer Out", false),
+    UPI_IN("UPI Received", true),
+    UPI_OUT("UPI Payment", false);
 
     private final String label;
     private final boolean credit;

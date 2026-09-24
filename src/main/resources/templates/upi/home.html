@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/phone :: page(~{::title}, ~{::div.app}, true)}">
+<head><title>JavaPay UPI</title></head>
+<body>
+<div class="app">
+    <header class="home-head">
+        <div class="hh-top">
+            <div class="avatar" th:text="${#strings.substring(profile.name, 0, 1)}">K</div>
+            <div>
+                <small>Hello,</small>
+                <strong th:text="${profile.name}">Customer</strong>
+            </div>
+            <form th:action="@{/upi/logout}" method="post" class="hh-logout"><button type="submit" title="Log out">⏻</button></form>
+        </div>
+        <div class="vpa-chip">
+            <span th:text="${profile.vpa}" id="myVpa">name@javabank</span>
+            <button type="button" data-copy="#myVpa" class="copy">Copy</button>
+        </div>
+        <p class="hh-bank"><span th:text="${profile.bankName + ' · ' + profile.accountType}"></span> · <span th:text="${profile.maskedAccountNumber}"></span></p>
+    </header>
+    <div class="app-body">
+        <div class="quick-grid">
+            <a th:href="@{/upi/pay}"><span class="qi" style="--c:#1f8a70">↗</span>Pay UPI ID</a>
+            <a th:href="@{/upi/receive}"><span class="qi" style="--c:#2563eb">▦</span>Receive</a>
+            <a th:href="@{/upi/balance}"><span class="qi" style="--c:#b45309">₹</span>Check balance</a>
+            <a th:href="@{/upi/history}"><span class="qi" style="--c:#7c3aed">☰</span>History</a>
+        </div>
+        <div class="promo">
+            <strong>Zero fees on UPI</strong>
+            <span>Pay any @javabank UPI ID instantly, 24×7</span>
+        </div>
+        <h3 class="list-title">Recent activity</h3>
+        <p class="empty" th:if="${transactions.isEmpty()}">No transactions yet. Make your first payment!</p>
+        <ul class="txn-list">
+            <th:block th:each="t : ${transactions}"><li th:replace="~{fragments/upi :: txn(${t})}"></li></th:block>
+        </ul>
+    </div>
+</div>
+</body>
+</html>

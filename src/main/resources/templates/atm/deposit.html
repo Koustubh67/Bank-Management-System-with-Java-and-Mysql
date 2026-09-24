@@ -6,7 +6,7 @@
     <h1 class="screen-title">Cash Deposit</h1>
     <p class="screen-sub">Insert notes in multiples of ₹100 · Max ₹2,00,000 per deposit</p>
     <div class="alert error" th:if="${error}" th:text="${error}"></div>
-    <form th:action="@{/atm/deposit}" method="post" class="screen-form">
+    <form data-processing th:action="@{/atm/deposit}" method="post" class="screen-form">
         <label>Amount (₹)
             <input type="number" name="amount" min="100" step="100" th:value="${param.amount}" required autofocus>
         </label>

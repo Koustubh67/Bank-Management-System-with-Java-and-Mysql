@@ -3,19 +3,80 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="JavaBank: open an account, use the ATM and pay with JavaPay UPI. A Spring Boot banking demo.">
     <title th:replace="${title}">JavaBank</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
     <link rel="stylesheet" th:href="@{/css/app.css}">
+    <link rel="stylesheet" th:href="@{/css/home.css}">
 </head>
 <body class="portal">
-<header class="topbar">
-    <a class="brand" th:href="@{/}"><span class="brand-mark">₹</span> JavaBank</a>
-    <nav class="topnav">
-        <a th:href="@{/signup}">Open Account</a>
-        <a th:href="@{/atm/login}">ATM</a>
-        <a th:href="@{/admin}">Staff</a>
-    </nav>
+<a class="skip-link" href="#main">Skip to content</a>
+<div class="utility-bar">
+    <div class="container utility-inner">
+        <span><strong>Demo project</strong> · JavaBank is a portfolio app, not a real bank</span>
+        <span class="utility-links">
+            <a th:href="@{/#security}">Security</a>
+            <a th:href="@{/#faq}">Help</a>
+        </span>
+    </div>
+</div>
+<header class="site-header" id="siteHeader">
+    <div class="container header-inner">
+        <a class="brand" th:href="@{/}" aria-label="JavaBank home">
+            <span class="brand-mark">₹</span><span>Java<span class="brand-accent">Bank</span></span>
+        </a>
+        <input type="checkbox" id="navToggle" class="nav-toggle" aria-label="Open menu">
+        <label for="navToggle" class="nav-burger" aria-hidden="true"><span></span><span></span><span></span></label>
+        <nav class="main-nav" aria-label="Main">
+            <a th:href="@{/#accounts}">Accounts</a>
+            <a th:href="@{/#upi}">UPI</a>
+            <a th:href="@{/#atm}">ATM</a>
+            <a th:href="@{/#security}">Security</a>
+            <a th:href="@{/#faq}">FAQ</a>
+            <div class="nav-login">
+                <button type="button" class="btn ghost-dark small" aria-haspopup="true">Login ▾</button>
+                <div class="nav-menu">
+                    <a th:href="@{/atm/login}"><strong>ATM</strong><small>Card + PIN</small></a>
+                    <a th:href="@{/upi/login}"><strong>JavaPay UPI</strong><small>UPI ID + UPI PIN</small></a>
+                    <a th:href="@{/admin/login}"><strong>Bank staff</strong><small>Admin panel</small></a>
+                </div>
+            </div>
+            <a class="btn primary small" th:href="@{/signup}">Open account</a>
+        </nav>
+    </div>
 </header>
-<main th:replace="${content}"></main>
-<footer class="footer">JavaBank · Spring Boot banking demo · Not a real bank</footer>
+<main id="main" th:replace="${content}"></main>
+<footer class="site-footer">
+    <div class="container footer-grid">
+        <div>
+            <a class="brand light" th:href="@{/}"><span class="brand-mark">₹</span><span>Java<span class="brand-accent">Bank</span></span></a>
+            <p>A full-stack banking demo built with Java 17, Spring Boot, Spring Security, JPA and MySQL.</p>
+        </div>
+        <div>
+            <h4>Banking</h4>
+            <a th:href="@{/signup}">Open an account</a>
+            <a th:href="@{/atm/login}">ATM</a>
+            <a th:href="@{/upi/login}">JavaPay UPI</a>
+            <a th:href="@{/upi/register}">Activate UPI</a>
+        </div>
+        <div>
+            <h4>Learn</h4>
+            <a th:href="@{/#security}">How we keep you safe</a>
+            <a th:href="@{/#engineering}">Under the hood</a>
+            <a th:href="@{/#faq}">FAQ</a>
+        </div>
+        <div>
+            <h4>Staff</h4>
+            <a th:href="@{/admin/login}">Admin login</a>
+        </div>
+    </div>
+    <div class="container footer-bottom">
+        <span>© JavaBank demo · Built by Koustubh Dubey</span>
+        <span>Not a real bank. Never enter real card numbers, PINs or Aadhaar numbers.</span>
+    </div>
+</footer>
+<script th:src="@{/js/site.js}"></script>
 </body>
 </html>

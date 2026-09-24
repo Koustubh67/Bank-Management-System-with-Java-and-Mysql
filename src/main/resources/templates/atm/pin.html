@@ -5,7 +5,7 @@
 <main class="screen-content">
     <h1 class="screen-title">PIN Change</h1>
     <div class="alert error" th:if="${error}" th:text="${error}"></div>
-    <form th:action="@{/atm/pin}" th:object="${pinChangeForm}" method="post" class="screen-form">
+    <form data-processing th:action="@{/atm/pin}" th:object="${pinChangeForm}" method="post" class="screen-form">
         <label>Current PIN
             <input type="password" th:field="*{currentPin}" inputmode="numeric" maxlength="4" autocomplete="off" required autofocus>
         </label>

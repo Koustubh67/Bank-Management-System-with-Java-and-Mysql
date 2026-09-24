@@ -14,7 +14,8 @@
                 <td th:text="${#temporals.format(t.createdAt, 'dd MMM HH:mm')}"></td>
                 <td>
                     <span th:text="${t.type.label}"></span>
-                    <small th:if="${t.counterpartyAccount}" th:text="${'A/c ' + t.counterpartyAccount}"></small>
+                    <small th:if="${t.remarks}" th:text="${t.remarks}"></small>
+                    <small th:if="${t.remarks == null and t.counterpartyAccount != null}" th:text="${'A/c ' + t.counterpartyAccount}"></small>
                 </td>
                 <td class="num" th:classappend="${t.type.credit} ? 'cr' : 'dr'"
                     th:text="${(t.type.credit ? '+' : '−') + @money.format(t.amount)}"></td>

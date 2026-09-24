@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- NPCI-style PIN entry: dots + number pad. The real input stays in the form, so it also works without JavaScript. -->
+<div th:fragment="pinpad(label)" class="pinpad" data-pinpad>
+    <p class="pin-label" th:text="${label}">ENTER UPI PIN</p>
+    <input class="pin-input" type="password" name="pin" inputmode="numeric" maxlength="6" pattern="\d{6}"
+           autocomplete="off" required aria-label="UPI PIN">
+    <div class="pin-dots" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <div class="pin-keys" aria-hidden="true">
+        <button type="button" data-k="1">1</button><button type="button" data-k="2">2</button><button type="button" data-k="3">3</button>
+        <button type="button" data-k="4">4</button><button type="button" data-k="5">5</button><button type="button" data-k="6">6</button>
+        <button type="button" data-k="7">7</button><button type="button" data-k="8">8</button><button type="button" data-k="9">9</button>
+        <button type="button" data-k="del" class="k-del">⌫</button><button type="button" data-k="0">0</button>
+        <button type="submit" class="k-ok">✓</button>
+    </div>
+</div>
+
+<!-- One row in a transaction list -->
+<li th:fragment="txn(t)" class="txn">
+    <span class="txn-icon" th:classappend="${t.type.credit} ? 'in' : 'out'" th:text="${t.type.credit} ? '↙' : '↗'"></span>
+    <div class="txn-body">
+        <strong th:text="${t.remarks != null ? #strings.substringAfter(t.remarks, 'UPI/') : t.type.label}"></strong>
+        <small th:text="${t.type.label + ' · ' + #temporals.format(t.createdAt, 'dd MMM, hh:mm a')}"></small>
+    </div>
+    <span class="txn-amt" th:classappend="${t.type.credit} ? 'cr' : 'dr'"
+          th:text="${(t.type.credit ? '+ ' : '− ') + @money.format(t.amount)}"></span>
+</li>
+</body>
+</html>

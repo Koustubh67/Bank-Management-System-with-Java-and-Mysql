@@ -14,7 +14,7 @@
                 <td th:text="${#temporals.format(t.createdAt, 'dd MMM yyyy HH:mm')}"></td>
                 <td class="mono"><a th:href="@{/admin/accounts/{id}(id=${t.account.id})}" th:text="${t.account.accountNumber}"></a></td>
                 <td th:text="${t.type.label}"></td>
-                <td class="mono" th:text="${t.counterpartyAccount ?: '—'}"></td>
+                <td class="mono"><span th:text="${t.counterpartyAccount ?: '—'}"></span><small class="muted remark" th:if="${t.remarks}" th:text="${t.remarks}"></small></td>
                 <td class="num" th:classappend="${t.type.credit} ? 'cr' : 'dr'"
                     th:text="${(t.type.credit ? '+' : '−') + @money.format(t.amount)}"></td>
                 <td class="num" th:text="${@money.format(t.balanceAfter)}"></td>

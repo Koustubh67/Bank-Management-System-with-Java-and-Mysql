@@ -29,6 +29,9 @@ public class Transaction {
 
     private String counterpartyAccount;
 
+    /** Narration shown on statements, e.g. "UPI/priya.3311@javabank/lunch". */
+    private String remarks;
+
     private LocalDateTime createdAt;
 
     protected Transaction() {
@@ -36,6 +39,12 @@ public class Transaction {
 
     public Transaction(Account account, TransactionType type, BigDecimal amount, String referenceId,
                        String counterpartyAccount, LocalDateTime createdAt) {
+        this(account, type, amount, referenceId, counterpartyAccount, null, createdAt);
+    }
+
+    public Transaction(Account account, TransactionType type, BigDecimal amount, String referenceId,
+                       String counterpartyAccount, String remarks, LocalDateTime createdAt) {
+        this.remarks = remarks;
         this.account = account;
         this.type = type;
         this.amount = amount;
@@ -52,5 +61,6 @@ public class Transaction {
     public BigDecimal getBalanceAfter() { return balanceAfter; }
     public String getReferenceId() { return referenceId; }
     public String getCounterpartyAccount() { return counterpartyAccount; }
+    public String getRemarks() { return remarks; }
     public LocalDateTime getCreatedAt() { return createdAt; }
 }

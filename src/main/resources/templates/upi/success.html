@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/phone :: page(~{::title}, ~{::div.app}, false)}">
+<head><title>Payment successful · JavaPay</title></head>
+<body>
+<div class="app app-success">
+    <div class="burst" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <div class="tick"><svg viewBox="0 0 52 52" aria-hidden="true"><circle cx="26" cy="26" r="24"/><path d="M14 27l8 8 16-17"/></svg></div>
+    <p class="s-label">Payment successful</p>
+    <div class="s-amount" th:text="${@money.format(payment.amount)}">₹0</div>
+    <p class="s-to">to <strong th:text="${payee.name}"></strong><br><small th:text="${payee.vpa}"></small></p>
+    <dl class="s-details">
+        <dt>Date &amp; time</dt><dd th:text="${#temporals.format(payment.createdAt, 'dd MMM yyyy, hh:mm:ss a')}"></dd>
+        <dt>UPI Ref. No.</dt><dd class="mono" th:text="${#strings.toUpperCase(#strings.substring(#strings.replace(payment.referenceId, '-', ''), 0, 12))}"></dd>
+        <dt>Balance after</dt><dd th:text="${@money.format(payment.balanceAfter)}"></dd>
+    </dl>
+    <div class="s-actions">
+        <a class="ubtn light" th:href="@{/upi/history}">View history</a>
+        <a class="ubtn" th:href="@{/upi}">Done</a>
+    </div>
+</div>
+</body>
+</html>

@@ -4,47 +4,93 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title th:replace="${title}">JavaBank ATM</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap">
     <link rel="stylesheet" th:href="@{/css/app.css}">
+    <link rel="stylesheet" th:href="@{/css/home.css}">
+    <link rel="stylesheet" th:href="@{/css/atm.css}">
 </head>
 <body class="atm-body">
-<div class="atm">
-    <div class="atm-top">
-        <span class="brand-mark">₹</span> JavaBank <span class="atm-tag">ATM</span>
+<div class="atm-kiosk">
+    <div class="atm-canopy">
+        <span class="brand-mark">₹</span><span>Java<span class="brand-accent">Bank</span></span>
+        <span class="atm-tag">24×7 ATM</span>
     </div>
-    <div class="atm-display">
-        <div class="side-keys" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
-        <div class="screen">
-            <main th:replace="${screen}"></main>
+    <div class="atm" id="atm">
+        <div class="atm-display">
+            <div class="side-keys left" aria-hidden="true">
+                <button type="button" tabindex="-1" data-side="left" data-index="0"></button>
+                <button type="button" tabindex="-1" data-side="left" data-index="1"></button>
+                <button type="button" tabindex="-1" data-side="left" data-index="2"></button>
+                <button type="button" tabindex="-1" data-side="left" data-index="3"></button>
+            </div>
+            <div class="screen" id="screen">
+                <div class="screen-bar"><span>ATM ID · JB-BPL-042</span><span id="atmClock"></span></div>
+                <main th:replace="${screen}"></main>
+                <div class="processing" id="processing" hidden>
+                    <div class="spinner"></div>
+                    <p id="processingText">Please wait…</p>
+                </div>
+            </div>
+            <div class="side-keys right" aria-hidden="true">
+                <button type="button" tabindex="-1" data-side="right" data-index="0"></button>
+                <button type="button" tabindex="-1" data-side="right" data-index="1"></button>
+                <button type="button" tabindex="-1" data-side="right" data-index="2"></button>
+                <button type="button" tabindex="-1" data-side="right" data-index="3"></button>
+            </div>
         </div>
-        <div class="side-keys" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+
+        <div class="atm-panel">
+            <div class="slots">
+                <div class="slot-group">
+                    <span class="slot-label">INSERT CARD ▸</span>
+                    <div class="card-reader">
+                        <span class="reader-light" id="readerLight"></span>
+                        <span class="slot-mouth"></span>
+                        <div class="atm-card" id="atmCard" aria-hidden="true">
+                            <span class="ac-chip"></span><span class="ac-brand">JavaBank</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="slot-group">
+                    <span class="slot-label">RECEIPT</span>
+                    <div class="receipt-printer">
+                        <span class="slot-mouth thin"></span>
+                        <div class="paper" id="paper" aria-hidden="true"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="keypad" role="group" aria-label="ATM keypad">
+                <button type="button" data-key="1">1</button>
+                <button type="button" data-key="2">2</button>
+                <button type="button" data-key="3">3</button>
+                <button type="button" data-key="cancel" class="k-cancel">CANCEL</button>
+                <button type="button" data-key="4">4</button>
+                <button type="button" data-key="5">5</button>
+                <button type="button" data-key="6">6</button>
+                <button type="button" data-key="clear" class="k-clear">CLEAR</button>
+                <button type="button" data-key="7">7</button>
+                <button type="button" data-key="8">8</button>
+                <button type="button" data-key="9">9</button>
+                <button type="button" data-key="enter" class="k-enter">ENTER</button>
+                <span></span>
+                <button type="button" data-key="0">0</button>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+
+        <div class="cash-dispenser">
+            <span class="slot-label">CASH</span>
+            <div class="cash-mouth"><span class="cash-light" id="cashLight"></span></div>
+            <div class="cash-tray" id="cashTray" aria-hidden="true"></div>
+        </div>
     </div>
-    <div class="atm-panel">
-        <div class="slots">
-            <div class="slot"><span class="slot-label">CARD</span><span class="slot-mouth card-mouth"></span></div>
-            <div class="slot"><span class="slot-label">RECEIPT</span><span class="slot-mouth"></span></div>
-        </div>
-        <div class="keypad" role="group" aria-label="ATM keypad">
-            <button type="button" data-key="1">1</button>
-            <button type="button" data-key="2">2</button>
-            <button type="button" data-key="3">3</button>
-            <button type="button" data-key="cancel" class="k-cancel">CANCEL</button>
-            <button type="button" data-key="4">4</button>
-            <button type="button" data-key="5">5</button>
-            <button type="button" data-key="6">6</button>
-            <button type="button" data-key="clear" class="k-clear">CLEAR</button>
-            <button type="button" data-key="7">7</button>
-            <button type="button" data-key="8">8</button>
-            <button type="button" data-key="9">9</button>
-            <button type="button" data-key="enter" class="k-enter">ENTER</button>
-            <span></span>
-            <button type="button" data-key="0">0</button>
-            <span></span>
-            <span></span>
-        </div>
-    </div>
-    <div class="cash-slot"><span class="slot-label">CASH</span><span class="slot-mouth wide"></span></div>
+    <div class="atm-base"></div>
 </div>
-<p class="atm-footer"><a th:href="@{/}">← JavaBank home</a></p>
+<p class="atm-footer">
+    <a th:href="@{/}">← JavaBank home</a> · <a th:href="@{/upi/login}">JavaPay UPI</a>
+    · <button type="button" class="link-btn" id="soundToggle" aria-pressed="true">🔊 Sound on</button>
+</p>
 <script th:src="@{/js/atm.js}"></script>
 </body>
 </html>

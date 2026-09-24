@@ -2,6 +2,7 @@ package com.koustubh.bank.config;
 
 import com.koustubh.bank.repository.AdminUserRepository;
 import com.koustubh.bank.service.CardSecurityService;
+import com.koustubh.bank.service.UpiService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -19,10 +20,13 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 
+import java.util.Locale;
+
 /**
  * Two separate logins:
  *  - ATM customers sign in at /atm/login with card number + PIN
  *  - Bank staff sign in at /admin/login with username + password
+ *  - JavaPay UPI users sign in at /upi/login with UPI ID + 6-digit UPI PIN
  * Everything else (home page, account opening, CSS) is public.
  */
 @Configuration
@@ -89,7 +93,43 @@ public class SecurityConfig {
         return http.build();
     }
 
-    /** Staff and ATM logins are stored under different session keys, so one never counts as the other. */
+    @Bean
+    @Order(3)
+    SecurityFilterChain upiChain(HttpSecurity http, UpiService upi) throws Exception {
+        AuthenticationProvider upiPinProvider = new AuthenticationProvider() {
+            @Override
+            public Authentication authenticate(Authentication authentication) {
+                String vpa = authentication.getName().trim().toLowerCase(Locale.ROOT);
+                upi.verifyLogin(vpa, String.valueOf(authentication.getCredentials()));
+                return UsernamePasswordAuthenticationToken.authenticated(vpa, null,
+                        AuthorityUtils.createAuthorityList("ROLE_UPI"));
+            }
+
+            @Override
+            public boolean supports(Class<?> authentication) {
+                return UsernamePasswordAuthenticationToken.class.isAssignableFrom(authentication);
+            }
+        };
+
+        http.securityMatcher("/upi/**")
+                .securityContext(ctx -> ctx.securityContextRepository(sessionRepository("UPI_SECURITY_CONTEXT")))
+                .authenticationManager(new ProviderManager(upiPinProvider))
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/upi/login", "/upi/register").permitAll()
+                        .anyRequest().hasRole("UPI"))
+                .formLogin(form -> form
+                        .loginPage("/upi/login")
+                        .usernameParameter("vpa")
+                        .passwordParameter("pin")
+                        .defaultSuccessUrl("/upi", true)
+                        .failureUrl("/upi/login?error"))
+                .logout(logout -> logout
+                        .logoutUrl("/upi/logout")
+                        .logoutSuccessUrl("/upi/login?logout"));
+        return http.build();
+    }
+
+    /** Staff, ATM and UPI logins are stored under different session keys, so one never counts as the other. */
     private static HttpSessionSecurityContextRepository sessionRepository(String key) {
         HttpSessionSecurityContextRepository repository = new HttpSessionSecurityContextRepository();
         repository.setSpringSecurityContextKey(key);
@@ -97,7 +137,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    @Order(3)
+    @Order(4)
     SecurityFilterChain publicChain(HttpSecurity http) throws Exception {
         http.authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
         return http.build();

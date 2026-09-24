@@ -2,21 +2,55 @@
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/atm :: page(~{::title}, ~{::main})}">
 <head><title>Receipt · JavaBank ATM</title></head>
 <body>
-<main class="screen-content">
-    <h1 class="screen-title">Transaction successful</h1>
-    <div class="receipt">
-        <p class="receipt-head">JAVABANK ATM</p>
-        <p class="receipt-row"><span>Date</span><span th:text="${#temporals.format(receipt.time, 'dd MMM yyyy HH:mm:ss')}"></span></p>
-        <p class="receipt-row"><span>Type</span><span th:text="${receipt.title}"></span></p>
-        <p class="receipt-row" th:if="${receipt.counterpartyAccount}"><span>To A/c</span><span th:text="${receipt.counterpartyAccount}"></span></p>
-        <p class="receipt-row"><span>Amount</span><strong th:text="${@money.format(receipt.amount)}"></strong></p>
-        <p class="receipt-row"><span>Balance</span><span th:text="${@money.format(receipt.balanceAfter)}"></span></p>
-        <p class="receipt-ref">Ref: <span th:text="${receipt.reference}"></span></p>
-    </div>
-    <div class="screen-actions">
-        <a class="screen-btn primary" th:href="@{/atm}">Another transaction</a>
-        <form th:action="@{/atm/logout}" method="post" class="inline"><button type="submit" class="screen-btn">Exit</button></form>
-    </div>
+<main class="screen-content" data-atm-stage
+      th:attr="data-kind=${receipt.kind},data-notes=${receipt.noteList}">
+
+    <!-- Steps shown one after another by atm.js. Without JavaScript only the last step is shown. -->
+    <section data-step="counting" hidden>
+        <div class="big-icon spin-slow">⚙</div>
+        <h1 class="screen-title" th:text="${receipt.kind == 'CASH_IN'} ? 'Counting your notes…' : 'Counting notes…'">Counting notes…</h1>
+        <p class="screen-sub">Please do not walk away from the ATM</p>
+    </section>
+
+    <section data-step="collect" hidden>
+        <div class="big-icon pulse-down">⬇</div>
+        <h1 class="screen-title">Please collect your cash</h1>
+        <p class="note-summary">
+            <span th:each="n : ${receipt.notes}" th:text="${n.count} + ' × ₹' + ${n.value}"></span>
+        </p>
+        <p class="big-amount small" th:text="${@money.format(receipt.amount)}"></p>
+        <div class="screen-actions center">
+            <button type="button" class="screen-btn primary" data-take-cash>Take cash ✓</button>
+        </div>
+    </section>
+
+    <section data-step="accepted" hidden>
+        <div class="big-icon ok">✓</div>
+        <h1 class="screen-title">Cash accepted</h1>
+        <p class="note-summary">
+            <span th:each="n : ${receipt.notes}" th:text="${n.count} + ' × ₹' + ${n.value}"></span>
+        </p>
+    </section>
+
+    <section data-step="done">
+        <h1 class="screen-title">Transaction successful</h1>
+        <p class="screen-sub js-only">Please take your receipt</p>
+        <div class="receipt" id="receiptContent">
+            <p class="receipt-head">JAVABANK ATM<br><small>JB-BPL-042 · Katara Hills</small></p>
+            <p class="receipt-row"><span>Date</span><span th:text="${#temporals.format(receipt.time, 'dd MMM yyyy HH:mm:ss')}"></span></p>
+            <p class="receipt-row"><span>Type</span><span th:text="${receipt.title}"></span></p>
+            <p class="receipt-row" th:if="${receipt.counterpartyAccount}"><span>To A/c</span><span th:text="${receipt.counterpartyAccount}"></span></p>
+            <p class="receipt-row" th:each="n : ${receipt.notes}"><span th:text="'₹' + ${n.value} + ' notes'"></span><span th:text="${n.count}"></span></p>
+            <p class="receipt-row"><span>Amount</span><strong th:text="${@money.format(receipt.amount)}"></strong></p>
+            <p class="receipt-row"><span>Avl. Balance</span><span th:text="${@money.format(receipt.balanceAfter)}"></span></p>
+            <p class="receipt-ref">Ref: <span th:text="${receipt.reference}"></span></p>
+            <p class="receipt-foot">Thank you for banking with JavaBank</p>
+        </div>
+        <div class="screen-actions">
+            <a class="screen-btn primary" th:href="@{/atm}">Another transaction</a>
+            <form th:action="@{/atm/logout}" method="post" class="inline" data-eject><button type="submit" class="screen-btn">Exit &amp; take card</button></form>
+        </div>
+    </section>
 </main>
 </body>
 </html>

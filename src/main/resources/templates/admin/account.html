@@ -17,6 +17,9 @@
         <form th:if="${a.status.name() == 'FROZEN'}" th:action="@{/admin/accounts/{id}/unfreeze(id=${a.id})}" method="post" class="inline">
             <button type="submit" class="btn primary">Unfreeze account</button>
         </form>
+        <form th:if="${details.upi != null and details.upi.blocked}" th:action="@{/admin/accounts/{id}/unblock-upi(id=${a.id})}" method="post" class="inline">
+            <button type="submit" class="btn primary">Unlock UPI</button>
+        </form>
         <form th:if="${card.blocked}" th:action="@{/admin/accounts/{id}/unblock-card(id=${a.id})}" method="post" class="inline">
             <button type="submit" class="btn primary">Unblock card</button>
         </form>
@@ -34,6 +37,9 @@
                 <dt>Card</dt><dd class="mono" th:text="${card.maskedNumber}"></dd>
                 <dt>Card status</dt>
                 <dd th:text="${card.blocked ? 'Blocked' : (card.failedAttempts > 0 ? 'Active (' + card.failedAttempts + ' wrong PIN attempts)' : 'Active')}"></dd>
+                <dt>UPI ID</dt><dd class="mono" th:text="${details.upi != null ? details.upi.vpa : 'Not activated'}"></dd>
+                <dt th:if="${details.upi}">UPI status</dt>
+                <dd th:if="${details.upi}" th:text="${details.upi.blocked ? 'Locked' : 'Active'}"></dd>
             </dl>
         </section>
         <section class="card">
@@ -62,7 +68,7 @@
             <tr th:each="t : ${details.transactions}">
                 <td th:text="${#temporals.format(t.createdAt, 'dd MMM yyyy HH:mm')}"></td>
                 <td th:text="${t.type.label}"></td>
-                <td class="mono" th:text="${t.counterpartyAccount ?: '—'}"></td>
+                <td class="mono"><span th:text="${t.counterpartyAccount ?: '—'}"></span><small class="muted remark" th:if="${t.remarks}" th:text="${t.remarks}"></small></td>
                 <td class="num" th:classappend="${t.type.credit} ? 'cr' : 'dr'"
                     th:text="${(t.type.credit ? '+' : '−') + @money.format(t.amount)}"></td>
                 <td class="num" th:text="${@money.format(t.balanceAfter)}"></td>

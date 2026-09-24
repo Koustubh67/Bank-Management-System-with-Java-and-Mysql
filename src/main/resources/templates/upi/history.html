@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/phone :: page(~{::title}, ~{::div.app}, true)}">
+<head><title>History · JavaPay UPI</title></head>
+<body>
+<div class="app">
+    <header class="app-bar"><a th:href="@{/upi}" class="back">←</a><h2>Transaction history</h2></header>
+    <div class="app-body">
+        <p class="empty" th:if="${transactions.isEmpty()}">No transactions yet.</p>
+        <ul class="txn-list">
+            <th:block th:each="t : ${transactions}"><li th:replace="~{fragments/upi :: txn(${t})}"></li></th:block>
+        </ul>
+        <p class="hint">Shows your last 20 account transactions, including ATM and UPI.</p>
+    </div>
+</div>
+</body>
+</html>
