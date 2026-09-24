@@ -229,3 +229,4 @@ a.stat:hover { border-color: var(--accent); }
 .act .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
 .table .dr { color: #b91c1c; }
 .table .cr { color: #047857; }
+.alert.info { background: #eef2ff; color: #3730a3; }

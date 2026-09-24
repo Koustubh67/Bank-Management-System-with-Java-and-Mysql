@@ -16,6 +16,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -53,6 +57,11 @@ public class MarketDataService {
     private final NavSource source;
     private final Clock clock;
     private final Map<Long, Cached> cache = new ConcurrentHashMap<>();
+    private final Executor fetchPool = Executors.newFixedThreadPool(4, r -> {
+        Thread t = new Thread(r, "nav-fetch");
+        t.setDaemon(true);
+        return t;
+    });
 
     public MarketDataService(NavSource source, Clock clock) {
         this.source = source;
@@ -77,17 +86,59 @@ public class MarketDataService {
         }
     }
 
-    /** Snapshots for every fund in the catalogue that has data right now. */
+    /**
+     * Snapshots for every fund in the catalogue that has data right now. Funds are fetched in parallel (a few at a
+     * time, to be polite to the free API), so a cold cache fills in about a second instead of one fund at a time.
+     */
     public List<FundSnapshot> catalogue() {
-        List<FundSnapshot> result = new ArrayList<>();
-        for (FundCatalog.Listing listing : FundCatalog.FUNDS) {
-            try {
-                result.add(snapshot(listing.schemeCode()));
-            } catch (MarketDataUnavailableException e) {
-                // leave this fund out; the page says prices are unavailable if the list is empty
-            }
+        List<CompletableFuture<FundSnapshot>> futures = FundCatalog.FUNDS.stream()
+                .map(listing -> CompletableFuture.supplyAsync(() -> {
+                    try {
+                        return snapshot(listing.schemeCode());
+                    } catch (BankException e) {
+                        return null; // leave this fund out; the page says prices are unavailable if the list is empty
+                    }
+                }, fetchPool))
+                .toList();
+        return futures.stream().map(CompletableFuture::join).filter(Objects::nonNull).toList();
+    }
+
+    /** Result of "what if I had invested": real NAVs on each purchase date and today. */
+    public record Backtest(String mode, BigDecimal amount, int years, LocalDate from, LocalDate to, BigDecimal invested,
+                           BigDecimal value, BigDecimal gain, BigDecimal gainPercent, BigDecimal units) {
+    }
+
+    /**
+     * A SIP of {@code amount} every month (or a one-time investment) started {@code years} ago, bought at the real
+     * NAV on each date and valued at the latest NAV.
+     */
+    public Backtest backtest(long schemeCode, String mode, BigDecimal amount, int years) {
+        if (amount == null || amount.compareTo(BigDecimal.valueOf(100)) < 0 || amount.compareTo(BigDecimal.valueOf(10_000_000)) > 0) {
+            throw new BankException("Enter an amount between Rs 100 and Rs 1 crore");
         }
-        return result;
+        if (years < 1 || years > 10) {
+            throw new BankException("Choose between 1 and 10 years");
+        }
+        FundHistory h = history(schemeCode);
+        NavPoint latest = h.navs().get(0);
+        LocalDate start = latest.date().minusYears(years);
+        NavPoint oldest = h.navs().get(h.navs().size() - 1);
+        if (oldest.date().isAfter(start)) {
+            throw new BankException("This fund doesn't have " + years + " years of history yet");
+        }
+        boolean sip = !"lumpsum".equalsIgnoreCase(mode);
+        BigDecimal units = BigDecimal.ZERO;
+        BigDecimal invested = BigDecimal.ZERO;
+        int purchases = sip ? years * 12 : 1;
+        for (int m = 0; m < purchases; m++) {
+            NavPoint nav = navOnOrBefore(h, start.plusMonths(m)).orElseThrow();
+            units = units.add(amount.divide(nav.nav(), 4, RoundingMode.DOWN));
+            invested = invested.add(amount);
+        }
+        BigDecimal value = units.multiply(latest.nav()).setScale(2, RoundingMode.HALF_EVEN);
+        BigDecimal gain = value.subtract(invested);
+        return new Backtest(sip ? "sip" : "lumpsum", amount, years, start, latest.date(), invested, value, gain,
+                gain.multiply(BigDecimal.valueOf(100)).divide(invested, 2, RoundingMode.HALF_UP), units);
     }
 
     public FundSnapshot snapshot(long schemeCode) {

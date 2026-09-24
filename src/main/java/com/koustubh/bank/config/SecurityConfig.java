@@ -90,7 +90,8 @@ public class SecurityConfig {
                         .loginProcessingUrl("/customer/login")
                         .usernameParameter("customerId")
                         .passwordParameter("password")
-                        .defaultSuccessUrl("/customer", true)
+                        // After "Invest now" on the public Invest page, go back to that fund instead of the dashboard
+                        .defaultSuccessUrl("/customer", false)
                         .failureUrl("/login?error")
                         .permitAll())
                 .logout(logout -> logout

@@ -17,6 +17,8 @@
         </div>
 
         <section class="who-panel customer-panel" aria-label="Customer login">
+            <div class="alert info" th:if="${investNext}">📈 Log in to invest. We'll take you straight back to the fund.
+                New here? <a th:href="@{/signup}">Open a free account</a> first.</div>
             <div class="alert ok" th:if="${setupCustomerId}">Password set. Log in with Customer ID <b th:text="${setupCustomerId}"></b>.</div>
             <div class="alert ok" th:if="${param.logout != null and !staff}">You have been logged out securely.</div>
             <div class="alert error" th:if="${error != null and !staff}" th:text="${error}"></div>

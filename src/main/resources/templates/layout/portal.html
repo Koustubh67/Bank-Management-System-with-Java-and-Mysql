@@ -10,6 +10,8 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
     <link rel="stylesheet" th:href="@{/css/app.css}">
     <link rel="stylesheet" th:href="@{/css/home.css}">
+    <link rel="stylesheet" th:href="@{/css/customer.css}">
+    <link rel="stylesheet" th:href="@{/css/market.css}">
 </head>
 <body class="portal">
 <a class="skip-link" href="#main">Skip to content</a>
@@ -27,7 +29,7 @@
         <nav class="main-nav" aria-label="Main">
             <a th:href="@{/#products}" data-tab-link="t-accounts">Accounts</a>
             <a th:href="@{/#products}" data-tab-link="t-upi">UPI</a>
-            <a th:href="@{/#products}" data-tab-link="t-invest">Invest</a>
+            <a th:href="@{/invest}">Invest</a>
             <a th:href="@{/#products}" data-tab-link="t-insure">Insurance</a>
             <a th:href="@{/signup/status}">Track application</a>
             <a class="btn ghost-dark small" th:href="@{/login}">Login</a>
@@ -50,7 +52,8 @@
         </div>
         <div>
             <h4>Explore</h4>
-            <a th:href="@{/#products}">Investments &amp; insurance</a>
+            <a th:href="@{/invest}">Mutual funds &amp; FDs</a>
+            <a th:href="@{/#products}">Insurance</a>
             <a th:href="@{/#security}">How we keep you safe</a>
             <a th:href="@{/#engineering}">Under the hood</a>
             <a th:href="@{/#faq}">FAQ</a>
@@ -66,5 +69,6 @@
     </div>
 </footer>
 <script th:src="@{/js/site.js}"></script>
+<script th:src="@{/js/chart.js}"></script>
 </body>
 </html>

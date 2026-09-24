@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/portal :: page(~{::title}, ~{::main})}">
+<head><title>Fund · JavaBank Invest</title></head>
+<body>
+<main id="main" class="mk mk-fund-page">
+    <div class="container">
+        <p class="crumbs"><a th:href="@{/invest}">Invest</a> › <span th:text="${fund != null ? fund.listing.shortName : 'Fund'}"></span></p>
+        <div class="alert error" th:if="${error}" th:text="${error}"></div>
+
+        <div class="mk-fund" th:if="${fund}">
+            <div class="mk-fund-main">
+                <section class="mk-card">
+                    <div class="mf-head">
+                        <span class="fund-logo big" th:text="${#strings.substring(fund.listing.shortName, 0, 1)}"></span>
+                        <div>
+                            <h1 th:text="${fund.schemeName}"></h1>
+                            <p class="muted"><span th:text="${fund.fundHouse}"></span> ·
+                                <span class="fc-tag" th:text="${fund.listing.tag}"></span>
+                                <span class="fc-risk" th:text="${fund.listing.risk + ' risk'}"></span></p>
+                        </div>
+                    </div>
+                    <div class="mf-nav">
+                        <strong th:text="${'₹' + #numbers.formatDecimal(fund.nav, 1, 4)}"></strong>
+                        <span class="day-chip big" th:if="${fund.change1d != null}" th:classappend="${fund.upToday} ? 'up' : 'dn'"
+                              th:text="${(fund.upToday ? '▲ ' : '▼ ') + fund.change1d.abs() + '% on the last NAV'}"></span>
+                        <small class="muted" th:text="${'NAV as on ' + #temporals.format(fund.navDate, 'dd MMM yyyy')}"></small>
+                    </div>
+                    <div data-chart data-mode="nav" data-range="Y1" th:attr="data-src=@{/market/api/funds/{c}(c=${code})}"></div>
+                </section>
+
+                <section class="mk-card">
+                    <h2>Returns</h2>
+                    <div class="fc-returns big">
+                        <div><span>1 year</span><b th:text="${fund.return1y != null ? fund.return1y + '%' : '—'}" th:classappend="${fund.return1y != null and fund.return1y.signum() < 0} ? 'loss' : 'profit'"></b></div>
+                        <div><span>3 years (CAGR)</span><b th:text="${fund.return3y != null ? fund.return3y + '%' : '—'}" th:classappend="${fund.return3y != null and fund.return3y.signum() < 0} ? 'loss' : 'profit'"></b></div>
+                        <div><span>5 years (CAGR)</span><b th:text="${fund.return5y != null ? fund.return5y + '%' : '—'}" th:classappend="${fund.return5y != null and fund.return5y.signum() < 0} ? 'loss' : 'profit'"></b></div>
+                        <div><span>Risk</span><b th:text="${fund.listing.risk}"></b></div>
+                    </div>
+                </section>
+
+                <section class="mk-card" data-backtest th:attr="data-src=@{/market/api/funds/{c}/backtest(c=${code})}">
+                    <h2>What if you had invested?</h2>
+                    <p class="muted">Calculated with this fund's real NAV on every purchase date, valued at the latest NAV.</p>
+                    <div class="bt-controls">
+                        <div class="seg two"><label><input type="radio" name="bt-mode" value="sip" checked><span><b>Monthly SIP</b></span></label>
+                            <label><input type="radio" name="bt-mode" value="lumpsum"><span><b>One-time</b></span></label></div>
+                        <label class="field"><span>Amount (₹)</span><input type="number" min="100" step="500" value="5000" data-bt-amount></label>
+                        <label class="field"><span>Started</span>
+                            <select data-bt-years><option value="1">1 year ago</option><option value="3" selected>3 years ago</option>
+                                <option value="5">5 years ago</option><option value="10">10 years ago</option></select></label>
+                    </div>
+                    <div class="bt-result" data-bt-out>
+                        <div><span>You would have invested</span><b data-bt="invested">—</b></div>
+                        <div><span>Worth today</span><b data-bt="value">—</b></div>
+                        <div><span>Returns</span><b data-bt="gain">—</b></div>
+                    </div>
+                    <p class="muted small" data-bt-note></p>
+                </section>
+
+                <section class="mk-card">
+                    <h2>About this fund</h2>
+                    <dl class="details">
+                        <dt>Fund house</dt><dd th:text="${fund.fundHouse}"></dd>
+                        <dt>Category</dt><dd th:text="${fund.category}"></dd>
+                        <dt>Plan</dt><dd>Direct · Growth (no distributor commission)</dd>
+                        <dt>AMFI scheme code</dt><dd class="mono" th:text="${fund.listing.schemeCode}"></dd>
+                        <dt>Minimum SIP</dt><dd>₹500 a month</dd>
+                        <dt>Minimum one-time</dt><dd>₹1,000</dd>
+                        <dt>Data source</dt><dd>Daily NAVs published by AMFI, via mfapi.in</dd>
+                    </dl>
+                </section>
+            </div>
+
+            <aside class="mk-invest-box">
+                <h3 th:text="${'Invest in ' + fund.listing.shortName}"></h3>
+                <p class="muted small">Units are bought at the next available NAV.</p>
+                <a class="btn dark lg full" th:href="@{/customer/invest/funds/{c}(c=${code})}">Start SIP from ₹500</a>
+                <a class="btn soft lg full" th:href="@{/customer/invest/funds/{c}(c=${code})}">Invest one-time</a>
+                <p class="muted small center-text">You'll be asked to log in. New to JavaBank?
+                    <a th:href="@{/signup}">Open a free account</a> in 2 minutes.</p>
+                <ul class="ticks small-ticks"><li>Zero commission (Direct plan)</li><li>Stop or change SIP anytime</li><li>Track real profit &amp; loss</li></ul>
+            </aside>
+        </div>
+    </div>
+    <script th:src="@{/js/market.js}"></script>
+</main>
+</body>
+</html>

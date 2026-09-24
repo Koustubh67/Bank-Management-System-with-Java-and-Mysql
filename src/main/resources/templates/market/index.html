@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/portal :: page(~{::title}, ~{::main})}">
+<head><title>Invest in mutual funds &amp; FDs · JavaBank</title></head>
+<body>
+<main id="main" class="mk">
+    <!-- Hero + market today -->
+    <section class="mk-hero">
+        <div class="container mk-hero-grid">
+            <div>
+                <span class="eyebrow">JavaBank Invest</span>
+                <h1>Invest in real mutual funds &amp; FDs.<br><span class="grad-text">Zero commission.</span></h1>
+                <p class="lead">Explore <b th:text="${funds.size()}">17</b> hand-picked Direct plans with live NAVs, real charts
+                    and returns, all without logging in. Start a SIP from ₹500 when you're ready.</p>
+                <div class="hero-actions">
+                    <a class="btn dark lg" href="#funds">Explore funds</a>
+                    <a class="btn soft lg" th:href="@{/signup}">Open free account</a>
+                </div>
+                <ul class="mk-trust"><li>✓ Direct plans (no commission)</li><li>✓ Live NAVs from AMFI</li><li>✓ Paperless KYC</li></ul>
+            </div>
+            <div class="mk-today" th:if="${nifty}">
+                <div class="mk-today-head">
+                    <div><small>Market today</small><b>Nifty 50</b>
+                        <span class="muted small" th:text="${'via ' + nifty.listing.shortName + ' Fund NAV'}"></span></div>
+                    <span class="day-chip big" th:classappend="${nifty.upToday} ? 'up' : 'dn'"
+                          th:text="${(nifty.upToday ? '▲ ' : '▼ ') + nifty.change1d.abs() + '%'}"></span>
+                </div>
+                <div data-chart data-mode="nav" data-range="M6" th:attr="data-src=@{/market/api/funds/{c}(c=${nifty.listing.schemeCode})}"></div>
+                <p class="muted small" th:text="${'Last NAV ₹' + nifty.nav + ' on ' + #temporals.format(nifty.navDate, 'dd MMM yyyy')}"></p>
+            </div>
+        </div>
+    </section>
+
+    <div class="container">
+        <p class="status-banner frozen" th:if="${funds.isEmpty()}">Live market prices are unavailable right now. Please try again in a few minutes.</p>
+
+        <!-- Movers + collections -->
+        <section class="mk-row" th:unless="${funds.isEmpty()}">
+            <div class="mk-card">
+                <h3>Top gainers <small>on the last NAV</small></h3>
+                <p class="muted small" th:if="${gainers.isEmpty()}">No fund rose on its last NAV.</p>
+                <a class="mover" th:each="f : ${gainers}" th:href="@{/invest/funds/{c}(c=${f.listing.schemeCode})}">
+                    <span class="fund-logo" th:text="${#strings.substring(f.listing.shortName, 0, 1)}"></span>
+                    <span class="mv-name" th:text="${f.listing.shortName}"></span>
+                    <span class="day-chip" th:classappend="${f.upToday} ? 'up' : 'dn'" th:text="${(f.upToday ? '▲ ' : '▼ ') + f.change1d.abs() + '%'}"></span></a>
+            </div>
+            <div class="mk-card">
+                <h3>Top losers <small>on the last NAV</small></h3>
+                <p class="muted small" th:if="${losers.isEmpty()}">No fund fell on its last NAV 🎉</p>
+                <a class="mover" th:each="f : ${losers}" th:href="@{/invest/funds/{c}(c=${f.listing.schemeCode})}">
+                    <span class="fund-logo" th:text="${#strings.substring(f.listing.shortName, 0, 1)}"></span>
+                    <span class="mv-name" th:text="${f.listing.shortName}"></span>
+                    <span class="day-chip" th:classappend="${f.upToday} ? 'up' : 'dn'" th:text="${(f.upToday ? '▲ ' : '▼ ') + f.change1d.abs() + '%'}"></span></a>
+            </div>
+            <div class="mk-card">
+                <h3>Best 5-year returns <small>CAGR</small></h3>
+                <a class="mover" th:each="f : ${best5y}" th:href="@{/invest/funds/{c}(c=${f.listing.schemeCode})}">
+                    <span class="fund-logo" th:text="${#strings.substring(f.listing.shortName, 0, 1)}"></span>
+                    <span class="mv-name" th:text="${f.listing.shortName}"></span>
+                    <b class="profit" th:text="${f.return5y + '%'}"></b></a>
+            </div>
+        </section>
+
+        <section class="mk-collections" th:unless="${funds.isEmpty()}">
+            <button type="button" class="coll c1" data-filter-group="EQUITY"><b>High growth</b><span>Equity funds for 5+ year goals</span></button>
+            <button type="button" class="coll c2" data-filter-group="TAX"><b>Save tax</b><span>ELSS: up to ₹1.5 lakh under 80C</span></button>
+            <button type="button" class="coll c3" data-filter-group="INDEX"><b>Index funds</b><span>Low cost, track the market</span></button>
+            <button type="button" class="coll c4" data-filter-group="DEBT"><b>Low risk</b><span>Liquid &amp; gilt funds</span></button>
+            <button type="button" class="coll c5" data-filter-group="GOLD"><b>Gold</b><span>Hedge against uncertainty</span></button>
+        </section>
+
+        <!-- All funds -->
+        <section id="funds" class="mk-funds" th:unless="${funds.isEmpty()}" data-fund-explorer>
+            <div class="mk-tools">
+                <h2>All mutual funds</h2>
+                <input type="search" class="mk-search" placeholder="Search funds or fund houses" aria-label="Search funds" data-search>
+                <div class="mk-chips" role="group" aria-label="Filter by category">
+                    <button type="button" class="on" data-group="ALL">All</button>
+                    <button type="button" th:each="g : ${groups}" th:attr="data-group=${g}" th:text="${g.label}"></button>
+                </div>
+                <label class="mk-sort">Sort by
+                    <select data-sort>
+                        <option value="r1y">1Y returns</option><option value="r3y" selected>3Y returns</option>
+                        <option value="r5y">5Y returns</option><option value="d1">Today's change</option><option value="name">Name</option>
+                    </select></label>
+            </div>
+            <div class="table-wrap plain">
+                <table class="table mk-table">
+                    <thead><tr><th>Fund</th><th class="hide-sm">1Y chart</th><th class="num">Today</th><th class="num">1Y</th><th class="num">3Y</th><th class="num hide-sm">5Y</th><th class="num hide-sm">NAV</th></tr></thead>
+                    <tbody data-rows>
+                    <tr th:each="f : ${funds}" class="fund-row"
+                        th:attr="data-group=${f.listing.group},data-name=${#strings.toLowerCase(f.listing.shortName + ' ' + f.fundHouse)},data-r1y=${f.return1y ?: -999},data-r3y=${f.return3y ?: -999},data-r5y=${f.return5y ?: -999},data-d1=${f.change1d ?: 0},data-href=@{/invest/funds/{c}(c=${f.listing.schemeCode})}">
+                        <td><a class="fund-cell" th:href="@{/invest/funds/{c}(c=${f.listing.schemeCode})}">
+                            <span class="fund-logo" th:text="${#strings.substring(f.listing.shortName, 0, 1)}"></span>
+                            <span><b th:text="${f.listing.shortName}"></b>
+                                <small th:text="${f.fundHouse + ' · ' + f.listing.tag + ' · ' + f.listing.risk + ' risk'}"></small></span></a></td>
+                        <td class="hide-sm"><svg class="spark mini" viewBox="0 0 120 34" preserveAspectRatio="none" aria-hidden="true"
+                                 th:classappend="${f.return1y != null and f.return1y.signum() < 0} ? 'dn'"
+                                 th:with="pts=${@charts.points(f.chart, 120, 34)}"><polyline th:attr="points=${pts}" class="spark-line"/></svg></td>
+                        <td class="num"><span class="day-chip" th:if="${f.change1d != null}" th:classappend="${f.upToday} ? 'up' : 'dn'"
+                                              th:text="${(f.upToday ? '▲ ' : '▼ ') + f.change1d.abs() + '%'}"></span></td>
+                        <td class="num" th:classappend="${f.return1y != null and f.return1y.signum() < 0} ? 'loss' : 'profit'" th:text="${f.return1y != null ? f.return1y + '%' : '—'}"></td>
+                        <td class="num" th:classappend="${f.return3y != null and f.return3y.signum() < 0} ? 'loss' : 'profit'" th:text="${f.return3y != null ? f.return3y + '%' : '—'}"></td>
+                        <td class="num hide-sm" th:classappend="${f.return5y != null and f.return5y.signum() < 0} ? 'loss' : 'profit'" th:text="${f.return5y != null ? f.return5y + '%' : '—'}"></td>
+                        <td class="num hide-sm" th:text="${'₹' + #numbers.formatDecimal(f.nav, 1, 2)}"></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            <p class="muted small" data-empty hidden>No funds match your search.</p>
+        </section>
+
+        <!-- FDs and SIP calculator -->
+        <section class="mk-split">
+            <form class="mk-card fd-card" data-fd onsubmit="return false">
+                <h2>Fixed deposits</h2>
+                <p class="muted">Fixed interest, compounded quarterly. Insured by DICGC up to ₹5 lakh.</p>
+                <table class="table rates"><thead><tr><th>Tenure</th><th class="num">Interest p.a.</th></tr></thead>
+                    <tbody><tr th:each="t : ${tenures}"><td th:text="${t.label}"></td><td class="num profit" th:text="${t.rate + '%'}"></td></tr></tbody></table>
+                <label class="field"><span>Amount (₹)</span><input type="number" min="5000" max="1000000" step="1000" value="100000" data-fd-amount></label>
+                <div class="seg">
+                    <label th:each="t, it : ${tenures}"><input type="radio" name="tenure" th:checked="${it.index == 2}" th:attr="data-rate=${t.rate},data-months=${t.months}">
+                        <span><b th:text="${t.label}"></b></span></label>
+                </div>
+                <div class="pf-result"><span>Maturity value</span><strong data-fd-out>—</strong><small data-fd-gain></small></div>
+                <a class="btn dark full" th:href="@{/customer/invest#fd}">Open an FD →</a>
+            </form>
+
+            <div class="mk-card">
+                <h2>SIP calculator</h2>
+                <p class="muted">See how a monthly SIP could grow. For real past returns, open any fund.</p>
+                <div class="calc compact bare" data-calc>
+                    <div class="calc-tabs" role="tablist">
+                        <button type="button" role="tab" class="on" data-mode="sip" aria-selected="true">SIP</button>
+                        <button type="button" role="tab" data-mode="fd" aria-selected="false">Lump sum</button>
+                    </div>
+                    <label class="range"><span><span data-label-amount>Monthly investment</span><b data-out="amount"></b></span>
+                        <input type="range" data-in="amount" min="500" max="100000" step="500" value="5000"></label>
+                    <label class="range"><span>Time period<b data-out="years"></b></span>
+                        <input type="range" data-in="years" min="1" max="30" step="1" value="10"></label>
+                    <label class="range"><span>Expected return (p.a.)<b data-out="rate"></b></span>
+                        <input type="range" data-in="rate" min="1" max="20" step="0.5" value="12"></label>
+                    <div class="calc-bar" aria-hidden="true"><i data-bar></i></div>
+                    <dl class="calc-out">
+                        <div><dt><i class="sw inv"></i>Invested</dt><dd data-out="invested"></dd></div>
+                        <div><dt><i class="sw ret"></i>Est. returns</dt><dd data-out="returns"></dd></div>
+                        <div class="total"><dt>Total value</dt><dd data-out="total"></dd></div>
+                    </dl>
+                </div>
+            </div>
+        </section>
+
+        <section class="mk-cta">
+            <div><h2>Ready to start?</h2><p>Open a free JavaBank account with paperless KYC, then start a SIP in minutes.</p></div>
+            <div class="hero-actions"><a class="btn light lg" th:href="@{/signup}">Open free account</a><a class="btn glass lg" th:href="@{/login}">Login</a></div>
+        </section>
+
+        <p class="note mk-disclaimer">Mutual fund investments are subject to market risks; read all scheme documents carefully. Past
+            returns are not a guarantee of future returns. NAVs are published by AMFI once per business day and fetched from
+            mfapi.in. JavaBank is a demo project: no real units are bought.</p>
+    </div>
+    <script th:src="@{/js/market.js}"></script>
+</main>
+</body>
+</html>

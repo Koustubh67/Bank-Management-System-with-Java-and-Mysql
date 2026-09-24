@@ -25,9 +25,19 @@ transfers, row locking under concurrent access, an append-only transaction ledge
   spreadsheet formula injection)
 - **Profile:** personal and KYC details (PAN and Aadhaar masked), UPI ID, change password
 
+**Public Invest marketplace (no login needed, like Groww / Zerodha Coin)**
+- `/invest`, linked from the home page: a "Market today" Nifty 50 chart (tracked through the UTI Nifty 50 Index
+  Fund's NAV), top gainers and losers on the last NAV, best 5-year returns, collections (high growth, tax saver,
+  index, low risk, gold), and all **17 real funds** with search, category chips, sorting and 1-year sparklines
+- FD rates table with a maturity calculator, and a SIP calculator
+- `/invest/funds/{code}`: every fund's live interactive NAV chart, 1Y/3Y/5Y returns, facts, and a **"What if you had
+  invested?"** calculator that replays a SIP or one-time investment on the fund's **real historical NAVs**
+- **Invest now** asks for login (or a free account) and then returns straight to that fund. Prices are fetched in
+  parallel and preloaded at startup, so the page opens in about 0.2 s
+
 **Investments with real market data**
-- **Real mutual funds** (Parag Parikh Flexi Cap, UTI Nifty 50 Index, ICICI Prudential Large Cap, SBI Small Cap,
-  Mirae Asset ELSS, Axis Gold, HDFC Liquid; Direct · Growth). Daily NAVs come live from
+- **17 real mutual funds** (e.g. Parag Parikh Flexi Cap, HDFC Mid Cap, Quant Small Cap, UTI Nifty 50 Index, Mirae
+  Asset ELSS, HDFC Balanced Advantage, SBI Gilt, Axis Gold; all Direct · Growth). Daily NAVs come live from
   [mfapi.in](https://www.mfapi.in), a free public API that republishes AMFI data, with a 6-hour cache and a clear
   "prices unavailable" state instead of made-up numbers
 - Fund pages show the real **1-year NAV chart and 1Y / 3Y / 5Y returns** (CAGR) calculated from NAV history
@@ -121,7 +131,11 @@ transfers, row locking under concurrent access, an append-only transaction ledge
 
 ## Screenshots
 
-| Holding with live value chart | Fund NAV chart (real data) |
+| Public fund page (no login) | Holding with live value chart |
+|---|---|
+| ![Public fund page](docs/screenshots/market-fund.png) | ![Holding chart](docs/screenshots/holding-chart.png) |
+
+| Fund NAV chart (real data) | Holding with live value chart |
 |---|---|
 | ![Holding chart](docs/screenshots/holding-chart.png) | ![Fund chart](docs/screenshots/fund-chart.png) |
 
@@ -272,7 +286,7 @@ Tests check that every login in this table works (`DemoDataSeederTest`), so the 
 ./mvnw test
 ```
 
-123 tests run against an in-memory H2 database with the real Flyway schema:
+126 tests run against an in-memory H2 database with the real Flyway schema:
 - **Domain unit tests:** balance rules, account states
 - **Service tests:** daily limit, insufficient funds, transfer atomicity, concurrent withdrawals, transfer deadlock
   avoidance, PIN lockout and unblock, PIN change
@@ -283,6 +297,8 @@ Tests check that every login in this table works (`DemoDataSeederTest`), so the 
 - **Investment tests** (with a fixed fake NAV source, never the internet): units at NAV, market profit on a year-old
   SIP, monthly SIP debits and missed instalments, FD maths and accrual, order rules; web checkout with KYC mismatches,
   wrong/right OTP, dashboard and passbook
+- **Marketplace tests:** public browsing without login, public chart JSON, "what if" maths on NAV history, and
+  "Invest now" → login → back to the same fund
 - **Chart tests:** NAV series ordering and ranges, SIP value series stepping up and ending at the holding's value,
   portfolio series across funds and FDs, charts only for the owner, JSON endpoints and live feed
 - **Insurance tests:** all form errors at once, callback → contacted → policy issued with premium debit, close with
