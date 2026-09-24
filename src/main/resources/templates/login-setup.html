@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/portal :: page(~{::title}, ~{::main})}">
+<head><title>Set password · JavaBank</title></head>
+<body>
+<main class="login-page">
+    <div class="mesh" aria-hidden="true"><i class="b1"></i><i class="b2"></i><i class="b3"></i></div>
+    <div class="login-box">
+        <h1>Set your password</h1>
+        <p class="muted">First login, forgot your password, or login locked? Verify with your debit card to set a new one.</p>
+        <div class="alert error" th:if="${error}" th:text="${error}"></div>
+        <form th:action="@{/login/setup}" method="post" class="form">
+            <label class="field"><span>Debit card number</span>
+                <input type="text" name="cardNumber" inputmode="numeric" maxlength="19" required autocomplete="off"></label>
+            <label class="field"><span>ATM PIN</span>
+                <input type="password" name="atmPin" inputmode="numeric" maxlength="4" required autocomplete="off"></label>
+            <label class="field"><span>New password</span>
+                <input type="password" name="password" required autocomplete="new-password"
+                       placeholder="8+ characters, letters and numbers"></label>
+            <label class="field"><span>Confirm new password</span>
+                <input type="password" name="confirmPassword" required autocomplete="new-password"></label>
+            <button type="submit" class="btn dark lg full">Set password</button>
+        </form>
+        <p class="login-foot">Wrong ATM PINs count towards your card's lock (3 attempts). <a th:href="@{/login}">Back to login</a></p>
+    </div>
+</main>
+</body>
+</html>

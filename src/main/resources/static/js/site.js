@@ -142,4 +142,16 @@
             }
         });
     });
+
+    // Dashboard balance is hidden until the customer taps "Show" (like banking apps, for privacy)
+    document.querySelectorAll('[data-toggle-balance]').forEach((btn) => {
+        const amount = btn.parentElement.querySelector('[data-balance]');
+        const hidden = amount.textContent;
+        btn.addEventListener('click', () => {
+            const show = btn.getAttribute('aria-pressed') !== 'true';
+            amount.textContent = show ? amount.dataset.value : hidden;
+            btn.textContent = show ? 'Hide' : 'Show';
+            btn.setAttribute('aria-pressed', String(show));
+        });
+    });
 })();

@@ -2,7 +2,6 @@ package com.koustubh.bank.service;
 
 import com.koustubh.bank.config.BankProperties;
 import com.koustubh.bank.domain.Account;
-import com.koustubh.bank.domain.AccountStatus;
 import com.koustubh.bank.domain.Card;
 import com.koustubh.bank.domain.Transaction;
 import com.koustubh.bank.domain.TransactionType;
@@ -10,14 +9,11 @@ import com.koustubh.bank.domain.UpiHandle;
 import com.koustubh.bank.exception.InvalidRequestException;
 import com.koustubh.bank.exception.NotFoundException;
 import com.koustubh.bank.exception.WrongUpiPinException;
+import com.koustubh.bank.repository.AccountRepository;
 import com.koustubh.bank.repository.CardRepository;
 import com.koustubh.bank.repository.TransactionRepository;
 import com.koustubh.bank.repository.UpiHandleRepository;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.DisabledException;
-import org.springframework.security.authentication.LockedException;
-import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -32,6 +28,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 
 /**
  * JavaPay UPI: pay other JavaBank customers by UPI ID. Like real UPI apps, the customer activates UPI with
@@ -52,6 +49,7 @@ public class UpiService {
     }
 
     private final UpiHandleRepository handles;
+    private final AccountRepository accounts;
     private final CardRepository cards;
     private final TransactionRepository transactions;
     private final CardSecurityService cardSecurity;
@@ -61,10 +59,11 @@ public class UpiService {
     private final BankProperties.Upi limits;
     private final TransactionTemplate transactionTemplate;
 
-    public UpiService(UpiHandleRepository handles, CardRepository cards, TransactionRepository transactions,
+    public UpiService(UpiHandleRepository handles, AccountRepository accounts, CardRepository cards, TransactionRepository transactions,
                       CardSecurityService cardSecurity, TransferService transfers, PasswordEncoder passwordEncoder,
                       Clock clock, BankProperties properties, PlatformTransactionManager transactionManager) {
         this.handles = handles;
+        this.accounts = accounts;
         this.cards = cards;
         this.transactions = transactions;
         this.cardSecurity = cardSecurity;
@@ -98,24 +97,12 @@ public class UpiService {
         });
     }
 
-    /** App login with UPI ID + UPI PIN. Blocks UPI after too many wrong PINs. */
-    @Transactional(noRollbackFor = AuthenticationException.class)
-    public void verifyLogin(String vpa, String pin) {
-        UpiHandle handle = handles.findByVpa(normalise(vpa))
-                .orElseThrow(() -> new BadCredentialsException("Invalid UPI ID or UPI PIN"));
-        if (handle.isBlocked()) {
-            throw new LockedException("UPI is locked after too many wrong PINs. Reset your UPI PIN with your debit card");
-        }
-        if (!passwordEncoder.matches(pin, handle.getPinHash())) {
-            handle.registerFailedAttempt(limits.maxPinAttempts());
-            throw new BadCredentialsException(wrongPinMessage(handle));
-        }
-        AccountStatus status = handle.getAccount().getStatus();
-        if (status != AccountStatus.ACTIVE) {
-            throw new DisabledException("Your bank account is " + status.name().toLowerCase(Locale.ROOT)
-                    + ". UPI is not available");
-        }
-        handle.resetFailedAttempts();
+    /** The UPI ID of a logged-in net banking customer, if they have activated UPI. */
+    @Transactional(readOnly = true)
+    public Optional<String> vpaForCustomer(String customerId) {
+        return accounts.findByCustomerLogin(customerId)
+                .flatMap(a -> handles.findByAccountId(a.getId()))
+                .map(UpiHandle::getVpa);
     }
 
     @Transactional(readOnly = true)

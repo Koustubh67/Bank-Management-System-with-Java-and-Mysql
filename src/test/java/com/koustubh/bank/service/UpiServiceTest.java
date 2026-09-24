@@ -12,7 +12,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
-import org.springframework.security.authentication.LockedException;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.math.BigDecimal;
@@ -41,7 +40,8 @@ class UpiServiceTest {
         String vpa = activate(a);
         String last4 = a.accountNumber().substring(8);
         assertThat(vpa).isEqualTo("test." + last4 + "@javabank");
-        upi.verifyLogin(vpa, UPI_PIN);
+        assertThat(upi.balance(vpa, UPI_PIN)).isEqualByComparingTo("0");
+        assertThat(upi.vpaForCustomer(a.customerId())).contains(vpa);
         assertThat(upi.paymentUri(vpa)).startsWith("upi://pay?pa=" + vpa + "&pn=Test%20Customer");
     }
 
@@ -111,12 +111,12 @@ class UpiServiceTest {
                 .isInstanceOf(WrongUpiPinException.class).hasMessageContaining("2 attempts left");
         assertThatThrownBy(() -> upi.balance(vpaA, WRONG)).hasMessageContaining("1 attempt left");
         assertThatThrownBy(() -> upi.balance(vpaA, WRONG)).hasMessageContaining("locked");
-        assertThatThrownBy(() -> upi.verifyLogin(vpaA, UPI_PIN)).isInstanceOf(LockedException.class);
+        assertThatThrownBy(() -> upi.balance(vpaA, UPI_PIN)).hasMessageContaining("locked");
         assertThat(accounts.balanceOf(a)).isEqualByComparingTo("1000");
 
         // Setting a new UPI PIN with the debit card unlocks UPI and keeps the same UPI ID
         assertThat(upi.register(a.cardNumber(), a.pin(), "112233")).isEqualTo(vpaA);
-        upi.verifyLogin(vpaA, "112233");
+        assertThat(upi.balance(vpaA, "112233")).isEqualByComparingTo("1000");
     }
 
     @Test
@@ -124,10 +124,10 @@ class UpiServiceTest {
         OpenedAccount a = accounts.active(0);
         String vpa = activate(a);
         for (int i = 0; i < 3; i++) {
-            assertThatThrownBy(() -> upi.verifyLogin(vpa, WRONG)).isInstanceOf(org.springframework.security.core.AuthenticationException.class);
+            assertThatThrownBy(() -> upi.balance(vpa, WRONG)).isInstanceOf(WrongUpiPinException.class);
         }
-        assertThatThrownBy(() -> upi.verifyLogin(vpa, UPI_PIN)).isInstanceOf(LockedException.class);
+        assertThatThrownBy(() -> upi.balance(vpa, UPI_PIN)).hasMessageContaining("locked");
         admin.unblockUpi(accounts.idOf(a));
-        upi.verifyLogin(vpa, UPI_PIN);
+        upi.balance(vpa, UPI_PIN);
     }
 }

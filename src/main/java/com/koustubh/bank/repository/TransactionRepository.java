@@ -18,6 +18,17 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     @EntityGraph(attributePaths = "account")
     List<Transaction> findAllByOrderByIdDesc(Pageable pageable);
 
+    /** Passbook page: one account's entries in a date range, newest first. */
+    @Query("""
+            select t from Transaction t
+            where t.account.id = :accountId and t.createdAt >= :from and t.createdAt < :to
+              and (:credit is null or (:credit = true and t.type in :creditTypes) or (:credit = false and t.type not in :creditTypes))
+            order by t.id desc
+            """)
+    org.springframework.data.domain.Page<Transaction> passbook(Long accountId, LocalDateTime from, LocalDateTime to,
+                                                               Boolean credit, List<TransactionType> creditTypes,
+                                                               Pageable pageable);
+
     @Query("""
             select coalesce(sum(t.amount), 0) from Transaction t
             where t.account.id = :accountId and t.type = :type and t.createdAt >= :since

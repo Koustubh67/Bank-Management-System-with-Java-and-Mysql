@@ -31,8 +31,7 @@
         </ol>
         <p th:if="${s == 'DECLINED'}" class="note">You're welcome to apply again with the correct details.
             <a th:href="@{/signup}">Start a new application</a></p>
-        <p th:if="${s == 'ACTIVE'}"><a class="btn primary" th:href="@{/atm/login}">Go to ATM</a>
-            <a class="btn ghost" th:href="@{/upi/register}">Activate UPI</a></p>
+        <p th:if="${s == 'ACTIVE'}"><a class="btn primary" th:href="@{/login}">Login to net banking</a></p>
     </div>
     </th:block>
 </main>

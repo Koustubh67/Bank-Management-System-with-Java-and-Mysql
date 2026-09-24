@@ -62,6 +62,12 @@ public class AccountOpeningService {
 
         Customer customer = form.toCustomer();
         customer.setCreatedAt(now);
+        String customerId;
+        do {
+            customerId = numbers.newCustomerId();
+        } while (customers.existsByCustomerId(customerId));
+        customer.setCustomerId(customerId);
+        customer.setPassword(passwordEncoder.encode(form.getPassword()));
         customers.save(customer);
         saveDocument(customer, DocumentType.PAN, form.getPanDocument(), now);
         saveDocument(customer, DocumentType.AADHAAR, form.getAadhaarDocument(), now);
@@ -80,7 +86,7 @@ public class AccountOpeningService {
         String pin = numbers.newPin();
         cards.save(new Card(cardNumber, account, passwordEncoder.encode(pin)));
 
-        return new OpenedAccount(accountNumber, cardNumber, pin);
+        return new OpenedAccount(customerId, accountNumber, cardNumber, pin);
     }
 
     /** Both the account number and the PAN must match, so nobody can look up someone else's application. */

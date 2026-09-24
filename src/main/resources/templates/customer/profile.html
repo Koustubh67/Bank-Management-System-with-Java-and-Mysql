@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/customer :: page(~{::title}, ~{::main})}">
+<head><title>Profile · JavaBank</title></head>
+<body>
+<main class="container cust-main" th:with="c=${o.customer}, a=${o.account}">
+    <div class="cust-hello">
+        <div class="prof-head">
+            <span class="prof-avatar" th:text="${#strings.substring(c.fullName, 0, 1)}">K</span>
+            <div><h1 th:text="${c.fullName}">Name</h1>
+                <p class="muted">Customer ID <b class="mono" th:text="${c.customerId}"></b> · Customer since
+                    <span th:text="${#temporals.format(c.createdAt, 'MMM yyyy')}"></span></p></div>
+        </div>
+    </div>
+
+    <div class="prof-grid">
+        <section class="panel">
+            <h2>Personal information</h2>
+            <dl class="details">
+                <dt>Full name</dt><dd th:text="${c.fullName}"></dd>
+                <dt>Father's name</dt><dd th:text="${c.fatherName}"></dd>
+                <dt>Date of birth</dt><dd th:text="${#temporals.format(c.dateOfBirth, 'dd MMM yyyy')}"></dd>
+                <dt>Gender</dt><dd th:text="${c.gender}"></dd>
+                <dt>Marital status</dt><dd th:text="${c.maritalStatus}"></dd>
+                <dt>Email</dt><dd th:text="${c.email}"></dd>
+                <dt>Address</dt><dd th:text="${c.address + ', ' + c.city + ', ' + c.state + ' ' + c.pincode + ', ' + c.country}"></dd>
+                <dt>Occupation</dt><dd th:text="${c.occupation}"></dd>
+                <dt>Annual income</dt><dd th:text="${c.income}"></dd>
+            </dl>
+        </section>
+        <section class="panel">
+            <h2>KYC &amp; account</h2>
+            <dl class="details">
+                <dt>PAN</dt><dd class="mono" th:text="${c.maskedPan}"></dd>
+                <dt>Aadhaar</dt><dd class="mono" th:text="${c.maskedAadhaar}"></dd>
+                <dt>Account number</dt><dd class="mono" th:text="${a.accountNumber}"></dd>
+                <dt>Account type</dt><dd th:text="${a.accountType.label}"></dd>
+                <dt>Status</dt><dd><span class="badge" th:classappend="${#strings.toLowerCase(a.status)}" th:text="${a.status}"></span></dd>
+                <dt>Services</dt><dd th:text="${#strings.isEmpty(a.services) ? '—' : a.services}"></dd>
+                <dt>Debit card</dt><dd class="mono" th:text="${o.card.maskedNumber}"></dd>
+                <dt>UPI ID</dt><dd class="mono" th:text="${o.upi != null ? o.upi.vpa : 'Not activated'}"></dd>
+            </dl>
+            <p class="note">To update personal details, please visit your branch with an ID proof.</p>
+        </section>
+    </div>
+
+    <section class="panel" id="security">
+        <h2>Change password</h2>
+        <form th:action="@{/customer/password}" method="post" class="form pw-form">
+            <label class="field"><span>Current password</span><input type="password" name="currentPassword" required autocomplete="current-password"></label>
+            <label class="field"><span>New password</span><input type="password" name="newPassword" required autocomplete="new-password" placeholder="8+ characters, letters and numbers"></label>
+            <label class="field"><span>Confirm new password</span><input type="password" name="confirmPassword" required autocomplete="new-password"></label>
+            <div><button type="submit" class="btn dark">Update password</button></div>
+        </form>
+    </section>
+</main>
+</body>
+</html>

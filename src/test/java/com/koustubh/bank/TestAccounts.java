@@ -19,6 +19,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class TestAccounts {
 
     private static final AtomicInteger COUNTER = new AtomicInteger(1000);
+    /** Net banking password of every test customer. */
+    public static final String PASSWORD = "Test@1234";
     private static final ThreadLocal<String> LAST_PAN = new ThreadLocal<>();
 
     /** PAN of the last form created on this thread. */
@@ -65,6 +67,8 @@ public class TestAccounts {
         f.setAccountType(AccountType.SAVINGS);
         f.setServices(List.of("ATM Card"));
         f.setDeclaration(true);
+        f.setPassword(PASSWORD);
+        f.setConfirmPassword(PASSWORD);
         return f;
     }
 

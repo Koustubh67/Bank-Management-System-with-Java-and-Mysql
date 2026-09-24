@@ -27,6 +27,11 @@ public class NumberGenerator {
         return partial + luhnCheckDigit(partial);
     }
 
+    /** Net banking Customer ID, e.g. JB48213377. */
+    public String newCustomerId() {
+        return "JB" + randomDigits(8);
+    }
+
     public String newPin() {
         return randomDigits(4);
     }

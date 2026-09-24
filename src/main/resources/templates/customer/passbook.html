@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/customer :: page(~{::title}, ~{::main})}">
+<head><title>Passbook · JavaBank</title></head>
+<body>
+<main class="container cust-main">
+    <div class="cust-hello">
+        <div>
+            <h1>Passbook</h1>
+            <p class="muted">A/c <span class="mono" th:text="${o.account.accountNumber}"></span> · <span th:text="${o.account.accountType.label}"></span></p>
+        </div>
+    </div>
+
+    <form class="panel filters" th:action="@{/customer/passbook}" method="get">
+        <label class="field"><span>From</span><input type="date" name="from" th:value="${from}"></label>
+        <label class="field"><span>To</span><input type="date" name="to" th:value="${to}"></label>
+        <label class="field"><span>Show</span>
+            <select name="type">
+                <option value="all" th:selected="${type == 'all'}">All transactions</option>
+                <option value="credit" th:selected="${type == 'credit'}">Money in (credits)</option>
+                <option value="debit" th:selected="${type == 'debit'}">Money out (debits)</option>
+            </select></label>
+        <div class="filter-actions">
+            <button type="submit" class="btn dark">Apply</button>
+            <a class="btn soft" th:href="@{/customer/passbook.csv(from=${from},to=${to},type=${type})}">⬇ Download CSV</a>
+        </div>
+    </form>
+
+    <section class="panel">
+        <p class="muted empty-state" th:if="${entries.isEmpty()}">No transactions in this period.</p>
+        <div class="table-wrap plain" th:unless="${entries.isEmpty()}">
+            <table class="table passbook">
+                <thead><tr><th>Date</th><th>Description</th><th>Ref. no.</th><th class="num">Debit</th><th class="num">Credit</th><th class="num">Balance</th></tr></thead>
+                <tbody>
+                <tr th:each="t : ${entries.content}">
+                    <td th:text="${#temporals.format(t.createdAt, 'dd MMM yyyy')}"><small></small></td>
+                    <td><b th:text="${t.type.label}"></b>
+                        <small class="muted remark" th:if="${t.remarks}" th:text="${t.remarks}"></small>
+                        <small class="muted remark" th:if="${t.remarks == null and t.counterpartyAccount != null}" th:text="${'A/c ' + t.counterpartyAccount}"></small></td>
+                    <td class="mono small" th:text="${#strings.toUpperCase(#strings.substring(t.referenceId, 0, 8))}"></td>
+                    <td class="num dr" th:text="${t.type.credit} ? '' : ${@money.format(t.amount)}"></td>
+                    <td class="num cr" th:text="${t.type.credit} ? ${@money.format(t.amount)} : ''"></td>
+                    <td class="num" th:text="${@money.format(t.balanceAfter)}"></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <nav class="pager" th:if="${entries.totalPages > 1}">
+            <a class="btn soft small" th:if="${entries.hasPrevious()}"
+               th:href="@{/customer/passbook(from=${from},to=${to},type=${type},page=${entries.number - 1})}">← Newer</a>
+            <span th:text="'Page ' + ${entries.number + 1} + ' of ' + ${entries.totalPages}"></span>
+            <a class="btn soft small" th:if="${entries.hasNext()}"
+               th:href="@{/customer/passbook(from=${from},to=${to},type=${type},page=${entries.number + 1})}">Older →</a>
+        </nav>
+    </section>
+</main>
+</body>
+</html>

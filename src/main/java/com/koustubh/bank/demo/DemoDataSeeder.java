@@ -6,6 +6,7 @@ import com.koustubh.bank.domain.AccountType;
 import com.koustubh.bank.domain.Card;
 import com.koustubh.bank.domain.Customer;
 import com.koustubh.bank.domain.UpiHandle;
+import com.koustubh.bank.exception.WrongUpiPinException;
 import com.koustubh.bank.repository.AccountRepository;
 import com.koustubh.bank.repository.CardRepository;
 import com.koustubh.bank.repository.CustomerRepository;
@@ -45,7 +46,15 @@ public class DemoDataSeeder implements ApplicationRunner {
     public record DemoCustomer(String name, String fatherName, String gender, LocalDate dob, String city,
                                String state, String occupation, String pan, String aadhaar, AccountType type,
                                String accountNumber, String cardNumber, String pin, String upiPin, String vpa) {
+
+        /** Net banking login, e.g. JB10000001 for account 100000000001. */
+        public String customerId() {
+            return "JB1000000" + accountNumber.substring(11);
+        }
     }
+
+    /** Net banking password of every demo customer. */
+    public static final String DEMO_PASSWORD = "Demo@1234";
 
     public static final DemoCustomer RAHUL = new DemoCustomer("Rahul Sharma", "Suresh Sharma", "Male",
             LocalDate.of(1998, 4, 12), "Bhopal", "Madhya Pradesh", "Salaried", "ABCPS1234A", "999900000001",
@@ -106,7 +115,12 @@ public class DemoDataSeeder implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        if (properties.demo() == null || !properties.demo().enabled() || cards.existsByCardNumber(RAHUL.cardNumber())) {
+        if (properties.demo() == null || !properties.demo().enabled()) {
+            return;
+        }
+        if (cards.existsByCardNumber(RAHUL.cardNumber())) {
+            // Loaded by an older version of the app: just add the net banking logins if they're missing.
+            tx.executeWithoutResult(status -> ALL.forEach(this::ensureLogin));
             return;
         }
 
@@ -132,7 +146,11 @@ public class DemoDataSeeder implements ApplicationRunner {
             ignoreLoginFailure(() -> cardSecurity.verifyLogin(VIKRAM.cardNumber(), "0000"));
         }
         for (int i = 0; i < properties.upi().maxPinAttempts(); i++) {
-            ignoreLoginFailure(() -> upi.verifyLogin(ANJALI.vpa(), "000000"));
+            try {
+                upi.balance(ANJALI.vpa(), "000000");
+            } catch (WrongUpiPinException expected) {
+                // a wrong UPI PIN is exactly what we want here
+            }
         }
         log.info("Loaded {} demo customers (see README for card numbers and PINs)", ALL.size());
     }
@@ -161,6 +179,8 @@ public class DemoDataSeeder implements ApplicationRunner {
         c.setSeniorCitizen(false);
         c.setExistingAccount(false);
         c.setCreatedAt(now);
+        c.setCustomerId(d.customerId());
+        c.setPassword(passwordEncoder.encode(DEMO_PASSWORD));
         customers.save(c);
 
         Account account = new Account(d.accountNumber(), c, d.type(), "ATM Card, Internet Banking, Mobile Banking", now);
@@ -172,6 +192,17 @@ public class DemoDataSeeder implements ApplicationRunner {
         if (d.upiPin() != null) {
             upiHandles.save(new UpiHandle(d.vpa(), account, passwordEncoder.encode(d.upiPin()), now));
         }
+    }
+
+    private void ensureLogin(DemoCustomer d) {
+        cards.findByCardNumber(d.cardNumber()).map(card -> card.getAccount().getCustomer()).ifPresent(c -> {
+            if (c.getPasswordHash() == null) {
+                if (!c.getCustomerId().equals(d.customerId()) && !customers.existsByCustomerId(d.customerId())) {
+                    c.setCustomerId(d.customerId());
+                }
+                c.setPassword(passwordEncoder.encode(DEMO_PASSWORD));
+            }
+        });
     }
 
     private static void ignoreLoginFailure(Runnable wrongPinLogin) {

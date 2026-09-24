@@ -26,9 +26,10 @@ public class AdminController {
         this.admin = admin;
     }
 
+    /** Staff log in on the shared /login page (Bank staff tab). */
     @GetMapping("/login")
     public String login() {
-        return "admin/login";
+        return "redirect:/login?as=staff";
     }
 
     @GetMapping
@@ -92,6 +93,11 @@ public class AdminController {
     @PostMapping("/accounts/{id}/unblock-card")
     public String unblockCard(@PathVariable Long id, RedirectAttributes redirect) {
         return act(id, admin::unblockCard, "Card unblocked", redirect);
+    }
+
+    @PostMapping("/accounts/{id}/unlock-login")
+    public String unlockLogin(@PathVariable Long id, RedirectAttributes redirect) {
+        return act(id, admin::unlockLogin, "Net banking login unlocked", redirect);
     }
 
     @PostMapping("/accounts/{id}/unblock-upi")

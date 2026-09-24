@@ -12,6 +12,16 @@ transfers, row locking under concurrent access, an append-only transaction ledge
 
 ## Features
 
+**Net banking login (security first)**
+- The public site is branding only. The dashboard, passbook, profile, ATM and UPI all need a customer login
+- Customers log in with a **Customer ID + password** chosen at account opening (BCrypt-hashed). 5 wrong passwords
+  lock the login; customers reset it with their debit card + ATM PIN, or staff unlock it
+- Customer and staff logins are separate Spring Security filter chains with separate sessions
+- **Dashboard:** balance hidden until you tap "Show", account and card status, quick actions, recent transactions
+- **Passbook:** date and credit/debit filters, pagination, and a **CSV statement download** (protected against
+  spreadsheet formula injection)
+- **Profile:** personal and KYC details (PAN and Aadhaar masked), UPI ID, change password
+
 **Account opening and KYC**
 - 3-page application: personal details, KYC details (PAN, Aadhaar, income, occupation…), account type and services
 - **Upload PAN and Aadhaar card images** (PDF, JPG or PNG, up to 2 MB, drag-and-drop with preview). The file type is
@@ -24,13 +34,15 @@ transfers, row locking under concurrent access, an append-only transaction ledge
 - New accounts start as **PENDING** until bank staff approve them
 
 **ATM**
-- Log in with card number + PIN on the ATM keypad; the card slides into the reader and is ejected on exit
+- Opened from the customer dashboard; the customer's own card slides into the reader, then the ATM PIN is entered on
+  the keypad. On exit the card is ejected and you return to the dashboard
 - Deposit, cash withdrawal, fast cash, balance enquiry, mini statement (last 10), fund transfer, PIN change
 - Cash is paid out in the fewest ₹500 / ₹200 / ₹100 notes, which animate out of the cash slot until you take them
 - A receipt prints out of the receipt slot; working side buttons, keypad beeps (can be muted), live clock
 
 **JavaPay UPI**
-- Activate UPI with the debit card + ATM PIN and set a 6-digit UPI PIN (the same step resets a forgotten PIN)
+- Opened from the customer dashboard. Activate UPI with the card's ATM PIN and set a 6-digit UPI PIN (the same step
+  resets a forgotten UPI PIN)
 - UPI ID generated from the name and account number, e.g. `priya.3311@javabank`
 - Pay a UPI ID: the payee's registered name is shown before you enter the UPI PIN on an NPCI-style PIN pad
 - Receive money with a standard `upi://pay` QR code, generated server-side as SVG with ZXing
@@ -83,7 +95,7 @@ transfers, row locking under concurrent access, an append-only transaction ledge
 ```mermaid
 flowchart LR
     Browser -->|HTTP| Web["Controllers<br/>(Spring MVC + Thymeleaf)"]
-    Web --> Sec["Spring Security<br/>ATM: card + PIN · UPI: UPI ID + UPI PIN<br/>Staff: username + password"]
+    Web --> Sec["Spring Security<br/>Customer: Customer ID + password (then ATM PIN / UPI PIN)<br/>Staff: username + password"]
     Web --> Svc["Services<br/>AccountOpening · Atm · Transfer · Upi<br/>CardSecurity · Admin"]
     Svc --> Dom["Domain<br/>Account · Card · Customer · Transaction"]
     Svc --> Repo["Spring Data JPA repositories"]
@@ -92,7 +104,7 @@ flowchart LR
 
 ```
 src/main/java/com/koustubh/bank
-├── config/      Security (three login chains), app settings, admin user seeding
+├── config/      Security (customer + staff login chains), app settings, admin user seeding
 ├── domain/      JPA entities with the business rules (Account.debit/credit, Card lockout)
 ├── repository/  Spring Data repositories, incl. SELECT … FOR UPDATE queries
 ├── service/     Banking use cases, each running in one database transaction
@@ -138,35 +150,40 @@ without signing up. Each one is in a different state. They come from
 
 > These are fake test numbers for this demo only. Never use real card numbers, PINs or Aadhaar numbers.
 
-**One login page:** <http://localhost:8080/login> has two tabs, **Customer** (ATM or JavaPay UPI) and **Bank staff**.
+**Log in at <http://localhost:8080/login>.** There are exactly two logins:
 
-**Bank staff (admin panel):** choose the **Bank staff** tab and log in as `admin` / `admin123`
+- **Customer:** Customer ID + password. **Every demo customer's password is `Demo@1234`.** After logging in you get
+  the dashboard (balance, recent transactions), passbook (filters + CSV download) and profile. The **ATM** and
+  **JavaPay UPI** open from the dashboard; the ATM then asks for the card's ATM PIN, and UPI asks for the UPI PIN.
+- **Bank staff:** `admin` / `admin123` (Bank staff tab).
 
-**ATM** (<http://localhost:8080/atm/login>) and **JavaPay UPI** (<http://localhost:8080/upi/login>):
-
-| Customer | Account no. | Card number | ATM PIN | UPI ID | UPI PIN | Balance | State: what to try |
-|---|---|---|---|---|---|---|---|
-| Rahul Sharma | `100000000001` | `5040930000000017` | `1234` | `rahul.0001@javabank` | `123456` | ₹42,350 | ✅ Active: ATM, UPI, everything |
-| Priya Verma | `100000000002` | `5040930000000025` | `2345` | `priya.0002@javabank` | `234567` | ₹1,20,950 | ✅ Active current account: pay Rahul by UPI |
-| Amit Patel | `100000000003` | `5040930000000033` | `3456` | — | — | ₹0 | ⏳ **Pending**: ATM refuses; approve or decline him in the admin panel |
-| Sneha Iyer | `100000000004` | `5040930000000041` | `4567` | — | — | ₹20,000 | ❄️ **Frozen**: ATM refuses; unfreeze in the admin panel |
-| Vikram Singh | `100000000005` | `5040930000000058` | `5678` | — | — | ₹15,000 | 🚫 **Card blocked** (3 wrong PINs): unblock in the admin panel |
-| Anjali Gupta | `100000000006` | `5040930000000066` | `6789` | `anjali.0006@javabank` | `345678` | ₹7,700 | 🔒 **UPI locked**: unlock in the admin panel, or reset the UPI PIN with her card |
+| Customer | Customer ID | Account no. | Card number | ATM PIN | UPI ID | UPI PIN | Balance | State: what to try |
+|---|---|---|---|---|---|---|---|---|
+| Rahul Sharma | `JB10000001` | `100000000001` | `5040930000000017` | `1234` | `rahul.0001@javabank` | `123456` | ₹42,350 | ✅ Active: ATM, UPI, everything |
+| Priya Verma | `JB10000002` | `100000000002` | `5040930000000025` | `2345` | `priya.0002@javabank` | `234567` | ₹1,20,950 | ✅ Active current account: pay Rahul by UPI |
+| Amit Patel | `JB10000003` | `100000000003` | `5040930000000033` | `3456` | — | — | ₹0 | ⏳ **Pending**: dashboard says "under review"; approve or decline him as staff |
+| Sneha Iyer | `JB10000004` | `100000000004` | `5040930000000041` | `4567` | — | — | ₹20,000 | ❄️ **Frozen**: ATM refuses; unfreeze as staff |
+| Vikram Singh | `JB10000005` | `100000000005` | `5040930000000058` | `5678` | — | — | ₹15,000 | 🚫 **Card blocked** (3 wrong PINs): unblock as staff |
+| Anjali Gupta | `JB10000006` | `100000000006` | `5040930000000066` | `6789` | `anjali.0006@javabank` | `345678` | ₹7,700 | 🔒 **UPI locked**: unlock as staff, or set a new UPI PIN from UPI setup |
 
 The demo data also includes real transaction history (deposits, withdrawals, an ATM transfer and UPI payments with
 notes like "Dinner" and "Movie tickets"), so mini statements and UPI history aren't empty.
 
 **Quick tour (5 minutes)**
-1. **ATM:** log in as Rahul (`5040930000000017` / `1234`) → **Cash Withdrawal** → `1800`, and watch 3 × ₹500 + ₹200 + ₹100 come
-   out of the cash slot. Then check **Mini Statement**.
-2. **UPI:** log in to JavaPay as `rahul.0001@javabank` / `123456` → **Pay** → `priya.0002@javabank`, ₹500 → enter the UPI
-   PIN. Open **Receive** to see Rahul's QR code.
-3. **Security:** try Vikram's card: it's blocked. Try Amit's: it's waiting for approval.
-4. **Staff:** log in as `admin` / `admin123`, approve Amit, unblock Vikram's card, unlock Anjali's UPI, unfreeze Sneha.
-5. **Sign up with KYC:** open your own account with **Open account** and upload any sample image as the PAN and
+1. **Login:** go to **Login**, choose **Customer**, enter `JB10000001` / `Demo@1234`. Tap **Show** to reveal the balance,
+   then open **Passbook**, filter by date and **Download CSV**.
+2. **ATM:** from the dashboard open **ATM** → enter PIN `1234` → **Cash Withdrawal** → `1800`, and watch
+   3 × ₹500 + ₹200 + ₹100 come out of the cash slot. **Exit** returns you to the dashboard.
+3. **UPI:** from the dashboard open **JavaPay UPI** → **Pay** → `priya.0002@javabank`, ₹500 → UPI PIN `123456`. Open
+   **Receive** to see Rahul's QR code.
+4. **Security:** log in as Amit (`JB10000003`): the dashboard shows the account is under review and the ATM is locked.
+   Enter 5 wrong passwords for any customer to lock the login, then reset it with **Forgot or set password**
+   (card number + ATM PIN).
+5. **Staff:** log in as `admin` / `admin123`, approve Amit, unblock Vikram's card, unlock Anjali's UPI, unfreeze Sneha.
+6. **Sign up with KYC:** open your own account with **Open account** and upload any sample image as the PAN and
    Aadhaar card (never real documents). As staff, open the application, view the documents and **decline** it with a
    reason. Then open **Track application** (account number + PAN) to see the reason.
-6. **Home page:** try the SIP / FD calculator in the Investments section.
+7. **Home page:** try the SIP / FD calculator in the Investments section.
 
 Tests check that every login in this table works (`DemoDataSeederTest`), so the table stays correct.
 
@@ -186,7 +203,7 @@ Tests check that every login in this table works (`DemoDataSeederTest`), so the 
 ./mvnw test
 ```
 
-96 tests run against an in-memory H2 database with the real Flyway schema:
+100 tests run against an in-memory H2 database with the real Flyway schema:
 - **Domain unit tests:** balance rules, account states
 - **Service tests:** daily limit, insufficient funds, transfer atomicity, concurrent withdrawals, transfer deadlock
   avoidance, PIN lockout and unblock, PIN change
@@ -195,6 +212,8 @@ Tests check that every login in this table works (`DemoDataSeederTest`), so the 
 - **KYC tests:** file type detection from content, oversized and disguised files, file name cleaning, upload →
   staff view → decline → tracking page
 - **Demo data tests:** every demo login, balance and account state in the table above
+- **Login tests:** Customer ID login, 5-attempt lock, reset with debit card, staff unlock, change password, every
+  banking page redirects to login, customer and staff sessions can't cross over
 - **Web tests (MockMvc):** full 3-page signup, ATM login with a wrong PIN, withdrawal, staff approval, access control,
   UPI activate → login → pay → QR → balance → history
 

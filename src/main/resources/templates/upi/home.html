@@ -10,7 +10,7 @@
                 <small>Hello,</small>
                 <strong th:text="${profile.name}">Customer</strong>
             </div>
-            <form th:action="@{/upi/logout}" method="post" class="hh-logout"><button type="submit" title="Log out">⏻</button></form>
+            <a th:href="@{/customer}" class="hh-logout" title="Back to dashboard" aria-label="Back to dashboard"><button type="button" tabindex="-1">✕</button></a>
         </div>
         <div class="vpa-chip">
             <span th:text="${profile.vpa}" id="myVpa">name@javabank</span>
@@ -25,6 +25,7 @@
             <a th:href="@{/upi/balance}"><span class="qi" style="--c:#b45309">₹</span>Check balance</a>
             <a th:href="@{/upi/history}"><span class="qi" style="--c:#7c3aed">☰</span>History</a>
         </div>
+        <div class="toast ok" th:if="${message}" th:text="${message}"></div>
         <div class="promo">
             <strong>Zero fees on UPI</strong>
             <span>Pay any @javabank UPI ID instantly, 24×7</span>

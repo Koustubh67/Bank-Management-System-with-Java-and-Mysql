@@ -1,19 +1,16 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/phone :: page(~{::title}, ~{::div.app}, false)}">
-<head><title>Activate UPI · JavaPay</title></head>
+<head><title>Set up UPI · JavaPay</title></head>
 <body>
 <div class="app">
-    <header class="app-bar"><a th:href="@{/upi/login}" class="back">←</a><h2>Set up UPI</h2></header>
+    <header class="app-bar"><a th:href="@{/customer}" class="back">←</a><h2 th:text="${existingVpa} ? 'Reset UPI PIN' : 'Set up UPI'">Set up UPI</h2></header>
     <div class="app-body">
         <div class="stepper"><span class="on">Verify card</span><span class="on">Set UPI PIN</span><span>Done</span></div>
         <div class="toast error" th:if="${error}" th:text="${error}"></div>
         <form th:action="@{/upi/register}" method="post" class="uform">
-            <div class="mini-card" aria-hidden="true"><span>JavaBank Debit</span><b>•••• •••• •••• ••••</b></div>
-            <label class="ufield"><span>Debit card number</span>
-                <input type="text" name="cardNumber" inputmode="numeric" maxlength="16" required placeholder="16 digits">
-            </label>
-            <label class="ufield"><span>ATM PIN</span>
-                <input type="password" name="atmPin" inputmode="numeric" maxlength="4" required placeholder="4 digits">
+            <div class="mini-card" aria-hidden="true"><span>JavaBank Debit</span><b th:text="${maskedCard}">•••• •••• •••• ••••</b></div>
+            <label class="ufield"><span>ATM PIN of this card</span>
+                <input type="password" name="atmPin" inputmode="numeric" maxlength="4" required placeholder="4 digits" autofocus>
             </label>
             <label class="ufield"><span>New UPI PIN</span>
                 <input type="password" name="upiPin" inputmode="numeric" maxlength="6" pattern="\d{6}" required placeholder="6 digits">
@@ -21,8 +18,9 @@
             <label class="ufield"><span>Confirm UPI PIN</span>
                 <input type="password" name="confirmPin" inputmode="numeric" maxlength="6" pattern="\d{6}" required placeholder="6 digits">
             </label>
-            <p class="hint">Your account must be approved by the bank. Your UPI ID is created automatically.</p>
-            <button type="submit" class="ubtn">Activate UPI</button>
+            <p class="hint" th:if="${existingVpa}">Your UPI ID <b th:text="${existingVpa}"></b> stays the same. Setting a new UPI PIN also unlocks UPI.</p>
+            <p class="hint" th:unless="${existingVpa}">Your UPI ID is created automatically from your name and account number.</p>
+            <button type="submit" class="ubtn" th:text="${existingVpa} ? 'Set new UPI PIN' : 'Activate UPI'">Activate UPI</button>
         </form>
     </div>
 </div>

@@ -147,6 +147,12 @@ public class AdminService {
     }
 
     @Transactional
+    public void unlockLogin(Long accountId) {
+        accounts.findWithCustomerById(accountId).orElseThrow(() -> new NotFoundException("Account not found"))
+                .getCustomer().unlockLogin();
+    }
+
+    @Transactional
     public void unblockUpi(Long accountId) {
         upiHandles.findByAccountId(accountId).orElseThrow(() -> new NotFoundException("UPI is not activated"))
                 .unblock();

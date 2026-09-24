@@ -16,6 +16,11 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
 
     boolean existsByAccountNumber(String accountNumber);
 
+    /** A customer has one account in this app. */
+    @EntityGraph(attributePaths = "customer")
+    @Query("select a from Account a where a.customer.customerId = :customerId")
+    Optional<Account> findByCustomerLogin(String customerId);
+
     @Query("select a.id from Account a where a.accountNumber = :accountNumber")
     Optional<Long> findIdByAccountNumber(String accountNumber);
 

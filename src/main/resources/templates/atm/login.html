@@ -1,25 +1,19 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/atm :: page(~{::title}, ~{::main})}">
-<head><title>ATM Login · JavaBank</title></head>
+<head><title>Insert card · JavaBank ATM</title></head>
 <body>
 <main class="screen-content" data-screen="login">
     <h1 class="screen-title">Welcome to JavaBank</h1>
-    <p class="screen-sub">Please insert your card and enter your PIN</p>
+    <p class="screen-sub">Your card <b th:text="${maskedCard}">XXXX</b> is ready. Enter your ATM PIN.</p>
     <div class="alert error" th:if="${error}" th:text="${error}"></div>
-    <div class="alert ok" th:if="${param.logout}">Thank you for banking with us. Please take your card.</div>
-    <form th:action="@{/atm/login}" method="post" class="screen-form" data-insert-card>
-        <label>Card number
-            <input type="text" name="cardNumber" inputmode="numeric" maxlength="16" autocomplete="off" required autofocus
-                   placeholder="16-digit card number">
-        </label>
-        <label>PIN
+    <form th:action="@{/atm/insert}" method="post" class="screen-form" data-insert-card>
+        <label>ATM PIN
             <input type="password" name="pin" inputmode="numeric" maxlength="4" pattern="\d{4}" autocomplete="off" required
-                   placeholder="••••">
+                   autofocus placeholder="••••">
         </label>
         <button type="submit" class="screen-btn primary">Insert card &amp; continue ▸</button>
     </form>
-    <p class="screen-hint demo-hint" th:if="${demoEnabled}">Demo card: <b>5040930000000017</b> · PIN <b>1234</b></p>
-    <p class="screen-hint">Shield the keypad while entering your PIN · New customer? <a th:href="@{/signup}">Open an account</a></p>
+    <p class="screen-hint">Shield the keypad while entering your PIN · <a th:href="@{/customer}">Cancel</a></p>
 </main>
 </body>
 </html>

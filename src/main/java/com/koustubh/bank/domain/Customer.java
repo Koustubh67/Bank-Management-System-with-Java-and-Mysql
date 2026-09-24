@@ -36,6 +36,39 @@ public class Customer {
 
     private LocalDateTime createdAt;
 
+    /** Net banking user name, e.g. JB48213377. */
+    private String customerId;
+
+    /** BCrypt hash of the net banking password. Null until the customer sets one. */
+    private String passwordHash;
+
+    private int failedLogins;
+
+    private boolean loginLocked;
+
+    /** Records a wrong password and locks the login once the limit is reached. */
+    public void registerFailedLogin(int maxAttempts) {
+        failedLogins++;
+        if (failedLogins >= maxAttempts) {
+            loginLocked = true;
+        }
+    }
+
+    public void loginSucceeded() {
+        failedLogins = 0;
+    }
+
+    /** Setting a new password (with the debit card, or by staff unlock) clears the lock. */
+    public void setPassword(String newPasswordHash) {
+        passwordHash = newPasswordHash;
+        unlockLogin();
+    }
+
+    public void unlockLogin() {
+        loginLocked = false;
+        failedLogins = 0;
+    }
+
     public Long getId() { return id; }
     public String getFullName() { return fullName; }
     public void setFullName(String fullName) { this.fullName = fullName; }
@@ -78,6 +111,16 @@ public class Customer {
     public boolean isExistingAccount() { return existingAccount; }
     public void setExistingAccount(boolean existingAccount) { this.existingAccount = existingAccount; }
     public LocalDateTime getCreatedAt() { return createdAt; }
+    public String getCustomerId() { return customerId; }
+    public void setCustomerId(String customerId) { this.customerId = customerId; }
+    public String getPasswordHash() { return passwordHash; }
+    public int getFailedLogins() { return failedLogins; }
+    public boolean isLoginLocked() { return loginLocked; }
+
+    /** Shown on the profile page, e.g. ABCXX1234X. */
+    public String getMaskedPan() {
+        return pan.substring(0, 3) + "XX" + pan.substring(5, 9) + "X";
+    }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
     /** Aadhaar is sensitive, so screens only ever show the last 4 digits. */

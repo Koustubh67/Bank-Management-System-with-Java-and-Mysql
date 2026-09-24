@@ -25,7 +25,16 @@
                 </label>
             </div>
         </fieldset>
-        <p class="note">Your 16-digit card number and 4-digit PIN are generated when you submit and shown only once.</p>
+        <h2 class="sub-head">Net banking login</h2>
+        <p class="note">You'll log in with your Customer ID (shown after you submit) and this password.</p>
+        <div class="grid">
+            <label th:replace="~{fragments/form :: input('password', 'Create password', 'password')}"></label>
+            <label class="field"><span>Confirm password</span>
+                <input type="password" th:field="*{confirmPassword}" th:classappend="${#fields.hasErrors('passwordConfirmed')} ? 'invalid'">
+                <small class="err" th:if="${#fields.hasErrors('passwordConfirmed')}" th:errors="*{passwordConfirmed}"></small>
+            </label>
+        </div>
+        <p class="note">Your 16-digit card number and 4-digit ATM PIN are generated when you submit and shown only once.</p>
         <label class="declaration">
             <input type="checkbox" th:field="*{declaration}">
             I hereby declare that the details entered above are correct to the best of my knowledge.

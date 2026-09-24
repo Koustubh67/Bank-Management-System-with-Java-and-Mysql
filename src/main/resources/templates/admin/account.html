@@ -18,6 +18,9 @@
         <form th:if="${a.status.name() == 'FROZEN'}" th:action="@{/admin/accounts/{id}/unfreeze(id=${a.id})}" method="post" class="inline">
             <button type="submit" class="btn primary">Unfreeze account</button>
         </form>
+        <form th:if="${c.loginLocked}" th:action="@{/admin/accounts/{id}/unlock-login(id=${a.id})}" method="post" class="inline">
+            <button type="submit" class="btn primary">Unlock net banking login</button>
+        </form>
         <form th:if="${details.upi != null and details.upi.blocked}" th:action="@{/admin/accounts/{id}/unblock-upi(id=${a.id})}" method="post" class="inline">
             <button type="submit" class="btn primary">Unlock UPI</button>
         </form>
@@ -81,6 +84,8 @@
         <section class="card">
             <h2>Customer (KYC)</h2>
             <dl class="details">
+                <dt>Customer ID</dt><dd class="mono" th:text="${c.customerId}"></dd>
+                <dt>Net banking</dt><dd th:text="${c.loginLocked ? 'Locked (too many wrong passwords)' : (c.passwordHash == null ? 'Password not set' : 'Active')}"></dd>
                 <dt>Father's name</dt><dd th:text="${c.fatherName}"></dd>
                 <dt>Date of birth</dt><dd th:text="${#temporals.format(c.dateOfBirth, 'dd MMM yyyy')}"></dd>
                 <dt>Gender</dt><dd th:text="${c.gender}"></dd>

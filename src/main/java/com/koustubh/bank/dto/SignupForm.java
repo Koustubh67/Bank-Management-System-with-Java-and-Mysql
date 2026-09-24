@@ -2,6 +2,7 @@ package com.koustubh.bank.dto;
 
 import com.koustubh.bank.domain.AccountType;
 import com.koustubh.bank.domain.Customer;
+import com.koustubh.bank.service.CustomerLoginService;
 import jakarta.validation.constraints.*;
 import org.springframework.format.annotation.DateTimeFormat;
 
@@ -77,6 +78,18 @@ public class SignupForm implements Serializable {
     private List<String> services = new ArrayList<>();
     @AssertTrue(message = "you must accept the declaration", groups = AccountDetails.class)
     private boolean declaration;
+
+    // Net banking password, chosen on page 3. Only its hash is saved.
+    @NotBlank(groups = AccountDetails.class)
+    @Pattern(regexp = CustomerLoginService.PASSWORD_RULE, message = CustomerLoginService.PASSWORD_HINT,
+            groups = AccountDetails.class)
+    private String password;
+    private String confirmPassword;
+
+    @AssertTrue(message = "passwords do not match", groups = AccountDetails.class)
+    public boolean isPasswordConfirmed() {
+        return password != null && password.equals(confirmPassword);
+    }
 
     // KYC documents, uploaded on page 2 and checked by KycFiles
     private UploadedFile panDocument;
@@ -154,6 +167,10 @@ public class SignupForm implements Serializable {
     public List<String> getServices() { return services; }
     public void setServices(List<String> services) { this.services = services == null ? new ArrayList<>() : services; }
     public boolean isDeclaration() { return declaration; }
+    public String getPassword() { return password; }
+    public void setPassword(String password) { this.password = password; }
+    public String getConfirmPassword() { return confirmPassword; }
+    public void setConfirmPassword(String confirmPassword) { this.confirmPassword = confirmPassword; }
     public UploadedFile getPanDocument() { return panDocument; }
     public void setPanDocument(UploadedFile panDocument) { this.panDocument = panDocument; }
     public UploadedFile getAadhaarDocument() { return aadhaarDocument; }

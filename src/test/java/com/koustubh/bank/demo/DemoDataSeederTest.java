@@ -4,6 +4,7 @@ import com.koustubh.bank.demo.DemoDataSeeder.DemoCustomer;
 import com.koustubh.bank.repository.AccountRepository;
 import com.koustubh.bank.repository.CustomerRepository;
 import com.koustubh.bank.service.CardSecurityService;
+import com.koustubh.bank.service.CustomerLoginService;
 import com.koustubh.bank.service.UpiService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +29,7 @@ class DemoDataSeederTest {
     @Autowired DemoDataSeeder seeder;
     @Autowired CardSecurityService cardSecurity;
     @Autowired UpiService upi;
+    @Autowired CustomerLoginService customerLogin;
     @Autowired AccountRepository accounts;
     @Autowired CustomerRepository customers;
 
@@ -39,8 +41,12 @@ class DemoDataSeederTest {
     void demoLoginsFromTheReadmeWork() {
         cardSecurity.verifyLogin(DemoDataSeeder.RAHUL.cardNumber(), "1234");
         cardSecurity.verifyLogin(DemoDataSeeder.PRIYA.cardNumber(), "2345");
-        upi.verifyLogin("rahul.0001@javabank", "123456");
-        upi.verifyLogin("priya.0002@javabank", "234567");
+        assertThat(upi.balance("rahul.0001@javabank", "123456")).isPositive();
+        assertThat(upi.balance("priya.0002@javabank", "234567")).isPositive();
+        for (DemoCustomer d : DemoDataSeeder.ALL) {
+            assertThat(customerLogin.verifyLogin(d.customerId(), DemoDataSeeder.DEMO_PASSWORD)).isEqualTo(d.customerId());
+        }
+        assertThat(DemoDataSeeder.RAHUL.customerId()).isEqualTo("JB10000001");
 
         assertThatThrownBy(() -> cardSecurity.verifyLogin(DemoDataSeeder.AMIT.cardNumber(), "3456"))
                 .isInstanceOf(DisabledException.class).hasMessageContaining("approval");
@@ -48,8 +54,8 @@ class DemoDataSeederTest {
                 .isInstanceOf(DisabledException.class).hasMessageContaining("frozen");
         assertThatThrownBy(() -> cardSecurity.verifyLogin(DemoDataSeeder.VIKRAM.cardNumber(), "5678"))
                 .isInstanceOf(LockedException.class);
-        assertThatThrownBy(() -> upi.verifyLogin("anjali.0006@javabank", "345678"))
-                .isInstanceOf(LockedException.class);
+        assertThatThrownBy(() -> upi.balance("anjali.0006@javabank", "345678"))
+                .hasMessageContaining("locked");
     }
 
     @Test

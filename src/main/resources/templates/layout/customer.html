@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:fragment="page(title, content)">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:replace="${title}">JavaBank</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <link rel="stylesheet" th:href="@{/css/home.css}">
+    <link rel="stylesheet" th:href="@{/css/customer.css}">
+</head>
+<body class="portal cust">
+<svg th:replace="~{fragments/icons :: sprite}"></svg>
+<header class="site-header scrolled">
+    <div class="container header-inner">
+        <a class="brand" th:href="@{/customer}" aria-label="JavaBank dashboard">
+            <span class="brand-mark">₹</span><span>Java<span class="brand-accent">Bank</span></span>
+            <span class="demo-pill">Demo</span>
+        </a>
+        <input type="checkbox" id="navToggle" class="nav-toggle" aria-label="Open menu">
+        <label for="navToggle" class="nav-burger" aria-hidden="true"><span></span><span></span><span></span></label>
+        <nav class="main-nav" aria-label="Net banking">
+            <a th:href="@{/customer}">Dashboard</a>
+            <a th:href="@{/customer/passbook}">Passbook</a>
+            <a th:href="@{/atm/login}">ATM</a>
+            <a th:href="@{/upi}">JavaPay UPI</a>
+            <a th:href="@{/customer/profile}">Profile</a>
+            <form th:action="@{/customer/logout}" method="post" class="inline">
+                <button type="submit" class="btn ghost-dark small">Log out</button>
+            </form>
+        </nav>
+    </div>
+</header>
+<div class="container cust-alerts">
+    <div class="alert ok" th:if="${message}" th:text="${message}"></div>
+    <div class="alert error" th:if="${error}" th:text="${error}"></div>
+</div>
+<main th:replace="${content}"></main>
+<footer class="cust-footer container">JavaBank demo · Your session ends automatically after 5 minutes of inactivity.</footer>
+<script th:src="@{/js/site.js}"></script>
+</body>
+</html>

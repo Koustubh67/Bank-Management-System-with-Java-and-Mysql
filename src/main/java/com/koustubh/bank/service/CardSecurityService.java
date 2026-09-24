@@ -33,6 +33,26 @@ public class CardSecurityService {
      */
     @Transactional(noRollbackFor = AuthenticationException.class)
     public void verifyLogin(String cardNumber, String pin) {
+        Card card = checkPin(cardNumber, pin);
+        AccountStatus status = card.getAccount().getStatus();
+        if (status == AccountStatus.PENDING) {
+            throw new DisabledException("Your account is awaiting approval by the bank");
+        }
+        if (status == AccountStatus.DECLINED) {
+            throw new DisabledException("Your account application was declined. Check its status on the Track application page");
+        }
+        if (status == AccountStatus.FROZEN) {
+            throw new DisabledException("Your account is frozen. Please contact your branch");
+        }
+    }
+
+    /** Checks card + PIN only (used to reset the net banking password). Wrong PINs still count towards the lock. */
+    @Transactional(noRollbackFor = AuthenticationException.class)
+    public void verifyCardPin(String cardNumber, String pin) {
+        checkPin(cardNumber, pin);
+    }
+
+    private Card checkPin(String cardNumber, String pin) {
         Card card = cards.findByCardNumber(cardNumber)
                 .orElseThrow(() -> new BadCredentialsException("Invalid card number or PIN"));
         if (card.isBlocked()) {
@@ -46,17 +66,8 @@ public class CardSecurityService {
             int left = maxPinAttempts - card.getFailedAttempts();
             throw new BadCredentialsException("Wrong PIN. " + left + (left == 1 ? " attempt" : " attempts") + " left");
         }
-        AccountStatus status = card.getAccount().getStatus();
-        if (status == AccountStatus.PENDING) {
-            throw new DisabledException("Your account is awaiting approval by the bank");
-        }
-        if (status == AccountStatus.DECLINED) {
-            throw new DisabledException("Your account application was declined. Check its status on the Track application page");
-        }
-        if (status == AccountStatus.FROZEN) {
-            throw new DisabledException("Your account is frozen. Please contact your branch");
-        }
         card.resetFailedAttempts();
+        return card;
     }
 
     @Transactional

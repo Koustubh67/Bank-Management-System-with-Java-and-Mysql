@@ -15,7 +15,7 @@
                     grow your savings, all in one place.</p>
                 <div class="hero-actions reveal">
                     <a class="btn dark lg" th:href="@{/signup}">Open free account <span aria-hidden="true">→</span></a>
-                    <a class="btn soft lg" th:href="@{/upi/login}">Try JavaPay UPI</a>
+                    <a class="btn soft lg" th:href="@{/login}">Login to net banking</a>
                 </div>
                 <div class="trusted reveal">
                     <div class="avatars" aria-hidden="true"><span>R</span><span>P</span><span>A</span><span>S</span><span>+</span></div>
@@ -72,13 +72,13 @@
                 <h2>Everything you need from a bank</h2>
             </div>
             <div class="bento">
-                <a class="tile t-upi reveal" th:href="@{/upi/login}">
+                <a class="tile t-upi reveal" th:href="@{/login}">
                     <span class="t-tag">JavaPay UPI</span>
                     <h3>Pay anyone in seconds</h3>
                     <p>Your own UPI ID, QR payments and a 6-digit UPI PIN.</p>
                     <div class="t-upi-art" aria-hidden="true"><span>₹1,250</span><small>✓ Paid to PRIYA VERMA</small></div>
                 </a>
-                <a class="tile t-atm reveal" th:href="@{/atm/login}">
+                <a class="tile t-atm reveal" th:href="@{/login}">
                     <span class="t-tag">ATM</span>
                     <h3>Cash, the classic way</h3>
                     <p>Insert your card, watch the notes come out.</p>
@@ -199,8 +199,8 @@
                     <li>₹1,00,000 daily limit; UPI locks after 3 wrong PINs</li>
                 </ul>
                 <div class="hero-actions">
-                    <a class="btn dark" th:href="@{/upi/register}">Activate UPI</a>
-                    <a class="btn soft" th:href="@{/upi/login}">Open JavaPay</a>
+                    <a class="btn dark" th:href="@{/signup}">Open account</a>
+                    <a class="btn soft" th:href="@{/login}">Login to use UPI</a>
                 </div>
             </div>
             <div class="phone-demo reveal" aria-hidden="true">
@@ -270,7 +270,7 @@
                 <div class="eng reveal"><code>Ordered locking</code><p>Accounts are always locked in id order, so opposite transfers can't deadlock.</p></div>
                 <div class="eng reveal"><code>@Transactional</code><p>Debit, credit and both ledger entries commit or roll back together.</p></div>
                 <div class="eng reveal"><code>Magic-byte checks</code><p>KYC uploads are accepted only if the file really is a PDF, JPG or PNG.</p></div>
-                <div class="eng reveal"><code>95 tests</code><p>JUnit, MockMvc and concurrency tests run on every push with GitHub Actions.</p></div>
+                <div class="eng reveal"><code>100 tests</code><p>JUnit, MockMvc and concurrency tests run on every push with GitHub Actions.</p></div>
             </div>
             <div class="tech-row reveal">
                 <span>Java 17</span><span>Spring Boot 4</span><span>Spring Security</span><span>Spring Data JPA</span>
@@ -287,10 +287,11 @@
                 <h2>Questions, answered</h2>
             </div>
             <div class="faq">
+                <details class="reveal"><summary>How do I log in?</summary><p>Use the Customer ID and password from account opening on the <a th:href="@{/login}">login page</a>. Forgot your password? Reset it with your debit card and ATM PIN. After login you can check your balance and passbook, and use the ATM and UPI.</p></details>
                 <details class="reveal"><summary>How do I open an account?</summary><p>Click <a th:href="@{/signup}">Open account</a>, fill in 3 short pages and upload your PAN and Aadhaar. You get your account number, card number and PIN straight away.</p></details>
                 <details class="reveal"><summary>Why do I need to upload PAN and Aadhaar?</summary><p>They're your KYC (Know Your Customer) documents. Bank staff check that your name and numbers match before activating the account.</p></details>
                 <details class="reveal"><summary>How do I know if my application is approved?</summary><p>Use <a th:href="@{/signup/status}">Track application</a> with your account number and PAN. If it was declined, you'll see the reason and can apply again.</p></details>
-                <details class="reveal"><summary>How do I get a UPI ID?</summary><p>Go to <a th:href="@{/upi/register}">Activate UPI</a>, enter your debit card number and ATM PIN, and choose a 6-digit UPI PIN.</p></details>
+                <details class="reveal"><summary>How do I get a UPI ID?</summary><p><a th:href="@{/login}">Log in</a> to net banking and open JavaPay UPI from your dashboard. Confirm with your ATM PIN and choose a 6-digit UPI PIN.</p></details>
                 <details class="reveal"><summary>When will investments and insurance be available?</summary><p>They're on the roadmap. Meanwhile, try the SIP and FD calculator to plan your goals.</p></details>
                 <details class="reveal"><summary>Is this a real bank?</summary><p>No. JavaBank is a portfolio project that demonstrates banking software engineering. No real money moves, so never enter real card numbers, PINs or documents.</p></details>
             </div>
@@ -304,7 +305,7 @@
             <p>Open your JavaBank account in under 2 minutes.</p>
             <div class="hero-actions center-row">
                 <a class="btn light lg" th:href="@{/signup}">Open free account</a>
-                <a class="btn glass lg" th:href="@{/atm/login}">Try the ATM</a>
+                <a class="btn glass lg" th:href="@{/login}">Login</a>
             </div>
         </div>
     </section>

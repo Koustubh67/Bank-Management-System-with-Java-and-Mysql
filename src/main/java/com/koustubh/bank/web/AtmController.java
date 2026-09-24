@@ -6,15 +6,16 @@ import com.koustubh.bank.exception.BankException;
 import com.koustubh.bank.exception.InvalidRequestException;
 import com.koustubh.bank.service.AtmService;
 import com.koustubh.bank.service.CardSecurityService;
+import com.koustubh.bank.service.CustomerService;
 import com.koustubh.bank.service.TransferService;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.web.WebAttributes;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.SessionAttribute;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.math.BigDecimal;
@@ -22,36 +23,62 @@ import java.security.Principal;
 import java.util.List;
 import java.util.function.Supplier;
 
-/** ATM screens. The logged-in principal's name is the card number. */
+/** ATM screens, opened from the customer dashboard. The card number is kept in the session after the PIN check. */
 @Controller
 @RequestMapping("/atm")
 public class AtmController {
+
+    /** Session attribute holding the card number once the PIN has been entered at the ATM. */
+    public static final String ATM_CARD = "ATM_CARD";
 
     static final List<Integer> FAST_CASH_AMOUNTS = List.of(500, 1000, 2000, 5000, 10000, 20000);
 
     private final AtmService atm;
     private final TransferService transfers;
     private final CardSecurityService cardSecurity;
+    private final CustomerService customers;
 
-    public AtmController(AtmService atm, TransferService transfers, CardSecurityService cardSecurity) {
+    public AtmController(AtmService atm, TransferService transfers, CardSecurityService cardSecurity,
+                         CustomerService customers) {
+        this.customers = customers;
         this.atm = atm;
         this.transfers = transfers;
         this.cardSecurity = cardSecurity;
     }
 
+    /** "Insert card" screen: the logged-in customer's own card is used, so only the PIN is asked for. */
     @GetMapping("/login")
-    public String login(@RequestParam(required = false) String error, HttpSession session, Model model) {
-        if (error != null) {
-            Object ex = session.getAttribute(WebAttributes.AUTHENTICATION_EXCEPTION);
-            model.addAttribute("error", ex instanceof AuthenticationException ae ? ae.getMessage() : "Login failed");
-            session.removeAttribute(WebAttributes.AUTHENTICATION_EXCEPTION);
-        }
+    public String login(Principal principal, Model model) {
+        model.addAttribute("maskedCard", mask(customers.cardNumber(principal.getName())));
         return "atm/login";
     }
 
+    @PostMapping("/insert")
+    public String insertCard(@RequestParam(required = false) String pin, Principal principal, HttpSession session,
+                             Model model) {
+        String cardNumber = customers.cardNumber(principal.getName());
+        try {
+            cardSecurity.verifyLogin(cardNumber, pin == null ? "" : pin);
+        } catch (AuthenticationException e) {
+            model.addAttribute("error", e.getMessage());
+            model.addAttribute("maskedCard", mask(cardNumber));
+            return "atm/login";
+        }
+        session.setAttribute(ATM_CARD, cardNumber);
+        return "redirect:/atm";
+    }
+
+    /** Ends the ATM session (card ejected) and goes back to the customer dashboard. */
+    @PostMapping("/exit")
+    public String exit(HttpSession session, RedirectAttributes redirect) {
+        session.removeAttribute(ATM_CARD);
+        redirect.addFlashAttribute("message", "ATM session ended. Please take your card.");
+        return "redirect:/customer";
+    }
+
     @GetMapping
-    public String menu(Principal principal, Model model) {
-        model.addAttribute("summary", atm.summary(principal.getName()));
+    public String menu(@SessionAttribute(ATM_CARD) String card, Model model) {
+        model.addAttribute("summary", atm.summary(card));
         return "atm/menu";
     }
 
@@ -61,10 +88,10 @@ public class AtmController {
     }
 
     @PostMapping("/deposit")
-    public String deposit(@RequestParam(required = false) String amount, Principal principal, Model model,
+    public String deposit(@RequestParam(required = false) String amount, @SessionAttribute(ATM_CARD) String card, Model model,
                           RedirectAttributes redirect) {
         return handle("atm/deposit", model, redirect,
-                () -> Receipt.of(atm.deposit(principal.getName(), parseAmount(amount))));
+                () -> Receipt.of(atm.deposit(card, parseAmount(amount))));
     }
 
     @GetMapping("/withdraw")
@@ -73,10 +100,10 @@ public class AtmController {
     }
 
     @PostMapping("/withdraw")
-    public String withdraw(@RequestParam(required = false) String amount, Principal principal, Model model,
+    public String withdraw(@RequestParam(required = false) String amount, @SessionAttribute(ATM_CARD) String card, Model model,
                            RedirectAttributes redirect) {
         return handle("atm/withdraw", model, redirect,
-                () -> Receipt.of(atm.withdraw(principal.getName(), parseAmount(amount))));
+                () -> Receipt.of(atm.withdraw(card, parseAmount(amount))));
     }
 
     @GetMapping("/fast-cash")
@@ -86,11 +113,11 @@ public class AtmController {
     }
 
     @PostMapping("/fast-cash")
-    public String fastCash(@RequestParam(required = false) String amount, Principal principal, Model model,
+    public String fastCash(@RequestParam(required = false) String amount, @SessionAttribute(ATM_CARD) String card, Model model,
                            RedirectAttributes redirect) {
         model.addAttribute("amounts", FAST_CASH_AMOUNTS);
         return handle("atm/fast-cash", model, redirect,
-                () -> Receipt.of(atm.withdraw(principal.getName(), parseAmount(amount))));
+                () -> Receipt.of(atm.withdraw(card, parseAmount(amount))));
     }
 
     @GetMapping("/transfer")
@@ -101,24 +128,24 @@ public class AtmController {
 
     @PostMapping("/transfer")
     public String transfer(@Valid @ModelAttribute TransferForm transferForm, BindingResult result,
-                           Principal principal, Model model, RedirectAttributes redirect) {
+                           @SessionAttribute(ATM_CARD) String card, Model model, RedirectAttributes redirect) {
         if (result.hasErrors()) {
             return "atm/transfer";
         }
-        return handle("atm/transfer", model, redirect, () -> Receipt.of(transfers.transfer(principal.getName(),
+        return handle("atm/transfer", model, redirect, () -> Receipt.of(transfers.transfer(card,
                 transferForm.getToAccountNumber(), transferForm.getAmount())));
     }
 
     @GetMapping("/balance")
-    public String balance(Principal principal, Model model) {
-        model.addAttribute("summary", atm.summary(principal.getName()));
+    public String balance(@SessionAttribute(ATM_CARD) String card, Model model) {
+        model.addAttribute("summary", atm.summary(card));
         return "atm/balance";
     }
 
     @GetMapping("/statement")
-    public String statement(Principal principal, Model model) {
-        model.addAttribute("summary", atm.summary(principal.getName()));
-        model.addAttribute("transactions", atm.miniStatement(principal.getName()));
+    public String statement(@SessionAttribute(ATM_CARD) String card, Model model) {
+        model.addAttribute("summary", atm.summary(card));
+        model.addAttribute("transactions", atm.miniStatement(card));
         return "atm/statement";
     }
 
@@ -130,12 +157,12 @@ public class AtmController {
 
     @PostMapping("/pin")
     public String changePin(@Valid @ModelAttribute PinChangeForm pinChangeForm, BindingResult result,
-                            Principal principal, Model model, RedirectAttributes redirect) {
+                            @SessionAttribute(ATM_CARD) String card, Model model, RedirectAttributes redirect) {
         if (result.hasErrors()) {
             return "atm/pin";
         }
         try {
-            cardSecurity.changePin(principal.getName(), pinChangeForm.getCurrentPin(), pinChangeForm.getNewPin());
+            cardSecurity.changePin(card, pinChangeForm.getCurrentPin(), pinChangeForm.getNewPin());
         } catch (BankException e) {
             model.addAttribute("error", e.getMessage());
             return "atm/pin";
@@ -158,6 +185,10 @@ public class AtmController {
             model.addAttribute("error", e.getMessage());
             return view;
         }
+    }
+
+    private static String mask(String cardNumber) {
+        return "XXXX XXXX XXXX " + cardNumber.substring(12);
     }
 
     private static BigDecimal parseAmount(String amount) {

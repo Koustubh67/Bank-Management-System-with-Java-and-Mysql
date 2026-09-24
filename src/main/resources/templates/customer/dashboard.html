@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/customer :: page(~{::title}, ~{::main})}">
+<head><title>Dashboard · JavaBank</title></head>
+<body>
+<main class="container cust-main" th:with="a=${o.account}, s=${o.account.status.name()}">
+    <div class="cust-hello">
+        <div>
+            <p class="muted" th:text="${#temporals.format(#temporals.createNow(), 'EEEE, d MMMM')}"></p>
+            <h1>Hello, <span th:text="${#strings.arraySplit(o.customer.fullName, ' ')[0]}">Customer</span> 👋</h1>
+        </div>
+        <span class="cid">Customer ID <b th:text="${o.customer.customerId}"></b></span>
+    </div>
+
+    <div class="status-banner pending" th:if="${s == 'PENDING'}">
+        <strong>Your account is under review.</strong> Our staff are verifying your KYC documents. The ATM and UPI will
+        unlock once it's approved.
+    </div>
+    <div class="status-banner declined" th:if="${s == 'DECLINED'}">
+        <strong>Your application was declined.</strong> Reason: <span th:text="${a.declineReason}"></span>.
+        You're welcome to <a th:href="@{/signup}">apply again</a> with the correct details.
+    </div>
+    <div class="status-banner frozen" th:if="${s == 'FROZEN'}">
+        <strong>Your account is frozen.</strong> Transactions are paused. Please contact your branch.
+    </div>
+
+    <div class="dash-grid">
+        <section class="balance-panel">
+            <div class="bp-top">
+                <span th:text="${a.accountType.label}">Savings Account</span>
+                <span class="badge" th:classappend="${#strings.toLowerCase(s)}" th:text="${s}"></span>
+            </div>
+            <p class="bp-label">Available balance</p>
+            <div class="bp-amount">
+                <strong data-balance th:with="formatted=${@money.format(a.balance)}" th:attr="data-value=${formatted}">₹ ••••••</strong>
+                <button type="button" class="eye" data-toggle-balance aria-pressed="false">Show</button>
+            </div>
+            <p class="bp-acct">A/c <span class="mono" th:text="${a.accountNumber}"></span> · IFSC <span class="mono">JAVA0000042</span></p>
+            <div class="bp-card">
+                <span class="mono" th:text="${o.card.maskedNumber}"></span>
+                <span th:text="${o.card.blocked ? 'Card blocked' : 'Card active'}" th:classappend="${o.card.blocked} ? 'bad'"></span>
+            </div>
+        </section>
+
+        <section class="quick">
+            <h2>Quick actions</h2>
+            <div class="quick-tiles">
+                <a th:href="@{/atm/login}" class="qt" th:classappend="${s != 'ACTIVE'} ? 'off'">
+                    <span class="qt-ic" style="--c:#6366f1"><svg class="ic"><use href="#i-atm"/></svg></span>
+                    <b>ATM</b><small>Cash, deposit, transfer</small></a>
+                <a th:href="@{/upi}" class="qt" th:classappend="${s != 'ACTIVE'} ? 'off'">
+                    <span class="qt-ic" style="--c:#10b981"><svg class="ic"><use href="#i-phone"/></svg></span>
+                    <b>JavaPay UPI</b><small th:text="${o.upi != null ? o.upi.vpa : 'Activate UPI'}"></small></a>
+                <a th:href="@{/customer/passbook}" class="qt">
+                    <span class="qt-ic" style="--c:#f59e0b"><svg class="ic"><use href="#i-ledger"/></svg></span>
+                    <b>Passbook</b><small>Statements &amp; download</small></a>
+                <a th:href="@{/customer/profile}" class="qt">
+                    <span class="qt-ic" style="--c:#ec4899"><svg class="ic"><use href="#i-users"/></svg></span>
+                    <b>Profile</b><small>Details &amp; password</small></a>
+            </div>
+        </section>
+    </div>
+
+    <section class="panel">
+        <div class="panel-head">
+            <h2>Recent transactions</h2>
+            <a th:href="@{/customer/passbook}">View passbook →</a>
+        </div>
+        <p class="muted empty-state" th:if="${o.recent.isEmpty()}">No transactions yet.</p>
+        <ul class="txns" th:unless="${o.recent.isEmpty()}">
+            <li th:each="t : ${o.recent}">
+                <span class="tx-ic" th:classappend="${t.type.credit} ? 'in' : 'out'" th:text="${t.type.credit} ? '↙' : '↗'"></span>
+                <div class="tx-body">
+                    <b th:text="${t.remarks != null ? t.remarks : t.type.label}"></b>
+                    <small th:text="${t.type.label + ' · ' + #temporals.format(t.createdAt, 'dd MMM yyyy, hh:mm a')}"></small>
+                </div>
+                <span class="tx-amt" th:classappend="${t.type.credit} ? 'cr' : 'dr'"
+                      th:text="${(t.type.credit ? '+ ' : '− ') + @money.format(t.amount)}"></span>
+            </li>
+        </ul>
+    </section>
+</main>
+</body>
+</html>
