@@ -37,6 +37,13 @@ transfers, row locking under concurrent access, an append-only transaction ledge
   → pay from the account with an **OTP** sent by (simulated) SMS, or with **JavaPay UPI** and the UPI PIN
 - **Fixed deposits** for 1–5 years (6.80%–7.25% p.a., compounded quarterly) with interest accrued to date
 - Every holding has its own page (units, NAV, average cost, returns, next SIP date)
+- **Interactive charts everywhere** (no chart library, plain SVG + JS): portfolio value on the dashboard and Invest
+  page, each holding's value, and each fund's NAV. Ranges 1M / 6M / 1Y / 3Y / 5Y / All, green when up and red when
+  down, an "invested" dashed line that steps up with each SIP instalment, and a hover/touch tooltip with the exact
+  date, value and profit. Values come from real NAV history × the units held on each day
+- **Live updates:** pages poll `/customer/invest/api/live` every minute and flash ▲/▼ when a value changes; every
+  fund and holding shows its real move on the latest NAV ("▲ 0.16% today"). Mutual fund NAVs are published once per
+  business day by AMFI, so that is how often the real numbers change
 
 **Insurance through an expert callback (like real bancassurance)**
 - Health, term life, motor and travel plans with what's covered. **"Talk to an expert"** takes the customer's details
@@ -113,6 +120,10 @@ transfers, row locking under concurrent access, an append-only transaction ledge
 - Customer KYC view (Aadhaar masked) and full transaction history
 
 ## Screenshots
+
+| Holding with live value chart | Fund NAV chart (real data) |
+|---|---|
+| ![Holding chart](docs/screenshots/holding-chart.png) | ![Fund chart](docs/screenshots/fund-chart.png) |
 
 | Customer dashboard | Invest |
 |---|---|
@@ -261,7 +272,7 @@ Tests check that every login in this table works (`DemoDataSeederTest`), so the 
 ./mvnw test
 ```
 
-117 tests run against an in-memory H2 database with the real Flyway schema:
+123 tests run against an in-memory H2 database with the real Flyway schema:
 - **Domain unit tests:** balance rules, account states
 - **Service tests:** daily limit, insufficient funds, transfer atomicity, concurrent withdrawals, transfer deadlock
   avoidance, PIN lockout and unblock, PIN change
@@ -272,6 +283,8 @@ Tests check that every login in this table works (`DemoDataSeederTest`), so the 
 - **Investment tests** (with a fixed fake NAV source, never the internet): units at NAV, market profit on a year-old
   SIP, monthly SIP debits and missed instalments, FD maths and accrual, order rules; web checkout with KYC mismatches,
   wrong/right OTP, dashboard and passbook
+- **Chart tests:** NAV series ordering and ranges, SIP value series stepping up and ending at the holding's value,
+  portfolio series across funds and FDs, charts only for the owner, JSON endpoints and live feed
 - **Insurance tests:** all form errors at once, callback → contacted → policy issued with premium debit, close with
   reason, policy privacy between customers
 - **Staff tests:** temporary password → forced change, duplicate usernames, officers blocked from staff management,

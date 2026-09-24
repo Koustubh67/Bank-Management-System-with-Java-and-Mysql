@@ -317,3 +317,55 @@ a.policy:hover { transform: translateY(-3px); box-shadow: 0 16px 30px rgba(15, 2
 /* Text buttons on light pages (the light colour in app.css is for the dark staff header) */
 .cust-main .link-btn { color: var(--em-dark); font-weight: 600; text-decoration: underline; }
 .cust-main .link-btn.small { font-size: .85rem; justify-self: start; }
+
+/* ======================= Interactive charts & live updates ======================= */
+.jbc { margin: 6px 0 18px; --c: #10b981; --c-soft: rgba(16, 185, 129, .22); }
+.jbc.down { --c: #ef4444; --c-soft: rgba(239, 68, 68, .2); }
+.jbc-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+.jbc-change { font-size: .95rem; min-height: 1.4em; }
+.jbc-change b.up, .jbc-tip .up { color: var(--em-dark); }
+.jbc-change b.dn, .jbc-tip .dn { color: #dc2626; }
+.jbc-change span { color: var(--muted); font-size: .85rem; }
+.jbc-tabs { display: inline-flex; gap: 2px; padding: 3px; border-radius: 99px; background: var(--bg); border: 1px solid var(--line); }
+.jbc-tabs button { border: 0; background: transparent; padding: 5px 11px; border-radius: 99px; font: inherit; font-size: .8rem; font-weight: 700; color: var(--muted); cursor: pointer; }
+.jbc-tabs button.on { background: var(--ink); color: #fff; }
+.jbc-plot { position: relative; touch-action: pan-y; }
+.jbc-svg { display: block; width: 100%; height: 240px; overflow: visible; }
+.jbc.loading .jbc-svg { opacity: .35; transition: opacity .2s; }
+.jbc-grid { stroke: #e2e8f0; stroke-dasharray: 2 4; }
+.jbc-axis { font: 600 10px "Plus Jakarta Sans", system-ui, sans-serif; fill: #94a3b8; }
+.jbc-stop-top { stop-color: var(--c); stop-opacity: .28; }
+.jbc-stop-bottom { stop-color: var(--c); stop-opacity: 0; }
+.jbc-line { fill: none; stroke: var(--c); stroke-width: 2.4; stroke-linejoin: round; stroke-linecap: round; }
+.jbc-invested { fill: none; stroke: #64748b; stroke-width: 1.5; stroke-dasharray: 5 5; }
+.jbc-last { fill: var(--c); stroke: #fff; stroke-width: 2; animation: livePulse 1.8s ease-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes livePulse { 0% { filter: drop-shadow(0 0 0 var(--c)); } 70% { filter: drop-shadow(0 0 7px var(--c)); } 100% { filter: drop-shadow(0 0 0 var(--c)); } }
+.jbc-cross { stroke: #94a3b8; stroke-dasharray: 3 3; }
+.jbc-dot { fill: #fff; stroke: var(--c); stroke-width: 2.5; }
+.jbc-tip { position: absolute; top: 0; transform: translateX(-50%); pointer-events: none; display: grid; gap: 1px; padding: 8px 10px; border-radius: 10px; background: var(--ink); color: #fff; font-size: .8rem; white-space: nowrap; box-shadow: 0 10px 24px rgba(15, 23, 42, .25); }
+.jbc-tip small { color: #94a3b8; }
+.jbc-tip span { color: #cbd5e1; }
+.jbc-tip .up { color: #6ee7b7; }
+.jbc-tip .dn { color: #fca5a5; }
+.jbc-legend { display: flex; gap: 16px; font-size: .78rem; color: var(--muted); margin-top: 4px; }
+.jbc-legend i { display: inline-block; width: 16px; height: 0; margin-right: 6px; vertical-align: middle; border-top: 2.5px solid var(--c); }
+.jbc-legend i.inv { border-top: 1.5px dashed #64748b; }
+
+.live-pill { display: inline-flex; align-items: center; gap: 6px; margin-left: 8px; padding: 3px 10px; border-radius: 99px; background: #ecfdf5; color: var(--em-dark); font-size: .72rem; font-weight: 700; vertical-align: middle; }
+.live-pill i { width: 7px; height: 7px; border-radius: 50%; background: #22c55e; animation: blinkDot 1.4s infinite; }
+.live-pill i.off { background: #f59e0b; animation: none; }
+@keyframes blinkDot { 50% { opacity: .25; } }
+.day-chip { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: .72rem; font-weight: 700; background: #f1f5f9; color: var(--muted); }
+.day-chip:empty { display: none; }
+.day-chip.up { background: #dcfce7; color: #15803d; }
+.day-chip.dn { background: #fee2e2; color: #b91c1c; }
+.fp-nav .day-chip { margin-top: 4px; }
+.tick-up { animation: tickUp 1.4s ease; }
+.tick-down { animation: tickDown 1.4s ease; }
+@keyframes tickUp { 0% { background: #bbf7d0; color: #166534; } 100% { background: transparent; } }
+@keyframes tickDown { 0% { background: #fecaca; color: #991b1b; } 100% { background: transparent; } }
+@media (prefers-reduced-motion: reduce) { .jbc-last, .live-pill i { animation: none; } }
+.jbc-tip[hidden] { display: none; }
+.jbc.just-bought .jbc-plot, .jbc.just-bought .jbc-legend { display: none; }
+.fund-move { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
+.fund-move h3 { margin: 0 0 6px; font-size: 1rem; }

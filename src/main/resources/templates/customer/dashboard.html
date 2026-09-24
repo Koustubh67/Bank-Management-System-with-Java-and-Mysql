@@ -64,26 +64,29 @@
 
     <section class="panel wealth-panel" th:with="p=${portfolio}">
         <div class="panel-head">
-            <h2>My investments</h2>
+            <h2>My investments <span class="live-pill" data-live th:unless="${p.empty}"><i></i> Live</span></h2>
             <a th:href="@{/customer/invest}">Explore funds →</a>
         </div>
         <div class="wealth-stats" th:unless="${p.empty}">
             <div><span>Invested</span><strong th:text="${@money.whole(p.invested)}"></strong></div>
-            <div><span>Current value</span><strong th:text="${@money.whole(p.currentValue)}"></strong></div>
+            <div><span>Current value</span><strong data-live-value="portfolio" th:text="${@money.format(p.currentValue)}"></strong></div>
             <div><span>Total returns</span>
-                <strong th:classappend="${p.gain.signum() < 0} ? 'loss' : 'profit'"
+                <strong data-live-gain="portfolio" th:classappend="${p.gain.signum() < 0} ? 'loss' : 'profit'"
                         th:text="${(p.gain.signum() < 0 ? '− ' : '+ ') + @money.whole(p.gain.abs()) + ' (' + p.gainPercent + '%)'}"></strong></div>
             <div><span>Holdings</span><strong th:text="${p.holdings.size()}"></strong></div>
         </div>
+        <div data-chart data-mode="value" data-range="Y1" th:unless="${p.empty}"
+             th:attr="data-src=@{/customer/invest/api/portfolio}"></div>
         <p class="note" th:if="${!p.empty and !p.allPriced}">Live prices are unavailable for some funds right now; they show the amount invested.</p>
         <div class="holdings" th:unless="${p.empty}">
             <a class="holding" th:each="h : ${p.holdings}" th:with="i=${h.investment}" th:href="@{/customer/invest/holdings/{id}(id=${i.id})}">
                 <span class="h-ic" th:classappend="${i.type.name() == 'FIXED_DEPOSIT'} ? 'fd' : 'sip'" th:text="${i.type.name() == 'FIXED_DEPOSIT'} ? '₹' : '↗'"></span>
                 <span class="h-body"><b th:text="${i.title}"></b>
                     <small th:text="${i.type.label + ' · invested ' + @money.whole(i.invested)}"></small></span>
-                <span class="h-val"><b th:text="${@money.whole(h.currentValue)}"></b>
-                    <small th:classappend="${h.gain.signum() < 0} ? 'loss' : 'profit'"
-                           th:text="${(h.gain.signum() < 0 ? '−' : '+') + h.gainPercent.abs() + '%'}"></small></span>
+                <span class="h-val"><b th:attr="data-live-value=${i.id}" th:text="${@money.format(h.currentValue)}"></b>
+                    <small th:classappend="${h.gainPercent.signum() < 0} ? 'loss' : 'profit'"
+                           th:text="${(h.gainPercent.signum() < 0 ? '−' : '+') + h.gainPercent.abs() + '%'}"></small>
+                    <small class="day-chip" th:if="${i.schemeCode}" th:attr="data-live-day=${i.id}"></small></span>
             </a>
         </div>
         <div class="wealth-empty" th:if="${p.empty}">

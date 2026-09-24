@@ -13,6 +13,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -26,12 +27,18 @@ import java.util.concurrent.ConcurrentHashMap;
 public class MarketDataService {
 
     private static final Logger log = LoggerFactory.getLogger(MarketDataService.class);
-    private static final Duration TTL = Duration.ofHours(6);
+    /** AMFI publishes NAVs once a day; checking every 30 minutes picks up a new NAV soon after it's out. */
+    private static final Duration TTL = Duration.ofMinutes(30);
 
     /** What the fund pages show. Returns are annualised (CAGR) for 3Y/5Y and simple for 1Y; null if too new. */
     public record FundSnapshot(FundCatalog.Listing listing, String schemeName, String fundHouse, String category,
                                BigDecimal nav, LocalDate navDate, BigDecimal return1y, BigDecimal return3y,
-                               BigDecimal return5y, List<NavPoint> chart) {
+                               BigDecimal return5y, List<NavPoint> chart, BigDecimal change1d) {
+
+        /** Up (or flat) since the previous NAV. */
+        public boolean isUpToday() {
+            return change1d == null || change1d.signum() >= 0;
+        }
     }
 
     public static class MarketDataUnavailableException extends BankException {
@@ -89,7 +96,8 @@ public class MarketDataService {
         FundHistory h = history(schemeCode);
         NavPoint latest = h.navs().get(0);
         return new FundSnapshot(listing, h.schemeName(), h.fundHouse(), h.category(), latest.nav(), latest.date(),
-                simpleReturn(h, latest, 1), cagr(h, latest, 3), cagr(h, latest, 5), chart(h, latest.date()));
+                simpleReturn(h, latest, 1), cagr(h, latest, 3), cagr(h, latest, 5), chart(h, latest.date()),
+                dayChange(h));
     }
 
     /** NAV on the given day, or the last published NAV before it (markets are shut on weekends and holidays). */
@@ -104,6 +112,28 @@ public class MarketDataService {
 
     private static Optional<NavPoint> navOnOrBefore(FundHistory h, LocalDate date) {
         return h.navs().stream().filter(p -> !p.date().isAfter(date)).findFirst();
+    }
+
+    /** Percentage change from the previous published NAV to the latest one (the fund's "today" move). */
+    static BigDecimal dayChange(FundHistory h) {
+        if (h.navs().size() < 2) {
+            return null;
+        }
+        BigDecimal latest = h.navs().get(0).nav();
+        BigDecimal previous = h.navs().get(1).nav();
+        return latest.subtract(previous).multiply(BigDecimal.valueOf(100)).divide(previous, 2, RoundingMode.HALF_UP);
+    }
+
+    /** NAVs between two dates (inclusive), oldest first. */
+    public List<NavPoint> navsBetween(long schemeCode, LocalDate from, LocalDate to) {
+        List<NavPoint> result = new ArrayList<>();
+        for (NavPoint p : history(schemeCode).navs()) {   // newest first
+            if (p.date().isAfter(to)) continue;
+            if (p.date().isBefore(from)) break;
+            result.add(p);
+        }
+        Collections.reverse(result);
+        return result;
     }
 
     private static BigDecimal simpleReturn(FundHistory h, NavPoint latest, int years) {

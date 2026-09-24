@@ -13,12 +13,16 @@
                     <p class="muted" th:text="${fund.fundHouse + ' · ' + fund.category}"></p>
                 </div>
                 <div class="fp-nav"><span>NAV</span><strong th:text="${'₹' + fund.nav}"></strong>
+                    <span class="day-chip" th:if="${fund.change1d != null}" th:classappend="${fund.upToday} ? 'up' : 'dn'"
+                          th:text="${(fund.upToday ? '▲ ' : '▼ ') + fund.change1d.abs() + '% on the last NAV'}"></span>
                     <small th:text="${'as on ' + #temporals.format(fund.navDate, 'dd MMM yyyy')}"></small></div>
             </div>
-            <svg class="chart" viewBox="0 0 600 180" preserveAspectRatio="none" role="img" aria-label="NAV over the last year"
-                 th:with="pts=${@charts.points(fund.chart, 600, 180)}, area=${@charts.area(fund.chart, 600, 180)}">
-                <polygon th:attr="points=${area}" class="spark-area"/><polyline th:attr="points=${pts}" class="spark-line"/>
-            </svg>
+            <div data-chart data-mode="nav" data-range="Y1" th:attr="data-src=@{/customer/invest/api/funds/{c}(c=${fund.listing.schemeCode})}">
+                <svg class="chart" viewBox="0 0 600 180" preserveAspectRatio="none" role="img" aria-label="NAV over the last year"
+                     th:with="pts=${@charts.points(fund.chart, 600, 180)}, area=${@charts.area(fund.chart, 600, 180)}">
+                    <polygon th:attr="points=${area}" class="spark-area"/><polyline th:attr="points=${pts}" class="spark-line"/>
+                </svg>
+            </div>
             <p class="muted small">NAV over the last 12 months</p>
             <div class="fc-returns big">
                 <div><span>1 year</span><b th:text="${fund.return1y != null ? fund.return1y + '%' : '—'}" th:classappend="${fund.return1y != null and fund.return1y.signum() < 0} ? 'loss' : 'profit'"></b></div>

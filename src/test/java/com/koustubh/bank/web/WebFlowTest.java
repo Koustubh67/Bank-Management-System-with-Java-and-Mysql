@@ -234,6 +234,36 @@ class WebFlowTest {
     }
 
     @Test
+    void chartAndLiveEndpointsReturnJsonOnlyForTheOwner() throws Exception {
+        OpenedAccount a = accounts.active(10_000);
+        MockHttpSession session = customer(a);
+        mvc.perform(post("/customer/invest/order").session(session).with(csrf()).param("type", "LUMPSUM").param("schemeCode", "120716").param("amount", "3000"));
+        var c = customerService.overview(a.customerId()).customer();
+        mvc.perform(post("/customer/invest/checkout/kyc").session(session).with(csrf())
+                .param("pan", c.getPan()).param("aadhaar", c.getAadhaar()).param("mobile", c.getMobile()));
+        String otp = (String) mvc.perform(post("/customer/invest/checkout/otp").session(session).with(csrf())).andReturn().getFlashMap().get("smsOtp");
+        mvc.perform(post("/customer/invest/checkout/pay").session(session).with(csrf()).param("method", "ACCOUNT").param("otp", otp));
+
+        mvc.perform(get("/customer/invest/api/portfolio").param("range", "M1").session(session))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[-1:].invested").value(org.hamcrest.Matchers.hasItem(3000.0)));
+        mvc.perform(get("/customer/invest/api/funds/120716").param("range", "M6").session(session))
+                .andExpect(jsonPath("$[-1:].value").value(org.hamcrest.Matchers.hasItem(100.0)));
+        mvc.perform(get("/customer/invest/api/live").session(session))
+                .andExpect(jsonPath("$.value").value(3000.0))
+                .andExpect(jsonPath("$.holdings[0].change1d").exists());
+        mvc.perform(get("/customer/invest/api/funds/999").session(session)).andExpect(status().isBadRequest());
+        mvc.perform(get("/customer/invest/api/portfolio").param("range", "10Y").session(session)).andExpect(status().isBadRequest());
+
+        Long holdingId = com.jayway.jsonpath.JsonPath.<Integer>read(mvc.perform(get("/customer/invest/api/live").session(session))
+                .andReturn().getResponse().getContentAsString(), "$.holdings[0].id").longValue();
+        mvc.perform(get("/customer/invest/api/holdings/" + holdingId).session(session)).andExpect(status().isOk());
+        mvc.perform(get("/customer/invest/api/holdings/" + holdingId).session(customer(accounts.active(0)))).andExpect(status().isNotFound());
+        mvc.perform(get("/customer/invest/api/live")).andExpect(status().is3xxRedirection());
+        mvc.perform(get("/customer/invest").session(session)).andExpect(content().string(containsString("data-chart")));
+    }
+
+    @Test
     void insuranceCallbackIsHandledByStaffAndPolicyOpensForTheCustomer() throws Exception {
         OpenedAccount a = accounts.active(30_000);
         MockHttpSession session = customer(a);

@@ -7,12 +7,19 @@
     <section class="panel">
         <span class="fc-tag" th:text="${i.type.label}"></span>
         <h1 class="hold-title" th:text="${i.title}"></h1>
+        <span class="live-pill" data-live th:if="${i.schemeCode}"><i></i> Live</span>
         <div class="pf-sum">
-            <div><span>Current value</span><strong th:text="${@money.format(h.currentValue)}"></strong></div>
+            <div><span>Current value</span><strong th:attr="data-live-value=${i.id}" th:text="${@money.format(h.currentValue)}"></strong>
+                <small class="day-chip" th:if="${i.schemeCode}" th:attr="data-live-day=${i.id}"></small></div>
             <div><span>Invested</span><b th:text="${@money.format(i.invested)}"></b></div>
             <div><span th:text="${i.type.name() == 'FIXED_DEPOSIT'} ? 'Interest earned' : 'Returns'">Returns</span>
-                <b th:classappend="${h.gain.signum() < 0} ? 'loss' : 'profit'"
+                <b th:attr="data-live-gain=${i.id}" th:classappend="${h.gain.signum() < 0} ? 'loss' : 'profit'"
                    th:text="${(h.gain.signum() < 0 ? '− ' : '+ ') + @money.format(h.gain.abs()) + ' (' + h.gainPercent + '%)'}"></b></div>
+        </div>
+        <div data-chart data-mode="value" th:attr="data-src=@{/customer/invest/api/holdings/{id}(id=${i.id})},data-range=${i.type.name() == 'FIXED_DEPOSIT' ? 'ALL' : 'Y1'}"></div>
+        <div class="fund-move" th:if="${i.schemeCode}">
+            <h3>How this fund has moved</h3>
+            <div data-chart data-mode="nav" data-range="Y1" th:attr="data-src=@{/customer/invest/api/funds/{c}(c=${i.schemeCode})}"></div>
         </div>
         <p class="note" th:unless="${h.priced}">Live prices are unavailable right now; showing the amount invested.</p>
         <dl class="details">

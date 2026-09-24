@@ -12,13 +12,15 @@
 
     <!-- Portfolio with live profit & loss -->
     <section class="panel portfolio" th:unless="${p.empty}">
+        <div class="panel-head"><h2>My portfolio</h2><span class="live-pill" data-live><i></i> Live</span></div>
         <div class="pf-sum">
-            <div><span>Current value</span><strong th:text="${@money.format(p.currentValue)}"></strong></div>
+            <div><span>Current value</span><strong data-live-value="portfolio" th:text="${@money.format(p.currentValue)}"></strong></div>
             <div><span>Invested</span><b th:text="${@money.format(p.invested)}"></b></div>
             <div><span>Total returns</span>
-                <b th:classappend="${p.gain.signum() < 0} ? 'loss' : 'profit'"
+                <b data-live-gain="portfolio" th:classappend="${p.gain.signum() < 0} ? 'loss' : 'profit'"
                    th:text="${(p.gain.signum() < 0 ? '− ' : '+ ') + @money.format(p.gain.abs()) + ' (' + p.gainPercent + '%)'}"></b></div>
         </div>
+        <div data-chart data-mode="value" data-range="Y1" th:attr="data-src=@{/customer/invest/api/portfolio}"></div>
         <div class="table-wrap plain">
             <table class="table holdings-table">
                 <thead><tr><th>Holding</th><th class="num">Invested</th><th class="num">Current value</th><th class="num">Returns</th><th></th></tr></thead>
@@ -27,8 +29,9 @@
                     <td><a th:href="@{/customer/invest/holdings/{id}(id=${i.id})}" class="row-link"><b th:text="${i.title}"></b></a>
                         <small class="muted remark" th:text="${i.type.label + (i.units != null ? ' · ' + i.units + ' units' : '')}"></small></td>
                     <td class="num" th:text="${@money.format(i.invested)}"></td>
-                    <td class="num" th:text="${h.priced} ? ${@money.format(h.currentValue)} : 'Price unavailable'"></td>
-                    <td class="num" th:classappend="${h.gain.signum() < 0} ? 'loss' : 'profit'"
+                    <td class="num"><span th:attr="data-live-value=${i.id}" th:text="${h.priced} ? ${@money.format(h.currentValue)} : 'Price unavailable'"></span>
+                        <small class="day-chip" th:if="${i.schemeCode}" th:attr="data-live-day=${i.id}"></small></td>
+                    <td class="num" th:attr="data-live-gain=${i.id}" th:classappend="${h.gain.signum() < 0} ? 'loss' : 'profit'"
                         th:text="${(h.gain.signum() < 0 ? '− ' : '+ ') + @money.format(h.gain.abs()) + ' (' + h.gainPercent + '%)'}"></td>
                     <td class="num"><a th:href="@{/customer/invest/holdings/{id}(id=${i.id})}">Details →</a></td>
                 </tr>
@@ -42,7 +45,10 @@
     <p class="status-banner frozen" th:if="${funds.isEmpty()}">Live market prices are unavailable right now. Please try again in a few minutes.</p>
     <div class="fund-grid">
         <a class="fund-card" th:each="f : ${funds}" th:href="@{/customer/invest/funds/{code}(code=${f.listing.schemeCode})}">
-            <div class="fc-top"><span class="fc-tag" th:text="${f.listing.tag}"></span><span class="fc-risk" th:text="${f.listing.risk + ' risk'}"></span></div>
+            <div class="fc-top"><span class="fc-tag" th:text="${f.listing.tag}"></span>
+                <span class="day-chip" th:if="${f.change1d != null}" th:classappend="${f.upToday} ? 'up' : 'dn'"
+                      th:text="${(f.upToday ? '▲ ' : '▼ ') + f.change1d.abs() + '% today'}"></span></div>
+            <span class="fc-risk" th:text="${f.listing.risk + ' risk'}"></span>
             <h3 th:text="${f.listing.shortName}"></h3>
             <p class="muted small" th:text="${f.fundHouse}"></p>
             <svg class="spark" viewBox="0 0 240 60" preserveAspectRatio="none" aria-hidden="true"
