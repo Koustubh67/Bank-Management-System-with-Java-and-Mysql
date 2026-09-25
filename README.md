@@ -441,6 +441,6 @@ GitHub Actions
 ## History
 
 This project started as a college Java Swing desktop app. The original version is in the git history (commit
-`9910afb`). It was rebuilt as a Spring Boot web application with a layered architecture, tests and security.
+[`9910afb`](https://github.com/Koustubh67/Bank-Management-System-with-Java-and-Mysql/tree/9910afb)). It was rebuilt as a Spring Boot web application with a layered architecture, tests and security.
 
 *JavaBank is a demo project and not a real bank.*
