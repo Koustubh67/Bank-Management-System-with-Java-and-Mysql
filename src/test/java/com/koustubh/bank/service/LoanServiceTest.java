@@ -15,6 +15,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.concurrent.*;
@@ -34,6 +35,7 @@ class LoanServiceTest {
     @Autowired NotificationService notifications;
     @Autowired PlatformTransactionManager txManager;
     @Autowired LendingRateService rates;
+    @Autowired Clock clock;
 
     private static BigDecimal rs(long v) {
         return BigDecimal.valueOf(v);
@@ -87,7 +89,7 @@ class LoanServiceTest {
 
         assertThat(loan.getStatus()).isEqualTo(LoanStatus.ACTIVE);
         assertThat(accounts.balanceOf(a)).isEqualByComparingTo("501000");
-        assertThat(loan.getFirstEmiDate()).isEqualTo(EmiCalculator.firstEmiDate(LocalDate.now()));
+        assertThat(loan.getFirstEmiDate()).isEqualTo(EmiCalculator.firstEmiDate(LocalDate.now(clock)));
         assertThat(loan.getEndDate()).isEqualTo(loan.getFirstEmiDate().plusMonths(47));
         assertThat(loan.getEmi()).isEqualByComparingTo(EmiCalculator.emi(rs(500_000), new BigDecimal("8.50"), 48));
         LoanService.LoanView v = loans.loanOf(a.customerId(), loan.getId());
@@ -158,7 +160,7 @@ class LoanServiceTest {
         Loan loan = loans.approve(loans.apply(a.customerId(), car(100_000, 12, 50_000)).getId(), "neha",
                 rs(100_000), new BigDecimal("10"), 12);
         List<LoanInstalment> schedule = loans.loanOf(a.customerId(), loan.getId()).schedule();
-        setDue(schedule.get(0).getId(), LocalDate.now().minusDays(1));
+        setDue(schedule.get(0).getId(), LocalDate.now(clock).minusDays(1));
 
         assertThat(loans.collectDueEmis()).isGreaterThanOrEqualTo(1);
         LoanService.LoanView v = loans.loanOf(a.customerId(), loan.getId());
@@ -169,7 +171,7 @@ class LoanServiceTest {
 
         // Spend almost everything: the next due EMI can't be paid and becomes overdue (alerted once)
         accounts.spendAllBut(a, rs(100));
-        setDue(schedule.get(1).getId(), LocalDate.now());
+        setDue(schedule.get(1).getId(), LocalDate.now(clock));
         loans.collectDueEmis();
         loans.collectDueEmis();
         v = loans.loanOf(a.customerId(), loan.getId());

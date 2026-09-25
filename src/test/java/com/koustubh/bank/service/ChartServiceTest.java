@@ -14,6 +14,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -29,12 +30,13 @@ class ChartServiceTest {
     @Autowired TestAccounts accounts;
     @Autowired ChartService charts;
     @Autowired InvestmentService investments;
+    @Autowired Clock clock;
 
     @Test
     void fundChartIsOldestFirstAndEndsAtTodaysNav() {
         List<Point> year = charts.fund(122639, Range.Y1);
         assertThat(year.size()).isBetween(100, 200);
-        assertThat(year.get(0).date()).isEqualTo(LocalDate.now().minusYears(1).toString());
+        assertThat(year.get(0).date()).isEqualTo(LocalDate.now(clock).minusYears(1).toString());
         assertThat(year.get(year.size() - 1).value()).isEqualByComparingTo("100.00");
         assertThat(year.get(0).value()).isLessThan(year.get(year.size() - 1).value());
         assertThat(charts.fund(122639, Range.M1).size()).isLessThan(year.size());

@@ -12,6 +12,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.LocalDate;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -27,6 +28,7 @@ class InvestmentServiceTest {
     @Autowired TestAccounts accounts;
     @Autowired InvestmentService investments;
     @Autowired CustomerService customers;
+    @Autowired Clock clock;
 
     private static BigDecimal rs(long v) {
         return BigDecimal.valueOf(v);
@@ -60,7 +62,7 @@ class InvestmentServiceTest {
         Investment sip = investments.importExistingSip(a.customerId(), PPFAS, rs(1_000), 12);
         assertThat(sip.getInstalmentsPaid()).isEqualTo(12);
         assertThat(sip.getInvested()).isEqualByComparingTo("12000");
-        assertThat(sip.getNextDebitDate()).isEqualTo(LocalDate.now().plusMonths(1));
+        assertThat(sip.getNextDebitDate()).isEqualTo(LocalDate.now(clock).plusMonths(1));
 
         InvestmentService.Holding h = investments.holding(a.customerId(), sip.getId());
         assertThat(h.priced()).isTrue();
@@ -76,7 +78,7 @@ class InvestmentServiceTest {
         // Pretend two months have passed: move the next debit date back
         Investment stored = sip;
         stored.skipInstalment();
-        org.springframework.test.util.ReflectionTestUtils.setField(stored, "nextDebitDate", LocalDate.now().minusMonths(1));
+        org.springframework.test.util.ReflectionTestUtils.setField(stored, "nextDebitDate", LocalDate.now(clock).minusMonths(1));
         investments.saveForTest(stored);
 
         int paid = investments.processDueSips();
@@ -84,7 +86,7 @@ class InvestmentServiceTest {
         assertThat(accounts.balanceOf(a)).isEqualByComparingTo("500"); // one instalment paid, next one missed (low balance)
         Investment after = investments.holding(a.customerId(), sip.getId()).investment();
         assertThat(after.getInstalmentsPaid()).isEqualTo(2);
-        assertThat(after.getNextDebitDate()).isAfter(LocalDate.now());
+        assertThat(after.getNextDebitDate()).isAfter(LocalDate.now(clock));
     }
 
     @Test
@@ -109,9 +111,9 @@ class InvestmentServiceTest {
     void fdAccruesInterestOverTime() {
         OpenedAccount a = accounts.active(50_000);
         Investment fd = investments.pay(a.customerId(), new Order(InvestmentType.FIXED_DEPOSIT, null, rs(50_000), FdTenure.M12), PaymentMethod.UPI);
-        assertThat(fd.getMaturityDate()).isEqualTo(LocalDate.now().plusMonths(12));
-        assertThat(InvestmentService.accruedValue(fd, LocalDate.now().plusMonths(6))).isBetween(rs(51_600), rs(51_800));
-        assertThat(InvestmentService.accruedValue(fd, LocalDate.now().plusYears(5))).isEqualByComparingTo(
+        assertThat(fd.getMaturityDate()).isEqualTo(LocalDate.now(clock).plusMonths(12));
+        assertThat(InvestmentService.accruedValue(fd, LocalDate.now(clock).plusMonths(6))).isBetween(rs(51_600), rs(51_800));
+        assertThat(InvestmentService.accruedValue(fd, LocalDate.now(clock).plusYears(5))).isEqualByComparingTo(
                 InvestmentService.accruedValue(fd, fd.getMaturityDate()));
     }
 }

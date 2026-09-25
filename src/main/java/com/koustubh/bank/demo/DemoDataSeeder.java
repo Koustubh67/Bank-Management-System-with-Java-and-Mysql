@@ -246,9 +246,9 @@ public class DemoDataSeeder implements ApplicationRunner {
         }
         if (insurance.policiesOf(RAHUL.customerId()).stream().noneMatch(p -> p.getInsurer() != null)) {
             insurance.importExistingPolicy(RAHUL.customerId(), InsurancePlan.HEALTH, "Demo General Insurance Co.",
-                    "DGI/HL/2026/004521", 1_000_000L, rs(11_800), "Self, spouse", LocalDate.now().minusMonths(3));
+                    "DGI/HL/2026/004521", 1_000_000L, rs(11_800), "Self, spouse", LocalDate.now(clock).minusMonths(3));
             insurance.importExistingPolicy(PRIYA.customerId(), InsurancePlan.MOTOR, "Demo General Insurance Co.",
-                    "DGI/MT/2026/009914", 600_000L, rs(9_450), "MP09 CD 4521, Maruti Baleno", LocalDate.now().minusMonths(1));
+                    "DGI/MT/2026/009914", 600_000L, rs(9_450), "MP09 CD 4521, Maruti Baleno", LocalDate.now(clock).minusMonths(1));
             insurance.request(RAHUL.customerId(), new InsuranceService.Request(InsurancePlan.TERM_LIFE, 10_000_000L,
                     RAHUL.name(), RAHUL.mobile(), RAHUL.city(), 28, "Neha Sharma, wife", InsuranceService.CALL_TIMES.get(2)));
         }

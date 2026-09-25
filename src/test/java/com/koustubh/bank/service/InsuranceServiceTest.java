@@ -13,6 +13,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.LocalDate;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -26,6 +27,7 @@ class InsuranceServiceTest {
     @Autowired InsuranceService insurance;
     @Autowired NotificationService notifications;
     @Autowired CustomerService customers;
+    @Autowired Clock clock;
 
     private InsuranceService.Request health(String mobile) {
         return new InsuranceService.Request(InsurancePlan.HEALTH, 1_000_000L, "Test Customer", mobile, "Bhopal", 30,
@@ -53,7 +55,7 @@ class InsuranceServiceTest {
 
         insurance.markContacted(r.getId(), "neha.officer", "Shared 3 quotes");
         InsurancePolicy p = insurance.issue(r.getId(), "neha.officer", new InsuranceService.Issue(
-                "Demo General Insurance", "DGI/HL/0001", 1_000_000L, new BigDecimal("12500"), LocalDate.now()));
+                "Demo General Insurance", "DGI/HL/0001", 1_000_000L, new BigDecimal("12500"), LocalDate.now(clock)));
 
         assertThat(accounts.balanceOf(a)).isEqualByComparingTo("7500");
         assertThat(insurance.requestsOf(a.customerId()).get(0).getStatus()).isEqualTo(InsuranceRequestStatus.POLICY_ISSUED);

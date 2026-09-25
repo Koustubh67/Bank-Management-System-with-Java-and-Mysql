@@ -10,6 +10,7 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 
 /** Creates the first bank-staff login on startup if it does not exist yet. */
@@ -21,11 +22,14 @@ public class DataSeeder implements ApplicationRunner {
     private final AdminUserRepository adminUsers;
     private final PasswordEncoder passwordEncoder;
     private final BankProperties properties;
+    private final Clock clock;
 
-    public DataSeeder(AdminUserRepository adminUsers, PasswordEncoder passwordEncoder, BankProperties properties) {
+    public DataSeeder(AdminUserRepository adminUsers, PasswordEncoder passwordEncoder, BankProperties properties,
+                      Clock clock) {
         this.adminUsers = adminUsers;
         this.passwordEncoder = passwordEncoder;
         this.properties = properties;
+        this.clock = clock;
     }
 
     @Override
@@ -33,7 +37,7 @@ public class DataSeeder implements ApplicationRunner {
         String username = properties.admin().username();
         if (adminUsers.findByUsername(username).isEmpty()) {
             adminUsers.save(new AdminUser(username, "Branch Manager", StaffRole.ADMIN,
-                    passwordEncoder.encode(properties.admin().password()), false, LocalDateTime.now()));
+                    passwordEncoder.encode(properties.admin().password()), false, LocalDateTime.now(clock)));
             log.info("Created admin user '{}'", username);
         }
     }

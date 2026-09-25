@@ -15,6 +15,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.concurrent.*;
@@ -34,6 +35,7 @@ class LendingRateServiceTest {
     @Autowired CustomerService customers;
     @Autowired NotificationService notifications;
     @Autowired PlatformTransactionManager txManager;
+    @Autowired Clock clock;
 
     private BigDecimal originalRepo;
 
@@ -81,7 +83,7 @@ class LendingRateServiceTest {
         List<LoanInstalment> before = loans.loanOf(a.customerId(), floating.getId()).schedule();
         new TransactionTemplate(txManager).executeWithoutResult(s -> {
             LoanInstalment third = instalments.findById(before.get(2).getId()).orElseThrow();
-            ReflectionTestUtils.setField(third, "dueDate", LocalDate.now().minusDays(1));
+            ReflectionTestUtils.setField(third, "dueDate", LocalDate.now(clock).minusDays(1));
         });
         List<LoanInstalment> fixedBefore = loans.loanOf(a.customerId(), fixed.getId()).schedule();
         BigDecimal oldRate = floating.getRatePercent();
@@ -112,7 +114,7 @@ class LendingRateServiceTest {
         // Still 60 EMIs on the same dates, repaying exactly the principal and ending at zero
         assertThat(after).hasSize(60);
         for (int n = 0; n < 60; n++) {
-            assertThat(after.get(n).getDueDate()).isEqualTo(n == 2 ? LocalDate.now().minusDays(1) : before.get(n).getDueDate());
+            assertThat(after.get(n).getDueDate()).isEqualTo(n == 2 ? LocalDate.now(clock).minusDays(1) : before.get(n).getDueDate());
         }
         assertThat(after.stream().map(LoanInstalment::getPrincipalPart).reduce(BigDecimal.ZERO, BigDecimal::add))
                 .isEqualByComparingTo("500000");

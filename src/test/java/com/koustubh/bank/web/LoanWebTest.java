@@ -12,6 +12,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.regex.Matcher;
@@ -33,6 +34,7 @@ class LoanWebTest {
 
     @Autowired MockMvc mvc;
     @Autowired TestAccounts accounts;
+    @Autowired Clock clock;
 
     private MockHttpSession customer(OpenedAccount a) throws Exception {
         MockHttpSession s = new MockHttpSession();
@@ -100,8 +102,8 @@ class LoanWebTest {
         assertThat(m.find()).isTrue();
         String loanId = m.group(1);
 
-        String firstEmi = EmiCalculator.firstEmiDate(LocalDate.now()).format(DateTimeFormatter.ofPattern("dd MMM yyyy"));
-        String endDate = EmiCalculator.firstEmiDate(LocalDate.now()).plusMonths(47).format(DateTimeFormatter.ofPattern("dd MMM yyyy"));
+        String firstEmi = EmiCalculator.firstEmiDate(LocalDate.now(clock)).format(DateTimeFormatter.ofPattern("dd MMM yyyy"));
+        String endDate = EmiCalculator.firstEmiDate(LocalDate.now(clock)).plusMonths(47).format(DateTimeFormatter.ofPattern("dd MMM yyyy"));
         MockHttpSession staff = staff();
         mvc.perform(get("/admin/loans").session(staff)).andExpect(content().string(containsString("Maruti Brezza")));
         // Before deciding, the officer sees when the EMIs would start and when the loan would end

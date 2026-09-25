@@ -36,3 +36,6 @@ build/
 *.class
 /workspace.xml
 /.claude/
+
+### macOS ###
+.DS_Store

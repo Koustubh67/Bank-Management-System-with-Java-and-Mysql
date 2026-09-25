@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.security.Principal;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.Period;
 import java.util.List;
@@ -23,10 +24,12 @@ public class InsuranceController {
 
     private final InsuranceService insurance;
     private final CustomerService customers;
+    private final Clock clock;
 
-    public InsuranceController(InsuranceService insurance, CustomerService customers) {
+    public InsuranceController(InsuranceService insurance, CustomerService customers, Clock clock) {
         this.insurance = insurance;
         this.customers = customers;
+        this.clock = clock;
     }
 
     @GetMapping
@@ -35,7 +38,7 @@ public class InsuranceController {
         model.addAttribute("plans", InsurancePlan.values());
         model.addAttribute("requests", insurance.requestsOf(principal.getName()));
         model.addAttribute("policies", insurance.policiesOf(principal.getName()));
-        model.addAttribute("today", LocalDate.now());
+        model.addAttribute("today", LocalDate.now(clock));
         return "customer/insurance";
     }
 
@@ -48,7 +51,7 @@ public class InsuranceController {
         model.addAttribute("times", InsuranceService.CALL_TIMES);
         if (!model.containsAttribute("form")) {
             model.addAttribute("form", new InsuranceService.Request(plan, plan.getCovers().get(1 % plan.getCovers().size()),
-                    c.getFullName(), c.getMobile(), c.getCity(), Period.between(c.getDateOfBirth(), LocalDate.now()).getYears(),
+                    c.getFullName(), c.getMobile(), c.getCity(), Period.between(c.getDateOfBirth(), LocalDate.now(clock)).getYears(),
                     "", InsuranceService.CALL_TIMES.get(0)));
         }
         return "customer/insurance-apply";
@@ -89,7 +92,7 @@ public class InsuranceController {
     public String policy(@PathVariable Long id, Principal principal, Model model) {
         model.addAttribute("o", customers.overview(principal.getName()));
         model.addAttribute("p", insurance.policyOf(principal.getName(), id));
-        model.addAttribute("today", LocalDate.now());
+        model.addAttribute("today", LocalDate.now(clock));
         return "customer/policy";
     }
 }
