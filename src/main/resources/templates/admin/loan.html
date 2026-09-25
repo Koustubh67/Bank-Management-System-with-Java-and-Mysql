@@ -68,7 +68,7 @@
     </div>
 
     <!-- Active / closed: schedule -->
-    <th:block th:if="${st == 'ACTIVE' or st == 'CLOSED'}">
+    <th:block th:if="${st == 'ACTIVE' or st == 'CLOSED'}" th:with="receipts=${v.receipts}">
         <section class="card">
             <h2>Loan terms</h2>
             <dl class="details">
@@ -105,11 +105,12 @@
             <table class="table">
                 <thead><tr><th>#</th><th>Due date</th><th class="num">EMI</th><th class="num">Principal</th><th class="num">Interest</th><th class="num">Balance after</th><th>Status</th></tr></thead>
                 <tbody>
-                <tr th:each="i : ${v.schedule}">
+                <tr th:each="i : ${v.schedule}" th:with="rc=${receipts[i.id]}">
                     <td th:text="${i.number}"></td><td th:text="${#temporals.format(i.dueDate, 'dd MMM yyyy')}"></td>
                     <td class="num" th:text="${@money.format(i.emi)}"></td><td class="num" th:text="${@money.format(i.principalPart)}"></td>
                     <td class="num" th:text="${@money.format(i.interestPart)}"></td><td class="num" th:text="${@money.format(i.balanceAfter)}"></td>
-                    <td><span class="badge" th:classappend="${i.status.name() == 'PAID'} ? 'active' : (${i.status.name() == 'OVERDUE'} ? 'declined' : 'pending')" th:text="${i.status}"></span></td>
+                    <td><span class="badge" th:classappend="${i.status.name() == 'PAID'} ? 'active' : (${i.status.name() == 'OVERDUE'} ? 'declined' : 'pending')" th:text="${i.status}"></span>
+                        <a th:if="${rc != null}" th:href="@{/admin/loans/payments/{ref}/receipt(ref=${rc.reference})}" th:text="${rc.method.name() == 'CARD' ? 'Card' : rc.method.label}" class="small"></a></td>
                 </tr>
                 </tbody>
             </table>

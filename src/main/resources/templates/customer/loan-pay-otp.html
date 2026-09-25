@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/customer :: page(~{::title}, ~{::main})}">
+<head><title>Confirm card payment · JavaBank</title></head>
+<body>
+<main class="container cust-main narrow-main" th:with="l=${p.loan}, c=${o.customer}">
+    <div class="sms-toast" th:if="${smsOtp}" role="status">
+        <span>💬</span>
+        <div><b>SMS · JavaBank</b>
+            <p th:text="${smsOtp + ' is your JavaBank OTP to pay Rs ' + p.amount + ' (EMI ' + p.instalmentNumber + ' of ' + l.reference + ') with your ' + p.cardNetwork + ' card ending ' + p.cardLast4 + '. Valid for 5 minutes. Never share it.'}"></p>
+            <small>Demo: this SMS is shown here because no real SMS is sent.</small></div>
+    </div>
+
+    <section class="panel pay-session" data-pay-session>
+        <div class="secure-head">
+            <span class="lock">🔒</span>
+            <div><b>Secure card authentication</b><small>JavaBank payment gateway</small></div>
+            <div class="timer" th:attr="data-countdown=${secondsLeft}"><i></i><span>5:00</span></div>
+        </div>
+        <dl class="details">
+            <dt>Paying</dt><dd><b th:text="${@money.format(p.amount)}"></b> to JavaBank Loans</dd>
+            <dt>For</dt><dd th:text="${'EMI ' + p.instalmentNumber + ' of ' + l.tenureMonths + ' · ' + l.type.label + ' ' + l.reference}"></dd>
+            <dt>Card</dt><dd th:text="${p.cardNetwork + ' •••• ' + p.cardLast4 + ' · ' + p.cardHolder}"></dd>
+        </dl>
+
+        <div class="alert error" th:if="${payError}" th:text="${payError}"></div>
+        <form class="form otp-form" th:action="@{/customer/loans/payments/{ref}/otp(ref=${p.reference})}" method="post"
+              data-processing="Confirming payment…">
+            <label class="field"><span th:text="${'Enter the 6-digit OTP sent to ' + (c.maskedMobile != null ? c.maskedMobile : 'your mobile')}">OTP</span>
+                <input type="text" name="otp" inputmode="numeric" pattern="\d{6}" maxlength="6" required autofocus
+                       autocomplete="one-time-code" placeholder="••••••"></label>
+            <p class="muted small" th:text="${(3 - p.otpAttempts) + ' of 3 tries left'}"></p>
+            <button type="submit" class="btn dark lg full" th:text="${'Confirm and pay ' + @money.format(p.amount)}">Pay</button>
+        </form>
+        <p class="expired-note">⏱ The 5 minutes are over. Refreshing…</p>
+        <form th:action="@{/customer/loans/payments/{ref}/cancel(ref=${p.reference})}" method="post" class="center-row">
+            <button type="submit" class="link-btn dark-link">Cancel payment</button>
+        </form>
+    </section>
+    <script th:src="@{/js/pay.js}"></script>
+</main>
+</body>
+</html>

@@ -35,6 +35,7 @@ class LoanServiceTest {
     @Autowired NotificationService notifications;
     @Autowired PlatformTransactionManager txManager;
     @Autowired LendingRateService rates;
+    @Autowired EmiPaymentService payments;
     @Autowired Clock clock;
 
     private static BigDecimal rs(long v) {
@@ -194,7 +195,7 @@ class LoanServiceTest {
         Loan loan = loans.approve(loans.apply(a.customerId(), new LoanService.Application(LoanType.GOLD, RateType.FIXED, rs(60_000), 6,
                 "Business stock", "Business owner", rs(40_000))).getId(), "neha", rs(60_000), new BigDecimal("9"), 6);
         for (int n = 1; n <= 6; n++) {
-            assertThat(loans.payNext(a.customerId(), loan.getId()).getNumber()).isEqualTo(n);
+            assertThat(payments.payFromAccount(a.customerId(), loan.getId()).getInstalmentNumber()).isEqualTo(n);
         }
         LoanService.LoanView v = loans.loanOf(a.customerId(), loan.getId());
         assertThat(v.loan().getStatus()).isEqualTo(LoanStatus.CLOSED);
@@ -203,19 +204,19 @@ class LoanServiceTest {
         assertThat(accounts.balanceOf(a)).isEqualByComparingTo(rs(5_000).subtract(v.totalInterest()));
         assertThat(notifications.recentFor(customers.overview(a.customerId()).customer()).get(0).getSubject())
                 .isEqualTo("Loan closed");
-        assertThatThrownBy(() -> loans.payNext(a.customerId(), loan.getId())).hasMessageContaining("no EMIs left");
+        assertThatThrownBy(() -> payments.payFromAccount(a.customerId(), loan.getId())).hasMessageContaining("no EMIs left");
     }
 
     @Test
-    void payNextNeedsEnoughBalanceAndOnlyTheOwnerCanPay() {
+    void payingFromTheAccountNeedsEnoughBalanceAndOnlyTheOwnerCanPay() {
         OpenedAccount a = accounts.active(0);
         OpenedAccount b = accounts.active(0);
         Loan loan = loans.approve(loans.apply(a.customerId(), car(100_000, 12, 50_000)).getId(), "neha",
                 rs(100_000), new BigDecimal("10"), 12);
-        assertThatThrownBy(() -> loans.payNext(b.customerId(), loan.getId())).isInstanceOf(NotFoundException.class);
+        assertThatThrownBy(() -> payments.payFromAccount(b.customerId(), loan.getId())).isInstanceOf(NotFoundException.class);
         assertThatThrownBy(() -> loans.loanOf(b.customerId(), loan.getId())).isInstanceOf(NotFoundException.class);
         accounts.spendAllBut(a, rs(10));
-        assertThatThrownBy(() -> loans.payNext(a.customerId(), loan.getId())).isInstanceOf(InsufficientFundsException.class);
+        assertThatThrownBy(() -> payments.payFromAccount(a.customerId(), loan.getId())).isInstanceOf(InsufficientFundsException.class);
         assertThat(loans.loanOf(a.customerId(), loan.getId()).paid()).isZero();
     }
 

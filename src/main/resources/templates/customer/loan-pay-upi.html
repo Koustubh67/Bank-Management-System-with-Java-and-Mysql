@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/customer :: page(~{::title}, ~{::main})}">
+<head><title>Pay by UPI · JavaBank</title></head>
+<body>
+<main class="container cust-main narrow-main" th:with="l=${p.loan}">
+    <section class="panel pay-session upi-session" data-pay-session
+             th:attr="data-poll=@{/customer/loans/payments/{ref}/status(ref=${p.reference})}">
+        <div class="secure-head">
+            <span class="lock">📱</span>
+            <div><b>Scan &amp; pay with any UPI app</b><small>GPay · PhonePe · Paytm · BHIM · JavaPay</small></div>
+            <div class="timer" th:attr="data-countdown=${secondsLeft}"><i></i><span>5:00</span></div>
+        </div>
+
+        <div class="alert error" th:if="${payError}" th:text="${payError}"></div>
+        <div class="upi-grid">
+            <div class="qr-box">
+                <div class="qr" th:utext="${qr}"></div>
+                <p class="qr-amount" th:text="${@money.format(p.amount)}"></p>
+                <p class="muted small" th:text="${'Pay to ' + vpa}"></p>
+            </div>
+            <div>
+                <dl class="details">
+                    <dt>Payee</dt><dd>JavaBank Loans</dd>
+                    <dt>UPI ID</dt><dd class="mono" th:text="${vpa}"></dd>
+                    <dt>Amount</dt><dd><b th:text="${@money.format(p.amount)}"></b></dd>
+                    <dt>For</dt><dd th:text="${'EMI ' + p.instalmentNumber + ' of ' + l.tenureMonths + ' · ' + l.reference}"></dd>
+                    <dt>Reference</dt><dd class="mono" th:text="${p.reference}"></dd>
+                </dl>
+                <ol class="upi-steps">
+                    <li>Open any UPI app and tap <b>Scan &amp; pay</b></li>
+                    <li>Scan this QR code; the amount is filled in</li>
+                    <li>Approve with your UPI PIN</li>
+                </ol>
+                <p class="waiting"><span class="spinner" aria-hidden="true"></span> Waiting for your payment…</p>
+                <p class="expired-note">⏱ This QR code has expired. Refreshing…</p>
+                <form th:action="@{/customer/loans/payments/{ref}/upi-paid(ref=${p.reference})}" method="post" class="demo-pay"
+                      data-processing="Confirming with the bank…">
+                    <button type="submit" class="btn primary lg full">I've paid · show success</button>
+                    <small th:if="${demoEnabled}">Demo: no real UPI network is connected, so this button stands in for your UPI
+                        app confirming the payment. Don't scan with a real UPI app.</small>
+                </form>
+            </div>
+        </div>
+        <form th:action="@{/customer/loans/payments/{ref}/cancel(ref=${p.reference})}" method="post" class="center-row">
+            <button type="submit" class="link-btn dark-link">Cancel payment</button>
+        </form>
+    </section>
+    <script th:src="@{/js/pay.js}"></script>
+</main>
+</body>
+</html>

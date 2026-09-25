@@ -37,6 +37,16 @@ public class NumberGenerator {
         return prefix + randomDigits(10);
     }
 
+    /** 12-digit UPI transaction reference (UTR). */
+    public String newUtr() {
+        return randomDigits(12);
+    }
+
+    /** 6-digit card authorisation code or one-time password. */
+    public String newSixDigits() {
+        return randomDigits(6);
+    }
+
     public String newPin() {
         return randomDigits(4);
     }

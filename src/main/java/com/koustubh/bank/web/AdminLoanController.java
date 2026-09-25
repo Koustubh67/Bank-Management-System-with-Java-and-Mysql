@@ -4,6 +4,7 @@ import com.koustubh.bank.domain.LoanEnquiry;
 import com.koustubh.bank.domain.LoanStatus;
 import com.koustubh.bank.exception.BankException;
 import com.koustubh.bank.service.EmiCalculator;
+import com.koustubh.bank.service.EmiPaymentService;
 import com.koustubh.bank.service.LendingRateService;
 import com.koustubh.bank.service.LoanService;
 import org.springframework.stereotype.Controller;
@@ -26,11 +27,13 @@ public class AdminLoanController {
 
     private final LoanService loans;
     private final LendingRateService rates;
+    private final EmiPaymentService payments;
     private final Clock clock;
 
-    public AdminLoanController(LoanService loans, LendingRateService rates, Clock clock) {
+    public AdminLoanController(LoanService loans, LendingRateService rates, EmiPaymentService payments, Clock clock) {
         this.loans = loans;
         this.rates = rates;
+        this.payments = payments;
         this.clock = clock;
     }
 
@@ -81,6 +84,14 @@ public class AdminLoanController {
             redirect.addFlashAttribute("error", e.getMessage());
         }
         return "redirect:/admin/loans/" + id;
+    }
+
+    @GetMapping("/payments/{ref}/receipt")
+    public String receipt(@PathVariable String ref, Model model) {
+        EmiPaymentService.Receipt r = payments.receiptForStaff(ref);
+        model.addAttribute("r", r);
+        model.addAttribute("backUrl", "/admin/loans/" + r.loan().getId());
+        return "loans/receipt";
     }
 
     /** Branch managers only (see SecurityConfig): record a new repo rate and reprice floating-rate loans. */

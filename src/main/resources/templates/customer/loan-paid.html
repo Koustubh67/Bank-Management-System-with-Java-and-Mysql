@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/customer :: page(~{::title}, ~{::main})}">
+<head><title>EMI paid · JavaBank</title></head>
+<body>
+<main class="container cust-main narrow-main" th:with="p=${r.payment}, l=${r.loan}, i=${r.instalment}, c=${r.customer}">
+    <section class="panel done-card paid-card">
+        <div class="done-tick">✓</div>
+        <h1>Payment successful</h1>
+        <p class="done-amt" th:text="${@money.format(p.amount)}"></p>
+        <p class="muted" th:text="${'EMI ' + i.number + ' of ' + l.tenureMonths + ' · ' + l.type.label + ' ' + l.reference}"></p>
+        <p class="closed-note" th:if="${r.next == null}">🎉 That was your last EMI. Your loan is now closed.</p>
+
+        <dl class="details">
+            <dt>Receipt number</dt><dd class="mono" th:text="${p.reference}"></dd>
+            <dt th:text="${p.transactionLabel}"></dt><dd class="mono" th:text="${p.transactionId}"></dd>
+            <dt>Paid with</dt><dd th:text="${p.paidWith}"></dd>
+            <dt>Paid on</dt><dd th:text="${#temporals.format(p.paidAt, 'dd MMM yyyy, hh:mm:ss a')}"></dd>
+            <dt>Principal · interest</dt><dd th:text="${@money.format(i.principalPart) + ' · ' + @money.format(i.interestPart)}"></dd>
+            <dt>Principal still owed</dt><dd th:text="${@money.format(i.balanceAfter)}"></dd>
+            <th:block th:if="${r.next}">
+                <dt>Next EMI</dt><dd th:text="${@money.format(r.next.emi) + ' on ' + #temporals.format(r.next.dueDate, 'dd MMM yyyy')}"></dd>
+            </th:block>
+        </dl>
+        <p class="sent-note">✉️ Receipt emailed to <b th:text="${c.maskedEmail}"></b><th:block th:if="${c.maskedMobile}"> and
+            SMS sent to <b th:text="${c.maskedMobile}"></b></th:block>.</p>
+        <div class="form-actions center-row">
+            <a class="btn soft" th:href="@{/customer/loans/payments/{ref}/receipt(ref=${p.reference})}">🧾 View &amp; download receipt</a>
+            <a class="btn dark" th:href="@{/customer/loans/{id}(id=${l.id})}">Back to loan</a>
+        </div>
+    </section>
+</main>
+</body>
+</html>

@@ -104,6 +104,11 @@ public class Account {
     public LocalDateTime getReviewedAt() { return reviewedAt; }
     public LocalDateTime getCreatedAt() { return createdAt; }
 
+    /** Short form for payment screens and EMI receipts, e.g. •••• 4821. */
+    public String getShortNumber() {
+        return "•••• " + accountNumber.substring(accountNumber.length() - 4);
+    }
+
     /** Shown on receipts, e.g. XXXXXXXX4821. */
     public String getMaskedNumber() {
         return "XXXXXXXX" + accountNumber.substring(accountNumber.length() - 4);

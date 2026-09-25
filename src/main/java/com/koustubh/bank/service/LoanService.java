@@ -24,7 +24,9 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Loans from application to closure.
@@ -36,7 +38,8 @@ import java.util.UUID;
  *       application can be decided only once. Floating loans keep their spread over the repo rate for life.</li>
  *   <li>Repay: a daily job debits every EMI that has fallen due, oldest first. If the balance is too low the EMI is
  *       marked overdue (the customer is alerted once) and retried the next day. Customers can also pay the next EMI
- *       early. The loan closes itself when the last EMI is paid.</li>
+ *       themselves by card, UPI or from the account (see EmiPaymentService). The loan closes itself when the last EMI
+ *       is paid.</li>
  * </ul>
  */
 @Service
@@ -64,13 +67,19 @@ public class LoanService {
                         boolean affordable) {
     }
 
-    /** A loan with its schedule and rate resets, as the customer and staff see it. */
+    /** A loan with its schedule, rate resets and payments, as the customer and staff see it. */
     public record LoanView(Loan loan, List<LoanInstalment> schedule, LoanInstalment next, int paid, int overdue,
                            BigDecimal totalInterest, BigDecimal interestPaid, Quote requestedQuote, BigDecimal quotedRate,
-                           List<LoanRateChange> rateChanges) {
+                           List<LoanRateChange> rateChanges, List<EmiPayment> payments) {
 
         public int getProgressPercent() {
             return schedule.isEmpty() ? 0 : paid * 100 / schedule.size();
+        }
+
+        /** The successful payment (receipt) of each paid EMI, by instalment id. */
+        public Map<Long, EmiPayment> getReceipts() {
+            return payments.stream().filter(p -> p.getStatus() == EmiPayment.Status.PAID)
+                    .collect(Collectors.toMap(p -> p.getInstalment().getId(), p -> p, (a, b) -> a));
         }
     }
 
@@ -82,13 +91,14 @@ public class LoanService {
     private final NumberGenerator numbers;
     private final NotificationService notifications;
     private final LendingRateService rates;
+    private final EmiPaymentService payments;
     private final Clock clock;
     private final TransactionTemplate tx;
 
     public LoanService(LoanRepository loans, LoanInstalmentRepository instalments, LoanEnquiryRepository enquiries,
                        AccountRepository accounts, TransactionRepository transactions, NumberGenerator numbers,
-                       NotificationService notifications, LendingRateService rates, Clock clock,
-                       PlatformTransactionManager txManager) {
+                       NotificationService notifications, LendingRateService rates, EmiPaymentService payments,
+                       Clock clock, PlatformTransactionManager txManager) {
         this.loans = loans;
         this.instalments = instalments;
         this.enquiries = enquiries;
@@ -97,6 +107,7 @@ public class LoanService {
         this.numbers = numbers;
         this.notifications = notifications;
         this.rates = rates;
+        this.payments = payments;
         this.clock = clock;
         this.tx = new TransactionTemplate(txManager);
     }
@@ -203,7 +214,7 @@ public class LoanService {
             requested = quote(loan.getAmountRequested(), quotedRate, loan.getMonthsRequested(), loan.getMonthlyIncome());
         }
         return new LoanView(loan, schedule, next, paid, overdue, totalInterest, interestPaid, requested, quotedRate,
-                rates.changesOf(loan.getId()));
+                rates.changesOf(loan.getId()), payments.paymentsOf(loan.getId()));
     }
 
     // ---------------------------------------------------------------- staff: decide
@@ -311,44 +322,10 @@ public class LoanService {
                 log.info("EMI {} of {} overdue", i.getNumber(), loan.getReference());
                 break;
             }
-            payInstalment(loan, account, i);
+            payments.autoDebit(loan, i, account);
             paid++;
         }
         return paid;
-    }
-
-    /** Customer pays the next unpaid EMI now (early, or to clear an overdue one). */
-    @Transactional
-    public LoanInstalment payNext(String customerId, Long loanId) {
-        Loan loan = loans.findByIdForUpdate(loanId)
-                .filter(l -> l.getAccount().getCustomer().getCustomerId().equals(customerId))
-                .orElseThrow(() -> new NotFoundException("Loan not found"));
-        if (loan.getStatus() != LoanStatus.ACTIVE) {
-            throw new InvalidRequestException("This loan has no EMIs left to pay");
-        }
-        LoanInstalment next = instalments.findFirstByLoanIdAndStatusInOrderByNumberAsc(loanId,
-                List.of(InstalmentStatus.DUE, InstalmentStatus.OVERDUE)).orElseThrow();
-        Account account = accounts.findByIdForUpdate(loan.getAccount().getId()).orElseThrow();
-        payInstalment(loan, account, next);
-        return next;
-    }
-
-    private void payInstalment(Loan loan, Account account, LoanInstalment i) {
-        LocalDateTime now = LocalDateTime.now(clock);
-        account.debit(i.getEmi());
-        transactions.save(new Transaction(account, TransactionType.LOAN_EMI, i.getEmi(), UUID.randomUUID().toString(), null,
-                "EMI " + i.getNumber() + "/" + loan.getTenureMonths() + "/" + loan.getReference() + "/" + loan.getType().getLabel(), now));
-        i.markPaid(now);
-        loan.emiPaid(i.getBalanceAfter());
-        if (loan.getStatus() == LoanStatus.CLOSED) {
-            notifications.notify(account.getCustomer(), "Loan closed",
-                    "Congratulations! You've paid every EMI of " + loan.getReference() + ". Your "
-                            + loan.getType().getLabel().toLowerCase() + " is now closed.");
-        } else {
-            notifications.notify(account.getCustomer(), "EMI paid",
-                    "EMI " + i.getNumber() + "/" + loan.getTenureMonths() + " of Rs " + i.getEmi().toPlainString() + " for "
-                            + loan.getReference() + " paid. Principal still owed: Rs " + i.getBalanceAfter().toPlainString() + ".");
-        }
     }
 
     // ---------------------------------------------------------------- public enquiries
@@ -425,6 +402,7 @@ public class LoanService {
             if (!r.dueDate().isAfter(today)) {   // due on or before today: already paid, as the daily job would have
                 i.markPaid(r.dueDate().atTime(9, 40));
                 loan.emiPaid(r.balance());
+                payments.recordPaid(loan, i, r.dueDate().atTime(9, 40));
             }
         }
         return loan;

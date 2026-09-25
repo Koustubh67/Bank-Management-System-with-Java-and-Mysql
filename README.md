@@ -88,8 +88,23 @@ transfers, row locking under concurrent access, an append-only transaction ledge
 - **Both sides see the dates:** EMI amount, **EMI date** (same day every month), **first EMI** (one month after
   disbursal) and **loan end date**, plus progress, interest paid and each instalment's principal/interest split
 - **EMIs are auto-debited** every morning at 09:40 (staff can run it on demand). If the balance is short the EMI turns
-  **overdue**, the customer gets one alert, and it is retried daily. Customers can also **pay the next EMI early**.
-  Paying the last EMI **closes the loan**. Disbursal and every EMI appear in the passbook
+  **overdue**, the customer gets one alert, and it is retried daily. Paying the last EMI **closes the loan**
+- **Pay an EMI yourself, three ways:**
+  - **UPI:** a real `upi://pay` QR code (payee, amount, reference) with a **5-minute countdown**; the page checks every
+    3 seconds whether the money has arrived. The demo has no UPI network, so an "I've paid" button stands in for the
+    UPI app's confirmation
+  - **Debit / credit card:** card number checked with the **Luhn algorithm**, network detected (Visa, Mastercard,
+    RuPay, Amex), expiry and CVV validated, every problem shown at once; then an **OTP by SMS** (BCrypt-hashed,
+    3 tries) that must be entered **within 5 minutes**. Only the network, last 4 digits and name are stored, never
+    the full number or the CVV. Test cards: `4111 1111 1111 1111` or `5555 5555 5555 4444`
+  - **Savings account:** paid at once through the ledger
+- **Success screen, receipt and alert:** receipt number, UTR / authorisation code, principal and interest, principal
+  still owed and the next EMI; a printable **EMI payment receipt** (bill with the amount in words, "Save as PDF"); an
+  **email and SMS** with the receipt. Every paid EMI shows **PAID with its receipt** in the schedule, and a payments
+  history lists every attempt (paid, expired, failed, cancelled). Staff can open any receipt
+- **Never paid twice:** paying locks the loan, then checks the EMI is still unpaid and still the same amount (a repo
+  rate reset can change it); a double click, a second tab or the auto-debit can't take the money again, and a unique
+  database constraint allows only one successful payment per EMI. Expired or cancelled payments take nothing
 - Reducing-balance EMI maths in `BigDecimal`: interest is rounded to the paisa each month and the last EMI absorbs
   the rounding, so the schedule ends at exactly ₹0
 
@@ -178,6 +193,10 @@ transfers, row locking under concurrent access, an append-only transaction ledge
 |---|---|
 | ![EMI calculator](docs/screenshots/tools-emi.png) | ![Rate change](docs/screenshots/loan-rate-change.png) |
 
+| Pay an EMI by UPI: QR code with a 5-minute timer | EMI payment receipt |
+|---|---|
+| ![UPI payment](docs/screenshots/emi-pay-upi.png) | ![Receipt](docs/screenshots/emi-receipt.png) |
+
 | Loans (no login) | Customer's loan: EMI dates and schedule |
 |---|---|
 | ![Loans page](docs/screenshots/loans.png) | ![Customer loan](docs/screenshots/customer-loan.png) |
@@ -254,6 +273,8 @@ src/main/java/com/koustubh/bank
 | Unsafe file uploads | KYC files are accepted only if their first bytes are a real PDF, PNG or JPEG signature, file names are cleaned, and staff downloads are sent with `X-Content-Type-Options: nosniff` |
 | EMI schedule not adding up to the loan | Reducing-balance formula in `BigDecimal`; interest rounded to the paisa each month and the last EMI absorbs the rounding, so the balance ends at exactly ₹0 (tested for tenures up to 30 years) |
 | A loan approved twice, or disbursed without a schedule | The loan row is locked (`FOR UPDATE`) and must still be `APPLIED`; disbursal credit, ledger entry and all instalments are saved in one transaction. A test has two officers approve at the same moment |
+| An EMI paid twice (double click, two tabs, auto-debit during a UPI payment) | Every payment locks the loan and re-reads the payment, then checks the EMI is still unpaid at the same amount; a unique constraint on the paid instalment backs it up in the database. Tests confirm the same QR code from two threads at once and pay an EMI while the auto-debit runs |
+| Storing card data | Only network, last 4 digits and name are kept; the CVV is never stored or sent back to the page; the OTP is BCrypt-hashed and expires with the payment after 5 minutes |
 | A loan approved at the same moment as a repo rate change, priced off the old rate | Approvals and repo rate changes both lock the single repo rate row first, then loans in id order, then accounts, so they run one after the other and can't deadlock with EMI collection. A test runs both at the same moment and checks rate = current repo + spread |
 | Repricing a floating loan without breaking its history | Only EMIs that are unpaid and due after today are recalculated, on the balance after the last earlier EMI; paid and overdue EMIs keep their amounts, the end date stays, and each reset is stored in `loan_rate_change` |
 | One failing loan stopping the nightly EMI run | Each loan is collected in its own transaction (`TransactionTemplate`), oldest EMI first; a short balance marks it overdue with a single alert and is retried next day |
@@ -327,7 +348,9 @@ notes like "Dinner" and "Movie tickets"), so mini statements and UPI history are
    fixed and floating and set a repo rate change. As Rahul open **Loans** to see his car loan's EMI date, end date and
    schedule, then **apply** for a personal loan (₹2,00,000, 24 months, income ₹85,000) and pick **Floating**. As
    staff open **Loans** → **Review & decide** → approve: the money lands in Rahul's account and both sides show the
-   first EMI and the loan end date. Back as Rahul, **Pay this EMI now**.
+   first EMI and the loan end date. Back as Rahul, **Pay this EMI now**: try **UPI** (QR code and 5-minute timer,
+   then "I've paid"), or **card** `4111 1111 1111 1111` with any future expiry and CVV (the OTP appears as an SMS on
+   screen). Open the receipt and **Save as PDF**; the email alert is on the dashboard.
 8. **Repo rate change:** as `admin`, on **Loans** enter a new repo rate (e.g. `5.50`) and a note → **Change & reprice
    loans**. Rahul's floating loan moves up by 0.25%, his EMIs from the next due date change, and his loan page shows
    the rate change. Set it back to `5.25` afterwards.
@@ -357,7 +380,7 @@ Tests check that every login in this table works (`DemoDataSeederTest`), so the 
 ./mvnw test
 ```
 
-154 tests run against an in-memory H2 database with the real Flyway schema:
+165 tests run against an in-memory H2 database with the real Flyway schema:
 - **Domain unit tests:** balance rules, account states
 - **Service tests:** daily limit, insufficient funds, transfer atomicity, concurrent withdrawals, transfer deadlock
   avoidance, PIN lockout and unblock, PIN change
@@ -385,6 +408,12 @@ Tests check that every login in this table works (`DemoDataSeederTest`), so the 
   overdue ones untouched, same dates, principal repaid exactly, ends at ₹0, customer alerted) and leaves fixed loans
   alone; all repo-rate errors at once; **an approval and a repo change at the same moment** still give
   rate = current repo + spread; only a branch manager can change the repo rate; the Tools page is public
+- **EMI payment tests:** every card error at once, Luhn and card networks, card number and CVV never stored, OTP sent
+  by SMS and BCrypt-hashed, 3 wrong OTPs stop the payment, the right OTP pays without touching the savings account,
+  a UPI QR code refused after 5 minutes, unfinished payments expire on their own, a new payment cancels the pending one,
+  the auto-debit paying an EMI while its QR code is open, **two tabs confirming the same QR code at once pay once**,
+  receipts private to their owner; web flow: choose method → card errors kept (except CVV) → OTP page → success →
+  receipt, and UPI QR → status polling → success; amount in words in Indian numbering
 - **Staff tests:** temporary password → forced change, duplicate usernames, officers blocked from staff management,
   disabled logins, admins can't lock themselves out
 - **Security tests:** no-store cache headers, Clear-Site-Data on logout, `/login` redirect while signed in

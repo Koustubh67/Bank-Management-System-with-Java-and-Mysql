@@ -1,7 +1,6 @@
 package com.koustubh.bank.web;
 
 import com.koustubh.bank.domain.Loan;
-import com.koustubh.bank.domain.LoanInstalment;
 import com.koustubh.bank.domain.LoanType;
 import com.koustubh.bank.domain.RateType;
 import com.koustubh.bank.exception.BankException;
@@ -15,15 +14,12 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.math.BigDecimal;
 import java.security.Principal;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 
-/** Loans inside net banking: apply, track the decision, see the EMI schedule and pay EMIs. */
+/** Loans inside net banking: apply, track the decision and see the EMI schedule (paying is in LoanPaymentController). */
 @Controller
 @RequestMapping("/customer/loans")
 public class CustomerLoanController {
-
-    private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("dd MMM yyyy");
 
     private final LoanService loans;
     private final CustomerService customers;
@@ -96,17 +92,5 @@ public class CustomerLoanController {
         model.addAttribute("o", customers.overview(principal.getName()));
         model.addAttribute("v", loans.loanOf(principal.getName(), id));
         return "customer/loan";
-    }
-
-    @PostMapping("/{id}/pay")
-    public String payNext(@PathVariable Long id, Principal principal, RedirectAttributes redirect) {
-        try {
-            LoanInstalment paid = loans.payNext(principal.getName(), id);
-            redirect.addFlashAttribute("message", "EMI " + paid.getNumber() + " (due " + paid.getDueDate().format(DATE)
-                    + ") paid. Principal still owed: Rs " + paid.getBalanceAfter().toPlainString());
-        } catch (BankException e) {
-            redirect.addFlashAttribute("error", e.getMessage());
-        }
-        return "redirect:/customer/loans/" + id;
     }
 }

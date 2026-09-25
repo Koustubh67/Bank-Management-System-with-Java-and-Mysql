@@ -31,6 +31,7 @@ class LendingRateServiceTest {
     @Autowired TestAccounts accounts;
     @Autowired LoanService loans;
     @Autowired LendingRateService rates;
+    @Autowired EmiPaymentService payments;
     @Autowired LoanInstalmentRepository instalments;
     @Autowired CustomerService customers;
     @Autowired NotificationService notifications;
@@ -78,8 +79,8 @@ class LendingRateServiceTest {
         Loan floating = approvedLoan(a, LoanType.CAR, RateType.FLOATING, 500_000, 60);
         Loan fixed = approvedLoan(a, LoanType.PERSONAL, RateType.FIXED, 200_000, 24);
         // Two EMIs paid early, and EMI 3 overdue (due yesterday, not paid)
-        loans.payNext(a.customerId(), floating.getId());
-        loans.payNext(a.customerId(), floating.getId());
+        payments.payFromAccount(a.customerId(), floating.getId());
+        payments.payFromAccount(a.customerId(), floating.getId());
         List<LoanInstalment> before = loans.loanOf(a.customerId(), floating.getId()).schedule();
         new TransactionTemplate(txManager).executeWithoutResult(s -> {
             LoanInstalment third = instalments.findById(before.get(2).getId()).orElseThrow();

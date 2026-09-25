@@ -126,8 +126,10 @@ class LoanWebTest {
                 .andExpect(content().string(containsString(endDate)));
         mvc.perform(get("/customer").session(session)).andExpect(content().string(containsString("My loans")));
 
-        mvc.perform(post("/customer/loans/" + loanId + "/pay").session(session).with(csrf()))
-                .andExpect(flash().attribute("message", containsString("EMI 1")));
+        mvc.perform(get("/customer/loans/" + loanId + "/pay").session(session)).andExpect(content().string(containsString("Pay EMI 1 of 48")));
+        String paid = mvc.perform(post("/customer/loans/" + loanId + "/pay/account").session(session).with(csrf()))
+                .andReturn().getResponse().getRedirectedUrl();
+        mvc.perform(get(paid).session(session)).andExpect(content().string(containsString("Payment successful")));
         // Decided loans can't be approved again from the page
         mvc.perform(post("/admin/loans/" + loanId + "/approve").session(staff).with(csrf())
                         .param("principal", "450000").param("rate", "8.75").param("months", "48"))

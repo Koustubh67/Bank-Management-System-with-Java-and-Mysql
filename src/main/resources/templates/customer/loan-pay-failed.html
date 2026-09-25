@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/customer :: page(~{::title}, ~{::main})}">
+<head><title>Payment not completed · JavaBank</title></head>
+<body>
+<main class="container cust-main narrow-main" th:with="l=${p.loan}, st=${p.status.name()}">
+    <section class="panel done-card">
+        <div class="done-tick fail" th:text="${st == 'EXPIRED'} ? '⏱' : '✕'"></div>
+        <h1 th:text="${st == 'EXPIRED'} ? 'Time to pay is over' : (${st == 'CANCELLED'} ? 'Payment cancelled' : 'Payment failed')"></h1>
+        <p class="done-amt" th:text="${@money.format(p.amount)}"></p>
+        <p class="muted" th:text="${'EMI ' + p.instalmentNumber + ' of ' + l.tenureMonths + ' · ' + l.type.label + ' ' + l.reference}"></p>
+        <div class="alert error" th:if="${payError}" th:text="${payError}"></div>
+        <dl class="details">
+            <dt>Reference</dt><dd class="mono" th:text="${p.reference}"></dd>
+            <dt>Method</dt><dd th:text="${p.method.name() == 'CARD' ? p.cardNetwork + ' •••• ' + p.cardLast4 : p.method.label}"></dd>
+            <dt>Reason</dt><dd th:text="${p.failureReason}"></dd>
+        </dl>
+        <p class="status-banner frozen">No money was taken.<th:block th:unless="${p.instalment.paid}"> Your EMI is still due.</th:block></p>
+        <div class="form-actions center-row">
+            <a class="btn soft" th:href="@{/customer/loans/{id}(id=${l.id})}">Back to loan</a>
+            <a class="btn dark" th:unless="${p.instalment.paid}" th:href="@{/customer/loans/{id}/pay(id=${l.id})}">Try again</a>
+        </div>
+    </section>
+</main>
+</body>
+</html>

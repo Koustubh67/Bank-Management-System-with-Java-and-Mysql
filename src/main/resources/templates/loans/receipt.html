@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<!-- EMI payment receipt, shared by customers and staff. Standalone and print-ready: "Save as PDF" gives the bill. -->
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${'Receipt ' + r.payment.reference + ' · JavaBank'}">Receipt · JavaBank</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+    <link rel="stylesheet" th:href="@{/css/receipt.css}">
+</head>
+<body th:with="p=${r.payment}, l=${r.loan}, i=${r.instalment}, c=${r.customer}">
+<div class="toolbar">
+    <a th:href="${backUrl}">← Back to loan</a>
+    <button type="button" data-print>🖨 Print / Save as PDF</button>
+</div>
+
+<article class="receipt">
+    <header class="r-head">
+        <div class="r-brand"><span class="mark">₹</span><div><b>JavaBank</b><small>Retail Loans · Bhopal</small></div></div>
+        <div class="r-title">
+            <h1>EMI Payment Receipt</h1>
+            <p>Receipt no <b class="mono" th:text="${p.reference}"></b></p>
+            <p th:text="${'Date ' + #temporals.format(p.paidAt, 'dd MMM yyyy, hh:mm a')}"></p>
+        </div>
+    </header>
+
+    <div class="stamp" aria-hidden="true">PAID</div>
+
+    <section class="r-cols">
+        <div>
+            <h2>Received from</h2>
+            <p><b th:text="${c.fullName}"></b></p>
+            <p th:text="${'Customer ID ' + c.customerId}"></p>
+            <p th:text="${c.address + ', ' + c.city + ' ' + c.pincode}"></p>
+            <p th:text="${c.maskedEmail}"></p>
+        </div>
+        <div>
+            <h2>Loan account</h2>
+            <p><b th:text="${l.type.label + ' · ' + l.reference}"></b></p>
+            <p th:text="${l.ratePercent + '% p.a. ' + #strings.toLowerCase(l.rateType.label) + ' · ' + l.tenureMonths + ' months'}"></p>
+            <p th:text="${'Disbursed ' + #temporals.format(l.disbursedOn, 'dd MMM yyyy') + ' · ends ' + #temporals.format(l.endDate, 'dd MMM yyyy')}"></p>
+            <p th:text="${'Repayment account ' + l.account.shortNumber}"></p>
+        </div>
+    </section>
+
+    <table class="r-table">
+        <thead><tr><th>Description</th><th>Due date</th><th class="num">Principal</th><th class="num">Interest</th><th class="num">Amount</th></tr></thead>
+        <tbody>
+        <tr>
+            <td th:text="${'EMI ' + i.number + ' of ' + l.tenureMonths}"></td>
+            <td th:text="${#temporals.format(i.dueDate, 'dd MMM yyyy')}"></td>
+            <td class="num" th:text="${@money.format(i.principalPart)}"></td>
+            <td class="num" th:text="${@money.format(i.interestPart)}"></td>
+            <td class="num" th:text="${@money.format(p.amount)}"></td>
+        </tr>
+        </tbody>
+        <tfoot>
+        <tr><td colspan="4">Total paid</td><td class="num" th:text="${@money.format(p.amount)}"></td></tr>
+        </tfoot>
+    </table>
+    <p class="words" th:text="${@money.words(p.amount)}"></p>
+
+    <section class="r-cols">
+        <div>
+            <h2>Payment</h2>
+            <dl>
+                <dt>Paid with</dt><dd th:text="${p.paidWith}"></dd>
+                <th:block th:if="${p.method.name() == 'CARD'}"><dt>Card holder</dt><dd th:text="${p.cardHolder}"></dd></th:block>
+                <dt th:text="${p.transactionLabel}"></dt><dd class="mono" th:text="${p.transactionId}"></dd>
+                <dt>Status</dt><dd class="ok">Paid ✓</dd>
+            </dl>
+        </div>
+        <div>
+            <h2>After this payment</h2>
+            <dl>
+                <dt>Principal still owed</dt><dd th:text="${@money.format(i.balanceAfter)}"></dd>
+                <dt>EMIs paid</dt><dd th:text="${r.paid + ' of ' + l.tenureMonths}"></dd>
+                <th:block th:if="${r.next}"><dt>Next EMI</dt><dd th:text="${@money.format(r.next.emi) + ' on ' + #temporals.format(r.next.dueDate, 'dd MMM yyyy')}"></dd></th:block>
+                <th:block th:unless="${r.next}"><dt>Loan</dt><dd class="ok">Closed: all EMIs paid</dd></th:block>
+            </dl>
+        </div>
+    </section>
+
+    <footer class="r-foot">
+        <p>This is a computer-generated receipt and does not need a signature. A copy was sent to your registered email
+            and mobile number.</p>
+        <p>JavaBank is a portfolio demo, not a real bank: no real money moved.</p>
+    </footer>
+</article>
+<script>
+    document.querySelectorAll('[data-print]').forEach(function (b) { b.addEventListener('click', function () { window.print(); }); });
+</script>
+</body>
+</html>

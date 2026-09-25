@@ -14,9 +14,9 @@
             <span th:text="${v.overdue > 0} ? 'EMI overdue' : 'Next EMI'"></span>
             <strong th:text="${@money.format(v.next.emi)}"></strong>
             <small th:text="${'due ' + #temporals.format(v.next.dueDate, 'EEE, dd MMM yyyy')}"></small>
-            <form th:action="@{/customer/loans/{id}/pay(id=${l.id})}" method="post">
-                <button type="submit" class="btn light" th:text="${v.overdue > 0} ? 'Pay overdue EMI now' : 'Pay this EMI now'">Pay now</button>
-            </form>
+            <a class="btn light" th:href="@{/customer/loans/{id}/pay(id=${l.id})}"
+               th:text="${v.overdue > 0} ? 'Pay overdue EMI now' : 'Pay this EMI now'">Pay now</a>
+            <small class="pay-ways">UPI · card · savings account</small>
         </div>
     </section>
 
@@ -77,7 +77,31 @@
             </div>
         </section>
 
-        <section class="panel">
+        <section class="panel" th:unless="${v.payments.isEmpty()}">
+            <div class="panel-head"><h2>Payments &amp; receipts</h2><span class="muted small">Receipts are also emailed to you</span></div>
+            <div class="table-wrap plain">
+                <table class="table">
+                    <thead><tr><th>Date</th><th>EMI</th><th class="num">Amount</th><th>Paid with</th><th>Status</th><th>Receipt</th></tr></thead>
+                    <tbody>
+                    <tr th:each="pay : ${v.payments}">
+                        <td th:text="${#temporals.format(pay.paidAt != null ? pay.paidAt : pay.createdAt, 'dd MMM yyyy, hh:mm a')}"></td>
+                        <td th:text="${pay.instalmentNumber}"></td>
+                        <td class="num" th:text="${@money.format(pay.amount)}"></td>
+                        <td th:text="${pay.status.name() == 'PAID' ? pay.paidWith : (pay.method.name() == 'CARD' ? pay.cardNetwork + ' •••• ' + pay.cardLast4 : pay.method.label)}"></td>
+                        <td><span class="badge" th:classappend="${pay.status.name() == 'PAID'} ? 'active' : (${pay.status.name() == 'PENDING'} ? 'pending' : 'declined')"
+                                  th:text="${pay.status}"></span></td>
+                        <td>
+                            <a class="mono" th:if="${pay.status.name() == 'PAID'}" th:href="@{/customer/loans/payments/{ref}/receipt(ref=${pay.reference})}" th:text="${pay.reference}"></a>
+                            <a th:if="${pay.status.name() == 'PENDING'}" th:href="@{/customer/loans/payments/{ref}(ref=${pay.reference})}">Continue →</a>
+                            <small class="muted" th:if="${pay.status.name() != 'PAID' and pay.status.name() != 'PENDING'}" th:text="${pay.failureReason}"></small>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="panel" th:with="receipts=${v.receipts}">
             <div class="panel-head"><h2>EMI schedule</h2><span class="muted small">Auto-debited from your savings account on each due date</span></div>
             <div class="table-wrap plain schedule">
                 <table class="table">
@@ -91,7 +115,9 @@
                         <td class="num" th:text="${@money.format(i.interestPart)}"></td>
                         <td class="num" th:text="${@money.format(i.balanceAfter)}"></td>
                         <td><span class="badge" th:classappend="${i.status.name() == 'PAID'} ? 'active' : (${i.status.name() == 'OVERDUE'} ? 'declined' : 'pending')"
-                                  th:text="${i.status.name() == 'PAID'} ? ${'PAID ' + #temporals.format(i.paidOn, 'dd MMM')} : ${i.status}"></span></td>
+                                  th:text="${i.status.name() == 'PAID'} ? ${'PAID ' + #temporals.format(i.paidOn, 'dd MMM')} : ${i.status}"></span>
+                            <a class="receipt-link" th:if="${receipts[i.id] != null}" th:title="${receipts[i.id].paidWith}"
+                               th:href="@{/customer/loans/payments/{ref}/receipt(ref=${receipts[i.id].reference})}">Receipt</a></td>
                     </tr>
                     </tbody>
                 </table>

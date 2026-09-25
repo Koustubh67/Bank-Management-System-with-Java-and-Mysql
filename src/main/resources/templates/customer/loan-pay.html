@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/customer :: page(~{::title}, ~{::main})}">
+<head><title>Pay EMI · JavaBank</title></head>
+<body>
+<main class="container cust-main narrow-main" th:with="l=${due.loan}, i=${due.instalment}, a=${due.account}">
+    <p><a th:href="@{/customer/loans/{id}(id=${l.id})}">← Back to loan</a></p>
+
+    <section class="pay-head" th:classappend="${due.overdue} ? 'overdue'">
+        <div>
+            <span class="badge" th:text="${due.overdue} ? 'OVERDUE' : 'EMI DUE'"></span>
+            <h1 th:text="${'Pay EMI ' + i.number + ' of ' + l.tenureMonths}"></h1>
+            <p th:text="${l.type.icon + ' ' + l.type.label + ' · ' + l.reference}"></p>
+        </div>
+        <div class="pay-amount">
+            <strong th:text="${@money.format(i.emi)}"></strong>
+            <small th:text="${(due.overdue ? 'was due ' : 'due ') + #temporals.format(i.dueDate, 'EEE, dd MMM yyyy')}"></small>
+        </div>
+    </section>
+
+    <div class="alert error" th:if="${payError}" th:text="${payError}"></div>
+
+    <section class="panel">
+        <h2>How would you like to pay?</h2>
+        <div class="pay-tabs" role="tablist" aria-label="Payment method">
+            <button type="button" role="tab" data-pay-tab="upi" aria-controls="pm-upi"><span>📱</span><b>UPI</b><small>Scan a QR code</small></button>
+            <button type="button" role="tab" data-pay-tab="card" aria-controls="pm-card"><span>💳</span><b>Debit / credit card</b><small>Card details + OTP</small></button>
+            <button type="button" role="tab" data-pay-tab="account" aria-controls="pm-account"><span>🏦</span><b>Savings account</b><small th:text="${a.shortNumber}"></small></button>
+        </div>
+
+        <!-- UPI -->
+        <div class="pm-panel" id="pm-upi" role="tabpanel">
+            <p>We'll show a QR code for <b th:text="${@money.format(i.emi)}"></b>. Scan it with any UPI app (GPay, PhonePe,
+                Paytm, BHIM or JavaPay) and approve the payment with your UPI PIN. <b>You have 5 minutes to pay.</b></p>
+            <form th:action="@{/customer/loans/{id}/pay/upi(id=${l.id})}" method="post" data-processing="Creating QR code…">
+                <button type="submit" class="btn dark lg">Show UPI QR code</button>
+            </form>
+        </div>
+
+        <!-- Card -->
+        <div class="pm-panel" id="pm-card" role="tabpanel">
+            <div class="error-summary" th:if="${cardErrors}">
+                <strong th:text="${cardErrors.size() == 1} ? 'Please fix this problem:' : 'Please fix these ' + ${cardErrors.size()} + ' problems:'"></strong>
+                <ul><li th:each="e : ${cardErrors}" th:text="${e}"></li></ul>
+                <small th:if="${cardErrors}">For your safety the CVV is never kept: please type it again.</small>
+            </div>
+            <form class="form card-form" th:action="@{/customer/loans/{id}/pay/card(id=${l.id})}" method="post" autocomplete="off"
+                  data-processing="Checking your card…">
+                <label class="field"><span>Card number <b class="card-net" data-card-network></b></span>
+                    <input type="text" name="cardNumber" th:value="${cardNumber}" inputmode="numeric" maxlength="23"
+                           placeholder="1234 5678 9012 3456" required data-card-number></label>
+                <label class="field"><span>Name on card</span>
+                    <input type="text" name="cardHolder" th:value="${cardHolder}" maxlength="80" required placeholder="As printed on the card"></label>
+                <div class="grid">
+                    <label class="field"><span>Expiry (MM/YY)</span>
+                        <input type="text" name="expiry" th:value="${expiry}" inputmode="numeric" maxlength="7" placeholder="MM/YY" required data-card-expiry></label>
+                    <label class="field"><span>CVV</span>
+                        <input type="password" name="cvv" inputmode="numeric" maxlength="4" placeholder="•••" required></label>
+                </div>
+                <button type="submit" class="btn dark lg full" th:text="${'Pay ' + @money.format(i.emi) + ' securely'}">Pay</button>
+                <p class="note">🔒 We never store your CVV or full card number. An OTP is sent to your mobile to confirm,
+                    and you have 5 minutes to enter it.</p>
+                <p class="note demo-note" th:if="${demoEnabled}">Demo: use the test card <b>4111 1111 1111 1111</b> (Visa) or
+                    <b>5555 5555 5555 4444</b> (Mastercard), any future expiry and any CVV. Never enter a real card.</p>
+            </form>
+        </div>
+
+        <!-- Savings account -->
+        <div class="pm-panel" id="pm-account" role="tabpanel">
+            <dl class="details">
+                <dt>Pay from</dt><dd th:text="${'Savings account ' + a.shortNumber}"></dd>
+                <dt>Available balance</dt><dd th:text="${@money.format(a.balance)}"></dd>
+            </dl>
+            <p class="status-banner declined" th:unless="${due.affordable}">Your balance is lower than the EMI. Add money,
+                or pay by UPI or card instead.</p>
+            <form th:action="@{/customer/loans/{id}/pay/account(id=${l.id})}" method="post" data-processing="Paying…">
+                <button type="submit" class="btn dark lg" th:disabled="${!due.affordable}"
+                        th:text="${'Pay ' + @money.format(i.emi) + ' now'}">Pay now</button>
+            </form>
+        </div>
+    </section>
+    <script th:src="@{/js/pay.js}"></script>
+</main>
+</body>
+</html>
